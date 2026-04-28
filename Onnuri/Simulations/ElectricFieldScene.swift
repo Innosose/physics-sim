@@ -22,7 +22,7 @@ struct ElectricFieldScene: View {
     }
 
     var body: some View {
-        SimChrome(title: "전기력선",
+        SimChrome(
                   blurb: "양전하(빨강)에서 음전하(파랑)로 흐르는 전기력선. 격자 위 화살표는 그 점에서의 전기장 방향과 세기.",
                   canvas: { canvas },
                   controls: { controls })

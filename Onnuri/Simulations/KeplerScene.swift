@@ -17,7 +17,7 @@ struct KeplerScene: View {
     @State private var lastTime: TimeInterval? = nil
 
     var body: some View {
-        SimChrome(title: "케플러 궤도",
+        SimChrome(
                   blurb: "v₀ 가 작으면 타원, 원궤도 속도(√(GM/r))이면 원, 더 크면 더 길쭉한 타원/포물선/쌍곡선.",
                   canvas: { canvas },
                   controls: { controls })

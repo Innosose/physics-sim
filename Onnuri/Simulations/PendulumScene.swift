@@ -6,6 +6,9 @@ import SwiftUI
 /// 선형:    d²θ/dt² = -(g/L) θ      − γ·dθ/dt
 /// RK4 적분.
 struct PendulumScene: View {
+    /// 초등용 모드 — 슬라이더와 측정값을 줄이고, 작은-각 비교 진자도 숨긴다.
+    var simpleMode: Bool = false
+
     @State private var length: Double = 1.5      // m
     @State private var gravity: Double = 9.81    // m/s²
     @State private var damping: Double = 0.0     // 1/s
@@ -18,8 +21,10 @@ struct PendulumScene: View {
     @State private var lastTime: TimeInterval? = nil
 
     var body: some View {
-        SimChrome(title: "단진자",
-                  blurb: "노란색은 정확한 비선형 해, 회색은 작은-각 근사. 진폭이 커질수록 둘은 점점 어긋난다.",
+        SimChrome(
+                  blurb: simpleMode
+                      ? "줄이 길어지면 천천히 흔들리고, 무거워도 주기는 변하지 않아요. 직접 줄 길이를 바꿔 보세요."
+                      : "노란색은 정확한 비선형 해, 회색은 작은-각 근사. 진폭이 커질수록 둘은 점점 어긋난다.",
                   canvas: { canvas },
                   controls: { controls })
             .onAppear { reset() }
@@ -40,21 +45,24 @@ struct PendulumScene: View {
         VStack(alignment: .leading, spacing: 10) {
             LabeledSlider(title: "줄 길이 L", value: $length, range: 0.3...3.0,
                           format: "%.2f", unit: "m")
-            LabeledSlider(title: "중력", value: $gravity, range: 1.62...24.79,
-                          format: "%.2f", unit: "m/s²")
-            LabeledSlider(title: "감쇠 γ", value: $damping, range: 0...1.5,
-                          format: "%.2f", unit: "1/s")
+            if !simpleMode {
+                LabeledSlider(title: "중력", value: $gravity, range: 1.62...24.79,
+                              format: "%.2f", unit: "m/s²")
+                LabeledSlider(title: "감쇠 γ", value: $damping, range: 0...1.5,
+                              format: "%.2f", unit: "1/s")
+            }
             LabeledSlider(title: "초기 각도", value: $initialAngleDeg, range: 1...170,
                           step: 1, format: "%.0f", unit: "°")
-            HStack {
-                Button(running ? "일시정지" : "재생") { running.toggle() }
-                Button("초기화") { reset() }
-            }
+            PlayResetBar(running: $running, onReset: reset)
             Divider()
-            Readout(label: "주기 (작은각) T₀",
+            Readout(label: simpleMode ? "흔들리는 한 번 시간 (주기)" : "주기 (작은각) T₀",
                     value: String(format: "%.3f s", 2 * .pi * sqrt(length / gravity)))
-            Readout(label: "비선형 θ", value: String(format: "%.1f°", nlState.theta * 180 / .pi))
-            Readout(label: "선형   θ", value: String(format: "%.1f°", linState.theta * 180 / .pi))
+            if !simpleMode {
+                Readout(label: "비선형 θ",
+                        value: String(format: "%.1f°", nlState.theta * 180 / .pi))
+                Readout(label: "선형   θ",
+                        value: String(format: "%.1f°", linState.theta * 180 / .pi))
+            }
         }
     }
 
@@ -111,8 +119,10 @@ struct PendulumScene: View {
         ctx.stroke(ceil, with: .color(.white.opacity(0.5)), lineWidth: 2)
 
         // 두 진자 그리기.
-        drawBob(ctx: ctx, map: map, pivot: Vec2(x: 0, y: 1.0),
-                theta: linState.theta, color: .gray, alpha: 0.55, label: nil)
+        if !simpleMode {
+            drawBob(ctx: ctx, map: map, pivot: Vec2(x: 0, y: 1.0),
+                    theta: linState.theta, color: .gray, alpha: 0.55, label: nil)
+        }
         drawBob(ctx: ctx, map: map, pivot: Vec2(x: 0, y: 1.0),
                 theta: nlState.theta, color: .yellow, alpha: 1.0, label: "비선형")
     }

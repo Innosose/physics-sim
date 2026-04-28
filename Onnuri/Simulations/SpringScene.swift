@@ -23,7 +23,7 @@ struct SpringScene: View {
     private let traceLen = 360
 
     var body: some View {
-        SimChrome(title: "감쇠·구동 진동자",
+        SimChrome(
                   blurb: "감쇠 진동의 시간 응답과 공명 곡선. 구동 진동수 ω_d 를 고유진동수 √(k/m) 근처로 맞추면 진폭이 최대가 된다.",
                   canvas: { canvas },
                   controls: { controls })

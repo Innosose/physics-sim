@@ -17,7 +17,7 @@ struct WaveSumScene: View {
     @State private var running = true
 
     var body: some View {
-        SimChrome(title: "파동의 중첩",
+        SimChrome(
                   blurb: "두 진동수가 가까우면 맥놀이가, 같은 진동수의 반대방향 파끼리는 정상파가 만들어진다.",
                   canvas: { canvas },
                   controls: { controls })

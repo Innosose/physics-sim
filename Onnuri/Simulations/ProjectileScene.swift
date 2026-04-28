@@ -14,7 +14,7 @@ struct ProjectileScene: View {
     @State private var running = true
 
     var body: some View {
-        SimChrome(title: "포물선 운동",
+        SimChrome(
                   blurb: "검정 자취는 공기 저항이 있을 때, 회색 점선은 진공일 때. 공기 저항은 포물선을 비대칭으로 만든다.",
                   canvas: { canvas },
                   controls: { controls })

@@ -22,7 +22,7 @@ struct RLCScene: View {
     private let traceLen = 360
 
     var body: some View {
-        SimChrome(title: "직렬 RLC 회로",
+        SimChrome(
                   blurb: "공명 진동수 ω₀ = 1/√(LC) 에서 |Z| 가 최소이고 전류가 최대. ω 가 ω₀ 보다 작으면 용량성, 크면 유도성 위상.",
                   canvas: { canvas },
                   controls: { controls })

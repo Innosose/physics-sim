@@ -23,7 +23,7 @@ struct LorentzScene: View {
     @State private var lastTime: TimeInterval? = nil
 
     var body: some View {
-        SimChrome(title: "자기장 속 하전입자",
+        SimChrome(
                   blurb: "B 만 있으면 원운동 (반지름 r = mv/|qB|). E 도 있으면 E×B 방향으로 일정 속도 표류 (v_d = E×B / B²).",
                   canvas: { canvas },
                   controls: { controls })

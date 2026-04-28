@@ -13,7 +13,7 @@ struct DoubleSlitScene: View {
     @State private var showEnvelope = true
 
     var body: some View {
-        SimChrome(title: "이중 슬릿",
+        SimChrome(
                   blurb: "좁은 슬릿 두 개를 통과한 빛은 간섭한다. 가는 슬릿일수록 단일슬릿 회절 봉투가 넓어진다.",
                   canvas: { canvas },
                   controls: { controls })

@@ -24,7 +24,7 @@ struct CollisionScene: View {
     private let trackHalf = 6.0   // m
 
     var body: some View {
-        SimChrome(title: "1차원 충돌",
+        SimChrome(
                   blurb: "운동량은 항상 보존, 운동에너지는 e=1 일 때만 보존. 화면 아래에 충돌 직후 측정값이 나타난다.",
                   canvas: { canvas },
                   controls: { controls })

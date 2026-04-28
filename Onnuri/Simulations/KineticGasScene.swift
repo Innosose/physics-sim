@@ -22,7 +22,7 @@ struct KineticGasScene: View {
     struct Particle { var pos: Vec2; var vel: Vec2 }
 
     var body: some View {
-        SimChrome(title: "기체 분자 운동",
+        SimChrome(
                   blurb: "초기에 모두 같은 속력이라도, 입자 간 충돌만으로 속력 분포는 맥스웰–볼츠만 모양으로 가까워진다.",
                   canvas: { canvas },
                   controls: { controls })

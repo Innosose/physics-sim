@@ -12,7 +12,7 @@ struct DopplerScene: View {
     @State private var running = true
 
     var body: some View {
-        SimChrome(title: "도플러 효과",
+        SimChrome(
                   blurb: "음원 앞쪽은 파면이 빽빽 (높은 진동수), 뒤쪽은 듬성듬성 (낮은 진동수). v_s → c 일 때 마하 충격파가 형성된다.",
                   canvas: { canvas },
                   controls: { controls })

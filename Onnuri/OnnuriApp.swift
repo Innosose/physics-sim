@@ -4,10 +4,11 @@ import SwiftUI
 struct OnnuriApp: App {
     var body: some Scene {
         WindowGroup {
-            RootView()
+            StartView()
+                .preferredColorScheme(.dark)
         }
         #if os(macOS)
-        .defaultSize(width: 1100, height: 720)
+        .defaultSize(width: 1100, height: 760)
         #endif
     }
 }

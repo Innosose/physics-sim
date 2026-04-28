@@ -14,7 +14,7 @@ struct LensScene: View {
     @State private var diverging: Bool = false      // toggle for f<0
 
     var body: some View {
-        SimChrome(title: "얇은 렌즈 결상",
+        SimChrome(
                   blurb: "p > f → 실상(뒤집힘). p < f → 허상(똑바로). 발산 렌즈는 항상 허상.",
                   canvas: { canvas },
                   controls: { controls })
@@ -126,31 +126,16 @@ struct LensScene: View {
                 points: [pTip,
                          Vec2(x: 0, y: 0),
                          Vec2(x: span, y: -objectHeight * span / objectDist)])
-        // 광선 ③: tip → 전초점 F(-|f|,0) → 렌즈에서의 높이 → 평행
-        let yLens3: Double
-        if f > 0 {
-            // 입사광선 (-p, h_o) → (-f, 0) → 렌즈 (x=0).
-            // 기울기 m = (0 - h_o) / (-f - (-p)) = -h_o / (p - f).
-            // 렌즈에서 y = 0 + m·f = -h_o·f / (p - f).
-            let dx = objectDist - f
-            let slope = abs(dx) > 1e-6 ? -objectHeight / dx : 0
-            yLens3 = slope * f
-        } else {
-            // 발산렌즈: 광선 ③은 후방 초점(F' = -|f|? 사실 발산렌즈 후방 초점은 음의 f)
-            // 단순화: 광선 ③ 를 광축 평행으로 그린다 (정확한 작도는 렌즈 평면에서 굴절).
-            yLens3 = objectHeight
-        }
-        let after3: Vec2
-        if f > 0 {
-            after3 = Vec2(x: span, y: yLens3)   // 평행
-        } else {
-            // 광축에 평행하게 입사 → 굴절 후 발산 (가상으로 후방 초점을 통과한 듯)
-            after3 = pointAfterRefraction(throughLensAt: lensY, slope: -lensY / f)
-        }
+        // 광선 ③: 굴절 후 광축에 평행이 되는 광선.
+        // 얇은 렌즈 굴절식 m_after = m_before − y_lens / f, m_after = 0 일 조건.
+        // 입사광선 직선식 (y_lens − h_o)/p = m_before = y_lens/f
+        //   ⇒ y_lens = −f·h_o / (p − f).  수렴·발산 모두에 동일.
+        let denom = objectDist - f
+        let yLens3 = abs(denom) > 1e-6 ? -f * objectHeight / denom : 0.0
         drawRay(ctx: ctx, map: map,
-                points: f > 0
-                    ? [pTip, Vec2(x: -abs(f), y: 0), Vec2(x: 0, y: yLens3), after3]
-                    : [pTip, Vec2(x: 0, y: lensY), after3])
+                points: [pTip,
+                         Vec2(x: 0, y: yLens3),
+                         Vec2(x: span, y: yLens3)])
 
         // 상 화살표.
         if q.isFinite {
