@@ -70,7 +70,6 @@ struct FreeCollisionScene: View {
         TimelineView(.animation(paused: !running)) { tl in
             GeometryReader { geo in
                 Canvas { ctx, size in
-                    advance(to: tl.date.timeIntervalSinceReferenceDate)
                     draw(ctx: ctx, size: size)
                 }
                 .contentShape(Rectangle())
@@ -80,6 +79,9 @@ struct FreeCollisionScene: View {
                             addParticle(at: e.location, in: geo.size)
                         }
                 )
+                .onChange(of: tl.date) { _, newDate in
+                    advance(to: newDate.timeIntervalSinceReferenceDate)
+                }
             }
         }
     }

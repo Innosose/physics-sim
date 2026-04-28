@@ -33,8 +33,10 @@ struct KineticGasScene: View {
     private var canvas: some View {
         TimelineView(.animation(paused: !running)) { tl in
             Canvas { ctx, size in
-                advance(to: tl.date.timeIntervalSinceReferenceDate)
                 draw(ctx: ctx, size: size)
+            }
+            .onChange(of: tl.date) { _, newDate in
+                advance(to: newDate.timeIntervalSinceReferenceDate)
             }
         }
     }

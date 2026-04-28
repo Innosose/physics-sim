@@ -40,36 +40,33 @@ struct FreeGravityScene: View {
     }
 
     private var canvas: some View {
+        // Canvas 렌더 클로저 안에서 state 를 변형하면 SwiftUI 가 "Modifying
+        // state during view update" 경고 + Swift 6 strict 모드에서 동작 막힘.
+        // .onChange(of: tl.date) 로 frame 사이에 advance — 깨끗.
         TimelineView(.animation(paused: !running)) { tl in
             Canvas { ctx, size in
-                advance(to: tl.date.timeIntervalSinceReferenceDate)
                 draw(ctx: ctx, size: size)
+            }
+            .onChange(of: tl.date) { _, newDate in
+                advance(to: newDate.timeIntervalSinceReferenceDate)
             }
         }
     }
 
+    /// 단순화된 컨트롤 — 프리셋 + G + 재생/초기화 + 별 수.
     private var controls: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
             Picker("배치", selection: $preset) {
-                Text("태양–3행성").tag(0)
+                Text("태양 3").tag(0)
                 Text("이중성").tag(1)
-                Text("3체 8자").tag(2)
-                Text("4체 클러스터").tag(3)
-                Text("8체 무작위").tag(4)
+                Text("8자").tag(2)
+                Text("4체").tag(3)
+                Text("8체").tag(4)
             }
             .pickerStyle(.segmented)
-            LabeledSlider(title: "중력 상수 G", value: $G, range: 0.2...3,
+            LabeledSlider(title: "중력 G", value: $G, range: 0.2...3,
                           format: "%.2f")
             PlayResetBar(running: $running, onReset: applyPreset)
-            Divider()
-            Readout(label: "별 수", value: "\(bodies.count)")
-            let p = totalMomentum
-            Readout(label: "총 운동량 |p|",
-                    value: String(format: "%.2f", p.length))
-            Readout(label: "총 각운동량 L",
-                    value: String(format: "%.2f", totalAngularMomentum))
-            Readout(label: "총 에너지 (KE + PE)",
-                    value: String(format: "%.2f", totalEnergy))
         }
     }
 

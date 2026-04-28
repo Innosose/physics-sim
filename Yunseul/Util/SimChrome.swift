@@ -69,44 +69,23 @@ struct SimChrome<Canvas: View, Controls: View>: View {
     }
 
     private func propertiesPanel(width: CGFloat?) -> some View {
-        VStack(spacing: 0) {
-            // 1) 교육과정 + 공식 카드 (있을 때만).
-            if let item {
-                ConceptCard(item: item)
-                    .padding(14)
-            }
-
-            // 2) 작은 PROPERTIES 헤더.
-            HStack {
-                Image(systemName: "slider.horizontal.3")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(Theme.mist)
-                Text("PROPERTIES")
-                    .font(.themeHeader)
-                    .foregroundStyle(Theme.mist)
-                Spacer()
-            }
-            .padding(.horizontal, 14)
-            .padding(.top, item == nil ? 10 : 4)
-
-            // 3) blurb + 컨트롤.
-            ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 12) {
-                    if !blurb.isEmpty {
-                        Text(blurb)
-                            .font(.caption)
-                            .foregroundStyle(Theme.mist)
-                            .lineSpacing(2)
-                            .padding(.horizontal, 14)
-                            .padding(.top, 8)
-                            .padding(.bottom, 4)
-                    }
-                    controls()
-                        .padding(.horizontal, 14)
-                        .padding(.bottom, 14)
+        // 단순화 — 교육과정/공식 카드 + 컨트롤 만. PROPERTIES 헤더 제거,
+        // blurb 도 없으면 표시하지 않음.
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 14) {
+                if let item {
+                    ConceptCard(item: item)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                if !blurb.isEmpty {
+                    Text(blurb)
+                        .font(.caption)
+                        .foregroundStyle(Theme.mist)
+                        .lineSpacing(2)
+                }
+                controls()
             }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .frame(maxWidth: width == nil ? .infinity : width)
         .frame(maxHeight: .infinity)
