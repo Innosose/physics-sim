@@ -132,11 +132,13 @@ struct ConceptCard: View {
             .accessibilityLabel("교육과정 위치: \(item.curriculum)")
 
             // 공식 박스 — GeoGebra 의 수식 영역처럼 강조.
+            // 줄바꿈을 허용하고, 한 줄짜리 짧은 공식은 자연스럽게 한 줄에 들어간다.
+            // (`minimumScaleFactor` 는 lineLimit(1) 와 함께일 때만 의미 — 여기선
+            // wrap 으로 처리.)
             Text(item.formula)
                 .font(.system(.footnote, design: .monospaced).weight(.medium))   // HIG: Dynamic Type
                 .foregroundStyle(Theme.ink)
                 .lineSpacing(3)
-                .minimumScaleFactor(0.78)
                 .textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 12)

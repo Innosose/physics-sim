@@ -206,7 +206,6 @@ struct KineticGasScene: View {
         axis.addLine(to: CGPoint(x: r.maxX - 4, y: r.maxY - 14))
         ctx.stroke(axis, with: .color(.white.opacity(0.3)), lineWidth: 1)
 
-        let total = max(1.0, histAcc.reduce(0, +))
         let bw = (r.width - 8) / CGFloat(histBins)
         let maxBin = max(0.001, histAcc.max() ?? 0.001)
         for (i, v) in histAcc.enumerated() {
@@ -221,6 +220,8 @@ struct KineticGasScene: View {
         guard !speeds.isEmpty else { return }
         let mean2 = speeds.reduce(0) { $0 + $1 * $1 } / Double(speeds.count)
         let sigma2 = mean2 / 2
+        // 모든 입자가 정지(σ²=0) 면 분포 자체가 정의 안됨 — 이론 곡선 생략.
+        guard sigma2 > 1e-9 else { return }
         var theory = Path()
         let n = 200
         let vmax = 1.5
@@ -234,7 +235,7 @@ struct KineticGasScene: View {
         for (i, fv) in fs.enumerated() {
             let f = CGFloat(i) / CGFloat(n)
             let px = r.minX + 4 + f * (r.width - 8)
-            let py = r.maxY - 14 - CGFloat(fv / maxF) * (r.height - 40) * CGFloat(total / total)
+            let py = r.maxY - 14 - CGFloat(fv / maxF) * (r.height - 40)
             if i == 0 { theory.move(to: CGPoint(x: px, y: py)) }
             else { theory.addLine(to: CGPoint(x: px, y: py)) }
         }
