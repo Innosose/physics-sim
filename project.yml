@@ -2,11 +2,11 @@
 #
 #   brew install xcodegen
 #   xcodegen generate
-#   open Onnuri.xcodeproj
+#   open Yunseul.xcodeproj
 
-name: Onnuri
+name: Yunseul
 options:
-  bundleIdPrefix: app.onnuri
+  bundleIdPrefix: app.yunseul
   deploymentTarget:
     iOS: "26.0"
   createIntermediateGroups: true
@@ -19,20 +19,20 @@ settings:
     CODE_SIGN_STYLE: Automatic
     GENERATE_INFOPLIST_FILE: YES
     CURRENT_PROJECT_VERSION: "1"
-    MARKETING_VERSION: "0.3"
-    INFOPLIST_KEY_CFBundleDisplayName: 온누리
+    MARKETING_VERSION: "0.4"
+    INFOPLIST_KEY_CFBundleDisplayName: 윤슬
     INFOPLIST_KEY_LSApplicationCategoryType: "public.app-category.education"
 
 targets:
-  Onnuri:
+  Yunseul:
     type: application
     supportedDestinations: [iOS, iPadOS]
     sources:
-      - path: Onnuri
+      - path: Yunseul
     settings:
       base:
-        PRODUCT_NAME: Onnuri
-        PRODUCT_BUNDLE_IDENTIFIER: app.onnuri.Onnuri
+        PRODUCT_NAME: Yunseul
+        PRODUCT_BUNDLE_IDENTIFIER: app.yunseul.Yunseul
         ENABLE_PREVIEWS: YES
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor

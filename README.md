@@ -1,13 +1,12 @@
-# 온누리 (Onnuri)
+# 윤슬 (Yunseul)
 
-> "온 세상" 을 뜻하는 순우리말. 초등 / 중등 / 고등 교육과정과 자유 샌드박스를
-> 한데 모은 SwiftUI 물리 시뮬 앱 — **iOS 26 / iPadOS 26 전용**.
-
-## 디자인: 윤슬 (Yunseul)
-
-> **윤슬** — 햇빛·달빛에 어린 잔물결. 또 다른 순우리말.
+> "햇빛·달빛에 어린 잔물결" 을 뜻하는 순우리말. 초등 / 중등 / 고등
+> 교육과정과 자유 샌드박스를 한데 모은 SwiftUI 물리 시뮬 앱
+> — **iOS 26 / iPadOS 26 전용**.
 
 깊은 밤바다 위에 떠 있는 따뜻한 금빛 결을 모티프로 한 고유한 디자인 시스템.
+
+## 디자인 토큰
 
 | 토큰 | 색 | 용도 |
 |------|-----|-----|
@@ -30,7 +29,7 @@
 ## 시작화면 → 학년별 카탈로그
 
 ```
-            온누리
+              윤슬
    ──────────────────────
        [ 초등학교 ]
        [ 중학교  ]
@@ -112,13 +111,13 @@
 ```sh
 brew install xcodegen
 xcodegen generate
-open Onnuri.xcodeproj
+open Yunseul.xcodeproj
 ```
 
 `project.yml` 한 파일이 모든 빌드 설정을 담고 있다. 직접 만들고 싶으면
-Xcode → File ▸ New ▸ Project ▸ App (iOS), Bundle ID `app.onnuri.Onnuri`,
-Interface SwiftUI, Language Swift. 기본 `ContentView.swift`/`OnnuriApp.swift`
-삭제 후 이 저장소의 `Onnuri/` 안 모든 `.swift` 와 `Resources/Assets.xcassets`
+Xcode → File ▸ New ▸ Project ▸ App (iOS), Bundle ID `app.yunseul.Yunseul`,
+Interface SwiftUI, Language Swift. 기본 `ContentView.swift`/`YunseulApp.swift`
+삭제 후 이 저장소의 `Yunseul/` 안 모든 `.swift` 와 `Resources/Assets.xcassets`
 를 끌어 넣는다.
 
 ### 시스템 요구사항
@@ -129,8 +128,8 @@ Interface SwiftUI, Language Swift. 기본 `ContentView.swift`/`OnnuriApp.swift`
 ## 코드 구조
 
 ```
-Onnuri/
-├── OnnuriApp.swift               @main
+Yunseul/
+├── YunseulApp.swift              @main
 ├── StartView.swift               시작화면 (학년 선택 + 자유 링크)
 ├── CurriculumView.swift          학년별 시뮬 목록
 ├── Util/

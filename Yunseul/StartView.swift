@@ -37,18 +37,18 @@ struct StartView: View {
                 Circle()
                     .fill(Theme.glow)
                     .frame(width: 8, height: 8)
-                Text("ONNURI")
+                Text("YUNSEUL")
                     .font(.system(size: 12, weight: .bold, design: .monospaced))
                     .tracking(3)
                     .foregroundStyle(Theme.mist)
             }
-            Text("온누리")
+            Text("윤슬")
                 .font(.themeTitle)
                 .foregroundStyle(Theme.ink)
             Text("물리를 눈으로 보는 시뮬레이션 모음")
                 .font(.callout)
                 .foregroundStyle(Theme.mist)
-            // 윤슬 — 표제 아래 작은 금빛 잔물결.
+            // 표제 아래 작은 금빛 잔물결 — 이름의 뜻을 그대로 보여주는 장식.
             RippleAccent()
                 .frame(width: 96, height: 10)
                 .padding(.top, 2)
