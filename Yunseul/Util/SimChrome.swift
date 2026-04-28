@@ -130,20 +130,21 @@ struct ConceptCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            // 교육과정 칩 — HIG: 아이콘 + 라벨 (color-only 가 아닌 텍스트 동반).
+            // 교육과정 칩 + 계산 종류 배지.
             HStack(spacing: 6) {
                 Image(systemName: "graduationcap.fill")
                     .imageScale(.small)
                     .foregroundStyle(Theme.glow)
-                    .accessibilityHidden(true)             // HIG: 옆 라벨이 의미 전달
+                    .accessibilityHidden(true)
                 Text(item.curriculum)
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(Theme.ink)
                     .lineLimit(2)
                 Spacer(minLength: 0)
+                CalcKindBadge(kind: item.calcKind)
             }
             .accessibilityElement(children: .combine)
-            .accessibilityLabel("교육과정 위치: \(item.curriculum)")
+            .accessibilityLabel("교육과정 위치: \(item.curriculum). 계산 종류: \(item.calcKind.label).")
 
             // 공식 박스 — GeoGebra 의 수식 영역처럼 강조.
             // 줄바꿈을 허용하고, 한 줄짜리 짧은 공식은 자연스럽게 한 줄에 들어간다.
@@ -177,6 +178,27 @@ struct ConceptCard: View {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .stroke(Theme.stroke, lineWidth: 1)
         )
+    }
+}
+
+// MARK: - 계산 종류 배지
+
+/// 닫힌 해 / 이벤트 기반 / 수치 — 작은 색 배지로 표시.
+struct CalcKindBadge: View {
+    let kind: SimCalcKind
+    var body: some View {
+        Text(kind.label)
+            .font(.system(size: 10, weight: .heavy, design: .rounded))
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .foregroundStyle(kind.badgeColor)
+            .background(
+                Capsule().fill(kind.badgeColor.opacity(0.16))
+            )
+            .overlay(
+                Capsule().stroke(kind.badgeColor.opacity(0.45), lineWidth: 1)
+            )
+            .accessibilityLabel("계산 종류: \(kind.label)")
     }
 }
 

@@ -242,8 +242,7 @@ enum SimulationCatalog {
 // MARK: - 시뮬 ↔ 계산기 매핑
 
 extension SimulationItem {
-    /// 이 시뮬과 짝이 되는 계산기 토픽이 있으면 반환. 시뮬 우상단의
-    /// "계산기 열기" 버튼이 가리키는 대상.
+    /// 이 시뮬과 짝이 되는 계산기 토픽이 있으면 반환.
     var calculatorTopic: CalculatorTopic? {
         switch id {
         case "freefall":    return .freefall
@@ -257,6 +256,43 @@ extension SimulationItem {
         case "doubleslit":  return .slit
         case "circuit":     return .ohm
         default:            return nil
+        }
+    }
+
+    /// 시뮬의 계산 종류 — 닫힌 해 / 이벤트 기반 / 수치.
+    /// ConceptCard 에 작은 배지로 노출.
+    var calcKind: SimCalcKind {
+        switch id {
+        case "kinetic", "freecollide": return .eventBased
+        case "freegravity":            return .numerical
+        default:                       return .closed
+        }
+    }
+}
+
+/// 시뮬이 결과를 어떻게 계산하는지의 분류.
+enum SimCalcKind {
+    /// 모든 시간에서 분석해 (예: 포물선·진자 cn·렌즈·스넬·도플러 등).
+    case closed
+    /// 사건(충돌) 기반 — 사건 사이에는 닫힌 해(등속 운동), 사건 시 닫힌 해 임펄스.
+    /// 시간 흐름은 작은 dt 로 사건을 검출하기 때문에 "엄밀 닫힌 해" 와 구분.
+    case eventBased
+    /// 수치 적분 (Verlet 등) — N체 중력 다체 문제 등 닫힌 해 부재 영역.
+    case numerical
+
+    var label: String {
+        switch self {
+        case .closed:     return "닫힌 해"
+        case .eventBased: return "이벤트 기반"
+        case .numerical:  return "수치"
+        }
+    }
+
+    var badgeColor: Color {
+        switch self {
+        case .closed:     return Color(red: 0.42, green: 0.79, blue: 0.45)   // 박하
+        case .eventBased: return Color(red: 0.55, green: 0.45, blue: 0.95)   // 자수정
+        case .numerical:  return Color(red: 0.95, green: 0.66, blue: 0.30)   // 호박
         }
     }
 }
