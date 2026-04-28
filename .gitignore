@@ -1,7 +1,21 @@
+# Legacy C++ build
 physics_sim
 *.o
 *.obj
 *.dSYM/
 build/
+
+# Xcode / Swift
+Onnuri.xcodeproj/
+DerivedData/
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+*.xcuserstate
+.swiftpm/
+.build/
+Package.resolved
+
+# Editor
 .vscode/
 .idea/
+.DS_Store

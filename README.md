@@ -1,80 +1,93 @@
-# physics-sim — 교육용 물리 시뮬레이션 (단일 파일)
+# 온누리 (Onnuri)
 
-작은 SDL2 + OpenGL 3.3 프로그램. 외부 의존성은 SDL2 만. 학생이 코드 전체
-(~400 줄) 를 읽고 이해할 수 있도록 의도적으로 압축.
+> "온 세상" 을 뜻하는 순우리말. 대학교 2학년까지의 물리를 눈으로 볼 수 있게
+> 만든 SwiftUI 시뮬레이션 모음 — iOS / iPadOS / macOS.
 
-## 학습 포인트
+외부 의존성 없이 SwiftUI 표준 컴포넌트(`Canvas`, `TimelineView`) 만 사용.
 
-1. **Semi-implicit Euler 적분기** — `physics_step()` 함수 한 곳에 중력,
-   drag (선형 감쇠), 위치 갱신, 바닥 충돌이 모두 들어 있음.
-2. **에너지 보존** — drag=0 일 때 KE+PE 가 거의 일정 (수치 적분 1-2% drift).
-   bounce 시 inelastic → 가시적 KE 감소.
-3. **충돌 응답** — `if (b.pos.y < floor + radius)` 분기에서 위치 보정 +
-   속도 반사 (restitution). 가장 단순한 상호작용.
-4. **OpenGL 최소 파이프라인** — VS/FS shader 한 페어, 단위 cube 1 개,
-   uniform 으로 색/모델 행렬 변경. Lambert 조명만.
+## 수록 시뮬레이션
 
-## 의존성
-
-| 플랫폼 | 패키지 |
-|--------|--------|
-| Linux (apt) | `libsdl2-dev` |
-| macOS (brew) | `sdl2` |
-| Windows (vcpkg) | `sdl2` |
+| 분류 | 시뮬 | 다루는 개념 |
+|------|------|------|
+| 역학 | 포물선 운동 | 등가속도 운동, 선형 공기저항의 해석해 |
+|     | 단진자 | 비선형 ODE 와 작은-각 근사 비교 (RK4) |
+|     | 감쇠·구동 진동자 | 감쇠비 ζ, 공명 곡선 \|X(ω)\| |
+|     | 1차원 충돌 | 운동량 보존, 반발계수 e, KE 변화 |
+|     | 케플러 궤도 | 역제곱 중심력, 타원/포물선/쌍곡선, L 보존 |
+| 파동·열 | 파동의 중첩 | 맥놀이, 정상파 |
+|     | 도플러 효과 | 움직이는 음원의 파면, 마하 충격파 |
+|     | 기체 분자 운동 | 딱딱한 원판 충돌, 맥스웰–볼츠만 분포 |
+| 전자기 | 전기력선 | 점전하 배치, 전기장 적분으로 그린 흐름선 |
+|     | 자기장 속 하전입자 | 사이클로트론 운동, E×B 표류 |
+|     | RLC 회로 | 공명 ω₀ = 1/√(LC), 위상, 임피던스 곡선 |
+| 광학 | 이중 슬릿 | 간섭 ⊗ 단일슬릿 회절의 합성 패턴 |
+|     | 얇은 렌즈 결상 | 1/f = 1/p + 1/q, 광선 작도, 실상/허상 |
 
 ## 빌드 & 실행
 
-```bash
-./build.sh           # POSIX (Linux/macOS)
-./physics_sim
+### 1) Xcode 프로젝트 생성
+
+`.xcodeproj` 파일은 저장소에 포함하지 않았다. [XcodeGen](https://github.com/yonaskolb/XcodeGen) 으로 생성한다.
+
+```sh
+brew install xcodegen
+xcodegen generate
+open Onnuri.xcodeproj
 ```
 
-또는 수동 컴파일:
-```bash
-c++ -std=c++17 -O2 -o physics_sim src/physics_sim.cpp \
-    $(sdl2-config --cflags --libs) -lGL -ldl   # Linux
+`project.yml` 한 파일이 모든 빌드 설정을 담고 있다.
+
+### 2) 직접 만들고 싶다면
+
+XcodeGen 없이 진행하려면:
+
+1. Xcode → *File ▸ New ▸ Project ▸ App* (Multiplatform)
+2. Product Name: `Onnuri`, Bundle Identifier: `app.onnuri.Onnuri`,
+   Interface: SwiftUI, Language: Swift.
+3. 생성된 기본 `ContentView.swift`, `OnnuriApp.swift` 를 삭제하고 이 저장소의
+   `Onnuri/` 안의 모든 `.swift` 파일과 `Resources/Assets.xcassets` 를 끌어다 넣는다.
+4. *Signing & Capabilities* 에서 Team 선택 후 시뮬레이터로 실행.
+
+### 시스템 요구사항
+
+- Xcode 15 이상
+- iOS 17 / iPadOS 17 / macOS 14 (Sonoma) 이상
+
+## 코드 구조
+
+```
+Onnuri/
+├── OnnuriApp.swift          # @main 진입점
+├── RootView.swift           # NavigationSplitView 카탈로그
+├── Util/
+│   ├── Vec2.swift           # 2D 벡터 연산
+│   ├── CanvasMap.swift      # 월드(미터) ↔ 픽셀 변환
+│   └── SimChrome.swift      # 공통 레이아웃, 슬라이더, 측정값 행
+├── Models/
+│   └── SimulationCatalog.swift   # 카탈로그 + 분류
+├── Simulations/             # 13 개 시뮬 화면
+└── Resources/Assets.xcassets
 ```
 
-## 조작
+각 시뮬 파일은 `View` 한 개로 자체 완결 — 위 화면(Canvas) + 우측 컨트롤
+패널의 동일한 패턴을 따른다. `TimelineView(.animation(paused:))` 로 고정
+프레임 갱신, 필요한 경우 그 안에서 직접 ODE 적분.
 
-| 키 | 동작 |
-|----|------|
-| `Space` | 다시 발사 (위치/속도 reset) |
-| `↑ ↓` | 발사각 ±5° (0..89°) |
-| `← →` | 초속력 ±2 m/s (1..50) |
-| `D` | drag toggle (0 ↔ 0.10) |
-| `ESC` | 종료 |
+## 학습 동선 제안
 
-stdout 에 0.5 초 간격으로 측정값 출력:
-```
-t= 1.00s  pos=( -6.97, 7.48)  vel=( 8.03, 1.66) |v|= 8.20  KE= 33.62 PE= 63.58 E= 97.20  [angle=55 speed=14 drag=0]
-```
+1. **포물선 → 단진자 → 감쇠·구동 진동자**: 1자유도 ODE 의 단순화에서 비선형,
+   감쇠, 강제 진동까지의 흐름.
+2. **충돌 → 케플러**: 운동량/에너지/각운동량 보존을 시각적으로.
+3. **파동 중첩 → 도플러 → 이중슬릿**: 시간/공간에서의 위상 차가 만드는 무늬.
+4. **전기력선 → 자기장 속 하전입자 → RLC**: 정적장 → 운동 → 회로 응답.
+5. **얇은 렌즈**: 광선 작도와 부호 규약.
 
-## 코드 구조 (src/physics_sim.cpp)
+## 기존 C++/SDL 데모
 
-| 섹션 | 줄 | 내용 |
-|------|----|------|
-| GL 함수 포인터 로드 | 35-90 | macOS/Win 용 `SDL_GL_GetProcAddress` |
-| `Vec3`, `Mat4` | 95-145 | 최소 선형대수 (perspective, look_at) |
-| `Body`, `physics_step` | 150-180 | 적분기 본체 |
-| Shader / mesh | 185-260 | VS+FS, 단위 cube 36 vert |
-| `main` | 265-끝 | SDL 초기화, 메인 루프, 발사 / 키 / 렌더 |
-
-## 실험 제안
-
-1. `gravity = 1.62` — 달 중력. 비행 시간 6 배.
-2. `restitution = 1.0` — 완전 탄성 → 영원히 튕김 (수치 오차 누적 시 결국 정지).
-3. `drag = 0.5` — 강한 공기 저항 → 포물선이 비대칭 (descent 가 더 짧음).
-4. 발사각 30°, 45°, 60° 실험 → 사정거리 비교 (h₀=1m 환경).
-5. 코드 수정: Verlet 적분기로 교체하여 `E` drift 비교.
-
-## 확장 (TODO)
-
-- on-screen HUD (현재는 stdout)
-- 다중 시나리오: pendulum, spring, 1D collision, billiards
-- 그래프 출력 (시간 vs E, vs vy 등)
-- JSON 시나리오 파일 + scenario 선택 메뉴
+이 저장소는 원래 `src/physics_sim.cpp` 의 단일 파일 SDL2 데모였다. 그
+코드는 `legacy/` 로 이동했고, 컴파일 방법은 `legacy/build.sh` 에 그대로
+남아 있다.
 
 ## 라이선스
 
-MIT (사용 / 수정 / 재배포 자유).
+MIT.
