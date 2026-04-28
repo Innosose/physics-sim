@@ -6,7 +6,7 @@ struct OnnuriApp: App {
         WindowGroup {
             StartView()
                 .preferredColorScheme(.dark)
-                .tint(BlenderTheme.accent)
+                .tint(Theme.glow)
         }
     }
 }

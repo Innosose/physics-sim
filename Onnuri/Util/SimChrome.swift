@@ -1,10 +1,11 @@
 import SwiftUI
 
-/// 시뮬레이션 화면들의 공통 껍데기 — Blender 모바일 풍.
+/// 시뮬레이션 화면들의 공통 껍데기 — 윤슬 (Yunseul) 디자인.
 ///
 /// 화면이 넓으면 좌측 viewport + 우측 properties panel,
 /// 좁으면 상단 viewport + 하단 properties panel.
-/// Liquid Glass 카드 위에 Blender 의 어두운 graphite 톤을 입혔다.
+/// 뷰포트는 깊은 밤바다 (`Theme.deep`) 위에 잔물결 라인 (`RippleField`),
+/// 패널은 Liquid Glass 위에 `surface` 톤을 살짝 입힌 `themeCard`.
 struct SimChrome<Canvas: View, Controls: View>: View {
     let blurb: String
     @ViewBuilder var canvas: () -> Canvas
@@ -38,22 +39,16 @@ struct SimChrome<Canvas: View, Controls: View>: View {
     // MARK: - 영역
 
     private var viewportArea: some View {
-        ZStack {
-            // viewport 그래파이트 + 살짝 dot grid.
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(BlenderTheme.viewportBg)
-
-            DotGrid()
-                .opacity(0.18)
-                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-
+        let shape = RoundedRectangle(cornerRadius: 14, style: .continuous)
+        return ZStack {
+            // 깊은 밤바다 + 잔물결 라인 (윤슬).
+            shape.fill(Theme.deep)
+            RippleField()
+                .clipShape(shape)
             canvas()
-                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .clipShape(shape)
         }
-        .overlay {
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .stroke(BlenderTheme.stroke, lineWidth: 1)
-        }
+        .overlay { shape.stroke(Theme.stroke, lineWidth: 1) }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
@@ -63,10 +58,10 @@ struct SimChrome<Canvas: View, Controls: View>: View {
             HStack {
                 Image(systemName: "slider.horizontal.3")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(BlenderTheme.dimText)
+                    .foregroundStyle(Theme.mist)
                 Text("PROPERTIES")
-                    .font(.blenderHeader)
-                    .foregroundStyle(BlenderTheme.dimText)
+                    .font(.themeHeader)
+                    .foregroundStyle(Theme.mist)
                 Spacer()
             }
             .padding(.horizontal, 14)
@@ -78,7 +73,7 @@ struct SimChrome<Canvas: View, Controls: View>: View {
                     if !blurb.isEmpty {
                         Text(blurb)
                             .font(.caption)
-                            .foregroundStyle(BlenderTheme.dimText)
+                            .foregroundStyle(Theme.mist)
                             .lineSpacing(2)
                             .padding(.horizontal, 14)
                             .padding(.bottom, 4)
@@ -92,45 +87,16 @@ struct SimChrome<Canvas: View, Controls: View>: View {
         }
         .frame(maxWidth: width == nil ? .infinity : width)
         .frame(maxHeight: .infinity)
-        .blenderCard(cornerRadius: 16)
+        .themeCard(cornerRadius: 16)
     }
 
     private var background: some View {
-        // 전체 화면 그래파이트 + 살짝 vignette.
-        ZStack {
-            BlenderTheme.viewportBg.ignoresSafeArea()
-            RadialGradient(colors: [Color.black.opacity(0.4), .clear],
-                           center: .center, startRadius: 200, endRadius: 700)
-                .ignoresSafeArea()
-        }
+        // 전체 화면: void 그라데이션 + 위쪽 금빛 광원 (별 패턴은 시뮬에서는 생략).
+        YunseulBackground(topGlow: Theme.glow.opacity(0.06), stars: false)
     }
 }
 
-// MARK: - 미세 dot grid
-
-/// 작은 점 격자 — viewport 의 깊이감 보조.
-private struct DotGrid: View {
-    var body: some View {
-        Canvas { ctx, size in
-            let step: CGFloat = 26
-            let r: CGFloat = 0.9
-            var x: CGFloat = step / 2
-            while x < size.width {
-                var y: CGFloat = step / 2
-                while y < size.height {
-                    let rect = CGRect(x: x - r, y: y - r,
-                                      width: r * 2, height: r * 2)
-                    ctx.fill(Path(ellipseIn: rect),
-                             with: .color(.white.opacity(0.35)))
-                    y += step
-                }
-                x += step
-            }
-        }
-    }
-}
-
-// MARK: - Blender 풍 슬라이더·측정값
+// MARK: - 윤슬 풍 슬라이더·측정값
 
 /// 슬라이더 + 라벨 + 모노스페이스 값.
 struct LabeledSlider: View {
@@ -145,15 +111,15 @@ struct LabeledSlider: View {
         VStack(alignment: .leading, spacing: 3) {
             HStack(alignment: .firstTextBaseline) {
                 Text(title)
-                    .font(.blenderLabel)
-                    .foregroundStyle(BlenderTheme.monoText)
+                    .font(.themeLabel)
+                    .foregroundStyle(Theme.ink)
                 Spacer(minLength: 8)
                 Text(formattedValue)
-                    .font(.blenderMonoBold)
-                    .foregroundStyle(BlenderTheme.accent)
+                    .font(.themeMonoBold)
+                    .foregroundStyle(Theme.glow)
             }
             sliderControl
-                .tint(BlenderTheme.highlight)
+                .tint(Theme.accent)
         }
         .padding(.vertical, 2)
     }
@@ -181,17 +147,17 @@ struct Readout: View {
         HStack {
             Text(label)
                 .font(.caption)
-                .foregroundStyle(BlenderTheme.dimText)
+                .foregroundStyle(Theme.mist)
             Spacer()
             Text(value)
-                .font(.blenderMono)
-                .foregroundStyle(BlenderTheme.monoText)
+                .font(.themeMono)
+                .foregroundStyle(Theme.ink)
         }
         .padding(.vertical, 1)
     }
 }
 
-/// 속성 그룹 — 헤더 + 내용. Blender 의 N-panel 섹션 풍.
+/// 속성 그룹 — 헤더 + 내용. 속성 패널의 컬랩서블 섹션.
 struct PropertySection<Content: View>: View {
     let title: String
     @ViewBuilder var content: () -> Content
@@ -201,10 +167,10 @@ struct PropertySection<Content: View>: View {
             HStack(spacing: 4) {
                 Image(systemName: "chevron.down")
                     .font(.system(size: 9, weight: .semibold))
-                    .foregroundStyle(BlenderTheme.dimText)
+                    .foregroundStyle(Theme.mist)
                 Text(title.uppercased())
-                    .font(.blenderHeader)
-                    .foregroundStyle(BlenderTheme.dimText)
+                    .font(.themeHeader)
+                    .foregroundStyle(Theme.mist)
             }
             .padding(.bottom, 2)
             VStack(alignment: .leading, spacing: 8) { content() }
@@ -218,13 +184,13 @@ struct PropertySection<Content: View>: View {
 struct PropertyDivider: View {
     var body: some View {
         Rectangle()
-            .fill(BlenderTheme.divider)
+            .fill(Theme.divider)
             .frame(height: 1)
             .padding(.vertical, 4)
     }
 }
 
-/// 재생/일시정지 + 초기화. Blender 풍 액센트.
+/// 재생/일시정지 + 초기화. 윤슬 — 금빛 액센트.
 struct PlayResetBar: View {
     @Binding var running: Bool
     var onReset: () -> Void
@@ -241,7 +207,7 @@ struct PlayResetBar: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.glassProminent)
-            .tint(BlenderTheme.accent)
+            .tint(Theme.glow)
 
             Button {
                 onReset()

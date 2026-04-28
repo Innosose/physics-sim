@@ -2,7 +2,7 @@ import SwiftUI
 
 /// 시작화면 — 학년 선택 + 자유 시뮬 진입.
 ///
-/// Blender 모바일 풍 — 위쪽에 앱 표제, 가운데 학년 타일 3개, 그 아래 작은 자유 시뮬 링크.
+/// 윤슬 디자인 — 위쪽에 앱 표제, 가운데 학년 타일 3개, 그 아래 작은 자유 시뮬 링크.
 struct StartView: View {
     var body: some View {
         NavigationStack {
@@ -35,19 +35,23 @@ struct StartView: View {
         VStack(spacing: 8) {
             HStack(spacing: 6) {
                 Circle()
-                    .fill(BlenderTheme.accent)
+                    .fill(Theme.glow)
                     .frame(width: 8, height: 8)
                 Text("ONNURI")
                     .font(.system(size: 12, weight: .bold, design: .monospaced))
                     .tracking(3)
-                    .foregroundStyle(BlenderTheme.dimText)
+                    .foregroundStyle(Theme.mist)
             }
             Text("온누리")
-                .font(.system(size: 56, weight: .heavy, design: .rounded))
-                .foregroundStyle(BlenderTheme.monoText)
+                .font(.themeTitle)
+                .foregroundStyle(Theme.ink)
             Text("물리를 눈으로 보는 시뮬레이션 모음")
                 .font(.callout)
-                .foregroundStyle(BlenderTheme.dimText)
+                .foregroundStyle(Theme.mist)
+            // 윤슬 — 표제 아래 작은 금빛 잔물결.
+            RippleAccent()
+                .frame(width: 96, height: 10)
+                .padding(.top, 2)
         }
     }
 
@@ -86,22 +90,12 @@ struct StartView: View {
             .padding(.vertical, 10)
         }
         .buttonStyle(.glass)
-        .tint(BlenderTheme.highlight)
+        .tint(Theme.accent)
     }
 
     private var background: some View {
-        ZStack {
-            BlenderTheme.viewportBg.ignoresSafeArea()
-            // 살짝 떠 있는 광원.
-            RadialGradient(
-                colors: [BlenderTheme.accent.opacity(0.12), .clear],
-                center: .top, startRadius: 0, endRadius: 360)
-                .ignoresSafeArea()
-            // 미세 dot.
-            DotPattern()
-                .opacity(0.10)
-                .ignoresSafeArea()
-        }
+        // 윤슬 배경 — 깊은 밤바다 + 위쪽 금빛 광원 + 별자리.
+        YunseulBackground(topGlow: Theme.glow.opacity(0.18), stars: true)
     }
 }
 
@@ -125,48 +119,27 @@ private struct GradeTile: View {
                 HStack(spacing: 8) {
                     Text(curriculum.rawValue)
                         .font(.title3.bold())
-                        .foregroundStyle(BlenderTheme.monoText)
-                    Text("\(count)").font(.blenderMonoBold)
-                        .foregroundStyle(BlenderTheme.dimText)
+                        .foregroundStyle(Theme.ink)
+                    Text("\(count)").font(.themeMonoBold)
+                        .foregroundStyle(Theme.mist)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 1)
-                        .background(BlenderTheme.header,
+                        .background(Theme.crest,
                                     in: Capsule())
                 }
                 Text(curriculum.subtitle)
                     .font(.subheadline)
-                    .foregroundStyle(BlenderTheme.dimText)
+                    .foregroundStyle(Theme.mist)
             }
             Spacer()
             Image(systemName: "chevron.right")
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(BlenderTheme.dimText)
+                .foregroundStyle(Theme.mist)
         }
         .padding(18)
         .frame(maxWidth: 720, minHeight: 92)
-        .blenderCard(cornerRadius: 18)
+        .themeCard(cornerRadius: 18)
         .shadow(color: curriculum.accent.opacity(0.16), radius: 22, x: 0, y: 10)
-    }
-}
-
-private struct DotPattern: View {
-    var body: some View {
-        Canvas { ctx, size in
-            let step: CGFloat = 32
-            let r: CGFloat = 1.0
-            var x: CGFloat = 0
-            while x < size.width {
-                var y: CGFloat = 0
-                while y < size.height {
-                    let rect = CGRect(x: x - r, y: y - r,
-                                      width: r * 2, height: r * 2)
-                    ctx.fill(Path(ellipseIn: rect),
-                             with: .color(.white.opacity(0.45)))
-                    y += step
-                }
-                x += step
-            }
-        }
     }
 }
 

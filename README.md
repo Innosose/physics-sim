@@ -3,10 +3,29 @@
 > "온 세상" 을 뜻하는 순우리말. 초등 / 중등 / 고등 교육과정과 자유 샌드박스를
 > 한데 모은 SwiftUI 물리 시뮬 앱 — **iOS 26 / iPadOS 26 전용**.
 
-iOS 26 의 Liquid Glass 위에 Blender 모바일 풍의 어두운 그래파이트 + 오렌지
-액센트를 입힌, "전문 도구의 모바일 버전" 같은 분위기를 노렸다.
-외부 의존성은 SwiftUI 표준 (`Canvas`, `TimelineView`, `glassEffect`,
-`buttonStyle(.glass)`) 만 사용.
+## 디자인: 윤슬 (Yunseul)
+
+> **윤슬** — 햇빛·달빛에 어린 잔물결. 또 다른 순우리말.
+
+깊은 밤바다 위에 떠 있는 따뜻한 금빛 결을 모티프로 한 고유한 디자인 시스템.
+
+| 토큰 | 색 | 용도 |
+|------|-----|-----|
+| `void / deep / surface / crest` | 짙은 남빛 4단계 (`#050816 → #1E2750`) | 바닥·패널·헤더 |
+| **`glow`** | `#E0B574` 따뜻한 금빛 | 재생·확정 등 주 액션 |
+| **`accent`** | `#66D4C0` 청록 진주 | 슬라이더 트랙·보조 |
+| `pulse` | `#B98DE5` 자수정 | 선택 |
+| `confirm / danger` | 박하 / 산호 | 보존·위험 |
+| `ink / mist` | 따뜻한 상아 / 안개 푸른 회색 | 본문·보조 텍스트 |
+
+비주얼 시그니처:
+
+- **시뮬 뷰포트**는 dot-grid 대신 `RippleField` (잔잔한 수평 잔물결).
+- **시작화면**은 `StarField` (별자리 점 분포 + 큰 별 두 개) + 위쪽 금빛 광원.
+- **카드**는 Liquid Glass 위에 `surface` 톤을 살짝 입히고, 좌상단에 작은 금빛 마커 점.
+- **시작 표제 아래**에 짧은 금빛 잔물결(`RippleAccent`) 한 줄.
+- 외부 의존성 없음. SwiftUI 표준(`Canvas`, `TimelineView`, `glassEffect`,
+  `buttonStyle(.glass)`, `buttonStyle(.glassProminent)`) 만 사용.
 
 ## 시작화면 → 학년별 카탈로그
 
@@ -79,12 +98,12 @@ iOS 26 의 Liquid Glass 위에 Blender 모바일 풍의 어두운 그래파이�
 각 시뮬의 우측 패널에 보존되는 양(총 운동량 / 운동에너지 / 각운동량 / 에너지)을
 실시간으로 표시해서 "정말 보존되는지" 직접 확인할 수 있다.
 
-## 디자인
+## 화면 구성
 
-- **iOS 26 Liquid Glass** 위에 Blender 모바일 풍 그래파이트 톤.
-- viewport (어두운 회색 + 점 격자)  +  N-panel 풍 properties 패널.
-- 액션은 오렌지(#E87D0E), 선택은 블루(#4772B3), 측정값은 모노스페이스.
-- 큰 화면(가로 ≥ 760pt)에서는 좌·우 split, 좁으면 위·아래 stack.
+- 큰 화면(가로 ≥ 760pt)에서는 좌측 viewport + 우측 properties panel.
+- 좁으면 위 viewport + 아래 properties panel.
+- properties panel 헤더는 small caps + 트래킹된 `PROPERTIES` 라벨.
+- 슬라이더 값은 모노스페이스 + 금빛, 측정값은 모노스페이스 + 따뜻한 상아색.
 
 ## 빌드 & 실행
 
@@ -118,8 +137,7 @@ Onnuri/
 │   ├── Vec2.swift                2D 벡터
 │   ├── CanvasMap.swift           월드(미터) ↔ 픽셀 변환
 │   ├── SimChrome.swift           viewport + properties + 슬라이더
-│   ├── LiquidGlass.swift         glassEffect 헬퍼
-│   └── BlenderTheme.swift        팔레트·폰트·blenderCard
+│   └── Theme.swift               윤슬 팔레트·폰트·themeCard·RippleField·StarField
 ├── Models/
 │   ├── Curriculum.swift          교육과정 enum + 색·아이콘
 │   └── SimulationCatalog.swift   ID → View 매핑 + 학년별 목록

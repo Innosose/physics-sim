@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// 한 학년(또는 자유) 안의 시뮬 목록 — Blender 의 Outliner 풍.
+/// 한 학년(또는 자유) 안의 시뮬 목록 — outliner 풍 (카테고리 → 시뮬 행).
 ///
 /// 카테고리(역학·파동·전자기·…) 별로 섹션을 만들고, 그 안에 시뮬 행을 단정하게 나열.
 struct CurriculumView: View {
@@ -54,15 +54,15 @@ struct CurriculumView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(curriculum.subtitle)
                     .font(.subheadline)
-                    .foregroundStyle(BlenderTheme.monoText)
+                    .foregroundStyle(Theme.ink)
                 Text("\(items.count) 개 시뮬")
                     .font(.caption.monospaced())
-                    .foregroundStyle(BlenderTheme.dimText)
+                    .foregroundStyle(Theme.mist)
             }
             Spacer()
         }
         .padding(14)
-        .blenderCard(cornerRadius: 14)
+        .themeCard(cornerRadius: 14)
         .padding(.horizontal, 4)
     }
 
@@ -72,8 +72,8 @@ struct CurriculumView: View {
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(curriculum.accent.opacity(0.85))
             Text(cat.rawValue.uppercased())
-                .font(.blenderHeader)
-                .foregroundStyle(BlenderTheme.dimText)
+                .font(.themeHeader)
+                .foregroundStyle(Theme.mist)
             Spacer()
         }
         .padding(.horizontal, 22)
@@ -82,7 +82,7 @@ struct CurriculumView: View {
 
     private var background: some View {
         ZStack {
-            BlenderTheme.viewportBg.ignoresSafeArea()
+            Theme.deep.ignoresSafeArea()
             RadialGradient(
                 colors: [curriculum.accent.opacity(0.10), .clear],
                 center: .topLeading, startRadius: 0, endRadius: 420)
@@ -108,20 +108,20 @@ private struct SimRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.title)
                     .font(.callout.weight(.semibold))
-                    .foregroundStyle(BlenderTheme.monoText)
+                    .foregroundStyle(Theme.ink)
                 Text(item.subtitle)
                     .font(.caption)
-                    .foregroundStyle(BlenderTheme.dimText)
+                    .foregroundStyle(Theme.mist)
                     .lineLimit(2)
             }
             Spacer()
             Image(systemName: "chevron.right")
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(BlenderTheme.dimText.opacity(0.6))
+                .foregroundStyle(Theme.mist.opacity(0.6))
         }
         .padding(12)
         .frame(maxWidth: .infinity)
-        .blenderCard(cornerRadius: 14)
+        .themeCard(cornerRadius: 14)
     }
 }
 
