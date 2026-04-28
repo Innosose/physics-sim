@@ -30,9 +30,9 @@ struct DopplerScene: View {
     private var controls: some View {
         VStack(alignment: .leading, spacing: 10) {
             LabeledSlider(title: "음원 속력 v_s", value: $sourceSpeed, range: 0...400,
-                          format: "%.0f", unit: "m/s")
+                          format: "%.2f", unit: "m/s")
             LabeledSlider(title: "음속 c", value: $soundSpeed, range: 100...400,
-                          format: "%.0f", unit: "m/s")
+                          format: "%.2f", unit: "m/s")
             LabeledSlider(title: "방출 진동수 f", value: $freq, range: 0.5...4,
                           format: "%.2f", unit: "Hz")
             PlayResetBar(running: $running, onReset: { startTime = Date(); running = true }, resetLabel: "처음부터")

@@ -33,7 +33,7 @@ struct CircuitScene: View {
             }
             .pickerStyle(.segmented)
             LabeledSlider(title: "기전력 V", value: $emf, range: 1...30,
-                          format: "%.1f", unit: "V")
+                          format: "%.2f", unit: "V")
             LabeledSlider(title: "저항 R₁", value: $R1, range: 0.5...30,
                           format: "%.2f", unit: "Ω")
             LabeledSlider(title: "저항 R₂", value: $R2, range: 0.5...30,
@@ -41,19 +41,19 @@ struct CircuitScene: View {
             Divider()
             let r = result
             Readout(label: "합성 저항 R_eq",
-                    value: String(format: "%.3f Ω", r.Req))
+                    value: String(format: "%.2f Ω", r.Req))
             Readout(label: "전체 전류 I",
-                    value: String(format: "%.3f A", r.I))
+                    value: String(format: "%.2f A", r.I))
             Readout(label: mode == .series ? "R₁ 양단 전압" : "R₁ 전류",
                     value: mode == .series
-                        ? String(format: "%.3f V", r.q1)
-                        : String(format: "%.3f A", r.q1))
+                        ? String(format: "%.2f V", r.q1)
+                        : String(format: "%.2f A", r.q1))
             Readout(label: mode == .series ? "R₂ 양단 전압" : "R₂ 전류",
                     value: mode == .series
-                        ? String(format: "%.3f V", r.q2)
-                        : String(format: "%.3f A", r.q2))
+                        ? String(format: "%.2f V", r.q2)
+                        : String(format: "%.2f A", r.q2))
             Readout(label: "총 전력 P = VI",
-                    value: String(format: "%.3f W", emf * r.I))
+                    value: String(format: "%.2f W", emf * r.I))
         }
     }
 
@@ -189,7 +189,7 @@ struct CircuitScene: View {
             short.addLine(to: CGPoint(x: c.x + 8, y: c.y + h))
             ctx.stroke(short, with: .color(.white), lineWidth: 2)
         }
-        ctx.draw(Text(String(format: "%.1f V", voltage))
+        ctx.draw(Text(String(format: "%.2f V", voltage))
                     .font(.caption.weight(.semibold)).foregroundStyle(.cyan),
                  at: CGPoint(x: c.x + 24, y: c.y))
     }

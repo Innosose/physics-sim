@@ -46,7 +46,7 @@ struct KeplerScene: View {
     private var controls: some View {
         VStack(alignment: .leading, spacing: 10) {
             LabeledSlider(title: "GM", value: $GM, range: 50...600,
-                          format: "%.0f", onEditingChanged: onSliderEnd)
+                          format: "%.2f", onEditingChanged: onSliderEnd)
             LabeledSlider(title: "초기 거리 r₀", value: $r0, range: 2...10,
                           format: "%.2f", onEditingChanged: onSliderEnd)
             LabeledSlider(title: "초기 접선속력 v₀", value: $v0, range: 1...12,
@@ -61,7 +61,7 @@ struct KeplerScene: View {
             Readout(label: "탈출속력",     value: String(format: "%.2f", esc))
             if let p = orbitParams {
                 Readout(label: "반장축 a", value: String(format: "%.2f", p.a))
-                Readout(label: "이심률 e", value: String(format: "%.3f", p.e))
+                Readout(label: "이심률 e", value: String(format: "%.2f", p.e))
                 let T = 2 * .pi * sqrt(p.a * p.a * p.a / GM)
                 Readout(label: "주기 T",   value: String(format: "%.2f", T))
                 let pos = position(at: max(0, Date().timeIntervalSince(startTime)))
@@ -112,10 +112,12 @@ struct KeplerScene: View {
         return E
     }
 
-    // MARK: - 그리기
+    // MARK: - 그리기 (글로우 톤 — 검정 배경 + 별·궤도 헤일로)
 
     private func draw(ctx: GraphicsContext, size: CGSize, t: Double) {
-        // 화면 범위는 a·(1+e) 보다 살짝 크게.
+        // 검정 배경.
+        ctx.fill(Path(CGRect(origin: .zero, size: size)), with: .color(.black))
+
         let halfWidth: Double
         if let p = orbitParams {
             halfWidth = p.a * (1 + p.e) + 2
@@ -126,7 +128,7 @@ struct KeplerScene: View {
                            width: 2 * halfWidth, height: 2 * halfWidth)
         let map = CanvasMap(view: size, world: world, padding: 12)
 
-        // 1. 전체 궤도 (분석해의 정적 곡선).
+        // 1) 전체 궤도 (정적) — 외광 + 코어 두 번.
         if let p = orbitParams {
             var orbit = Path()
             let n = 240
@@ -137,23 +139,41 @@ struct KeplerScene: View {
                 let pt = map.point(x: x, y: y)
                 if i == 0 { orbit.move(to: pt) } else { orbit.addLine(to: pt) }
             }
-            ctx.stroke(orbit, with: .color(.cyan.opacity(0.4)),
-                       style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
+            let trailColor = Color(red: 0.55, green: 0.78, blue: 1.00)
+            ctx.stroke(orbit, with: .color(trailColor.opacity(0.18)), lineWidth: 5)
+            ctx.stroke(orbit, with: .color(trailColor.opacity(0.45)), lineWidth: 2)
+            ctx.stroke(orbit, with: .color(trailColor.opacity(0.95)), lineWidth: 0.8)
         }
 
-        // 2. 중심 질량.
-        let c = map.point(.zero)
-        let cr: CGFloat = 10
-        ctx.fill(Path(ellipseIn: CGRect(x: c.x - cr, y: c.y - cr,
-                                        width: cr * 2, height: cr * 2)),
-                 with: .color(.orange))
+        // 2) 중심 질량 — 따뜻한 금빛 별 (코어 + 큰 헤일로).
+        let cPt = map.point(.zero)
+        let sunColor = Color(red: 1.00, green: 0.74, blue: 0.40)
+        let sunHalo: CGFloat = 28
+        ctx.fill(
+            Path(ellipseIn: CGRect(x: cPt.x - sunHalo, y: cPt.y - sunHalo,
+                                   width: sunHalo * 2, height: sunHalo * 2)),
+            with: .radialGradient(
+                Gradient(colors: [sunColor.opacity(0.55), .clear]),
+                center: cPt, startRadius: 0, endRadius: sunHalo))
+        let sunCore: CGFloat = 4
+        ctx.fill(Path(ellipseIn: CGRect(x: cPt.x - sunCore, y: cPt.y - sunCore,
+                                        width: sunCore * 2, height: sunCore * 2)),
+                 with: .color(.white.opacity(0.95)))
 
-        // 3. 현재 행성 위치.
+        // 3) 행성 — 흰 코어 + 옅은 청록 헤일로.
         let pos = position(at: t)
         let pp = map.point(pos)
-        let pr: CGFloat = 6
+        let planetColor = Color(red: 0.74, green: 0.88, blue: 0.96)
+        let halo: CGFloat = 14
+        ctx.fill(
+            Path(ellipseIn: CGRect(x: pp.x - halo, y: pp.y - halo,
+                                   width: halo * 2, height: halo * 2)),
+            with: .radialGradient(
+                Gradient(colors: [planetColor.opacity(0.55), .clear]),
+                center: pp, startRadius: 0, endRadius: halo))
+        let pr: CGFloat = 3
         ctx.fill(Path(ellipseIn: CGRect(x: pp.x - pr, y: pp.y - pr,
                                         width: pr * 2, height: pr * 2)),
-                 with: .color(.yellow))
+                 with: .color(.white.opacity(0.95)))
     }
 }

@@ -1,24 +1,29 @@
 import SwiftUI
 
-/// N체 중력 — 모든 별이 서로 끌어당김.
+/// **N체 중력** — 글로우 트레일이 살아있는 별들의 춤.
 ///
 ///  F_ij = G · m_i · m_j · (r_j − r_i) / |r_j − r_i|³
 ///
-/// Velocity-Verlet 적분기 사용: 작은 dt 에서 에너지·각운동량이 잘 보존된다.
-/// 측정값(에너지·각운동량)은 실제 적분된 상태에서 직접 계산.
+/// Velocity-Verlet 수치 적분기. 다체 문제는 일반적으로 닫힌 해 없음 — 결과는
+/// 약간 시간이 걸려도 반올림 없이 정확. 총 운동량·각운동량·에너지는 수치오차
+/// 범위(보통 < 0.1%) 내에서 보존.
+///
+/// 시각: 검은 배경 위에 글로우 트레일(외광 + 코어). 각 별은 작은 점 + 따뜻한
+/// 색의 헤일로. N체 궤도가 만드는 기하학적 패턴 자체가 주인공.
 struct FreeGravityScene: View {
     struct Star: Identifiable {
         let id = UUID()
         var pos: Vec2
         var vel: Vec2
         var mass: Double
+        /// 트레일/헤일로 색 — 이미지 톤에 맞춘 따뜻한·차가운 빛.
         var color: Color
     }
 
     @State private var G: Double = 1.0
     @State private var bodies: [Star] = []
     @State private var trails: [UUID: [Vec2]] = [:]
-    private let trailMax = 600
+    private let trailMax = 800           // 더 길게 — 이미지처럼 긴 자취
 
     @State private var running = true
     @State private var lastTime: TimeInterval? = nil
@@ -27,7 +32,7 @@ struct FreeGravityScene: View {
 
     var body: some View {
         SimChrome(
-            blurb: "N≥3 다체 문제는 일반적으로 닫힌 해 없음 — Velocity-Verlet 수치 적분 사용 (총 운동량·각운동량·에너지는 수치오차 내 보존). 닫힌 해 1체 궤도는 \"케플러 궤도\" 시뮬 참조.",
+            blurb: "별·행성을 자유롭게 배치한 N체 중력. 다체 문제라 닫힌 해 없음 — Velocity-Verlet 수치 적분. 총 에너지·각운동량은 수치오차 범위에서 보존.",
             canvas: { canvas },
             controls: { controls })
             .onAppear { applyPreset() }
@@ -46,10 +51,11 @@ struct FreeGravityScene: View {
     private var controls: some View {
         VStack(alignment: .leading, spacing: 10) {
             Picker("배치", selection: $preset) {
-                Text("태양–행성 3개").tag(0)
+                Text("태양–3행성").tag(0)
                 Text("이중성").tag(1)
-                Text("3체 (피겨에이트)").tag(2)
-                Text("8체 무작위").tag(3)
+                Text("3체 8자").tag(2)
+                Text("4체 클러스터").tag(3)
+                Text("8체 무작위").tag(4)
             }
             .pickerStyle(.segmented)
             LabeledSlider(title: "중력 상수 G", value: $G, range: 0.2...3,
@@ -58,16 +64,28 @@ struct FreeGravityScene: View {
             Divider()
             Readout(label: "별 수", value: "\(bodies.count)")
             let p = totalMomentum
-            Readout(label: "총 운동량 (벡터)",
-                    value: String(format: "(%.3f, %.3f)", p.x, p.y))
+            Readout(label: "총 운동량 |p|",
+                    value: String(format: "%.2f", p.length))
             Readout(label: "총 각운동량 L",
-                    value: String(format: "%.3f", totalAngularMomentum))
+                    value: String(format: "%.2f", totalAngularMomentum))
             Readout(label: "총 에너지 (KE + PE)",
-                    value: String(format: "%.3f", totalEnergy))
+                    value: String(format: "%.2f", totalEnergy))
         }
     }
 
-    // MARK: - 프리셋
+    // MARK: - 프리셋 (이미지 톤의 따뜻한 색 팔레트)
+
+    /// 이미지 참고 색 팔레트.
+    private static let palette: [Color] = [
+        Color(red: 1.00, green: 0.83, blue: 0.50),   // 따뜻한 금
+        Color(red: 1.00, green: 0.60, blue: 0.32),   // 호박
+        Color(red: 0.96, green: 0.94, blue: 0.86),   // 크림
+        Color(red: 0.55, green: 0.78, blue: 1.00),   // 하늘
+        Color(red: 0.85, green: 0.92, blue: 1.00),   // 흰 푸름
+        Color(red: 1.00, green: 0.74, blue: 0.46),   // 살구
+        Color(red: 0.74, green: 0.88, blue: 0.96),   // 청록 진주
+        Color(red: 0.98, green: 0.78, blue: 0.58),   // 모래
+    ]
 
     private func applyPreset() {
         trails.removeAll()
@@ -75,7 +93,8 @@ struct FreeGravityScene: View {
         case 0: bodies = solarSystem3()
         case 1: bodies = binary()
         case 2: bodies = figureEight()
-        case 3: bodies = randomEight()
+        case 3: bodies = cluster4()
+        case 4: bodies = randomEight()
         default: bodies = []
         }
         accels = computeAccelerations()
@@ -83,16 +102,18 @@ struct FreeGravityScene: View {
     }
 
     private func solarSystem3() -> [Star] {
-        let sun = Star(pos: .zero, vel: .zero, mass: 100, color: .yellow)
+        let sun = Star(pos: .zero, vel: .zero, mass: 100,
+                       color: Self.palette[0])
         var arr = [sun]
-        for (i, (r, c)) in [(2.0, Color.cyan), (3.5, .green), (5.0, .pink)].enumerated() {
-            // 원궤도 속력 √(GM/r). 별이 정지하도록 운동량 0 으로 보정 (별의 vel 조정).
+        let radii = [2.0, 3.5, 5.0]
+        for (i, r) in radii.enumerated() {
             let v = sqrt(G * sun.mass / r)
             let theta = Double(i) * 2.1
             arr.append(Star(
                 pos: Vec2(x: r * cos(theta), y: r * sin(theta)),
                 vel: Vec2(x: -v * sin(theta), y: v * cos(theta)),
-                mass: 0.5, color: c))
+                mass: 0.5,
+                color: Self.palette[i + 3]))
         }
         return zeroTotalMomentum(arr)
     }
@@ -100,45 +121,61 @@ struct FreeGravityScene: View {
     private func binary() -> [Star] {
         let m: Double = 10
         let r: Double = 2
-        let v = sqrt(G * m / (4 * r))   // 두 별이 r 만큼 떨어져 서로 도는 원궤도 속력
-        let a = Star(pos: Vec2(x: -r, y: 0), vel: Vec2(x: 0, y: -v),
-                     mass: m, color: .yellow)
-        let b = Star(pos: Vec2(x:  r, y: 0), vel: Vec2(x: 0, y:  v),
-                     mass: m, color: .orange)
-        return [a, b]
+        let v = sqrt(G * m / (4 * r))
+        return [
+            Star(pos: Vec2(x: -r, y: 0), vel: Vec2(x: 0, y: -v),
+                 mass: m, color: Self.palette[0]),
+            Star(pos: Vec2(x:  r, y: 0), vel: Vec2(x: 0, y:  v),
+                 mass: m, color: Self.palette[1]),
+        ]
     }
 
     private func figureEight() -> [Star] {
         // Chenciner–Montgomery 의 유명한 3체 8자 해 (G = m = 1 단위).
-        // body 1, 2 는 (0.466…, 0.432…) 의 속도, body 3 은 그 −2 배.
         let v12 = Vec2(x: 0.93240737 / 2, y: 0.86473146 / 2)
         let v3  = Vec2(x: -0.93240737, y: -0.86473146)
         return [
-            Star(pos: Vec2(x: -0.97000436, y:  0.24308753), vel: v12, mass: 1, color: .cyan),
-            Star(pos: Vec2(x:  0.97000436, y: -0.24308753), vel: v12, mass: 1, color: .green),
-            Star(pos: Vec2.zero, vel: v3, mass: 1, color: .pink),
+            Star(pos: Vec2(x: -0.97000436, y:  0.24308753), vel: v12,
+                 mass: 1, color: Self.palette[2]),
+            Star(pos: Vec2(x:  0.97000436, y: -0.24308753), vel: v12,
+                 mass: 1, color: Self.palette[3]),
+            Star(pos: .zero, vel: v3,
+                 mass: 1, color: Self.palette[1]),
         ]
+    }
+
+    private func cluster4() -> [Star] {
+        // 4 체 — 대략 정사면체 형태로 출발. 비스듬한 각운동량 → 복잡한 궤적.
+        let r: Double = 2.5
+        let v: Double = sqrt(G * 4 / r) * 0.5
+        return zeroTotalMomentum([
+            Star(pos: Vec2(x:  r, y:  r), vel: Vec2(x: -v, y:  v * 0.3),
+                 mass: 1.5, color: Self.palette[0]),
+            Star(pos: Vec2(x: -r, y:  r), vel: Vec2(x: -v * 0.3, y: -v),
+                 mass: 1.5, color: Self.palette[3]),
+            Star(pos: Vec2(x: -r, y: -r), vel: Vec2(x:  v, y: -v * 0.3),
+                 mass: 1.5, color: Self.palette[5]),
+            Star(pos: Vec2(x:  r, y: -r), vel: Vec2(x:  v * 0.3, y:  v),
+                 mass: 1.5, color: Self.palette[6]),
+        ])
     }
 
     private func randomEight() -> [Star] {
         var rng = SystemRandomNumberGenerator()
         var arr: [Star] = []
-        for _ in 0..<8 {
+        for i in 0..<8 {
             let r = Double.random(in: 1...4, using: &rng)
             let theta = Double.random(in: 0...(2 * .pi), using: &rng)
             let pos = Vec2(x: r * cos(theta), y: r * sin(theta))
             let v = Double.random(in: 0.3...0.9, using: &rng)
             let vel = Vec2(x: -v * sin(theta), y: v * cos(theta))
             let m = Double.random(in: 0.5...3, using: &rng)
-            arr.append(Star(
-                pos: pos, vel: vel, mass: m,
-                color: Color(hue: Double.random(in: 0...1, using: &rng),
-                             saturation: 0.85, brightness: 1)))
+            arr.append(Star(pos: pos, vel: vel, mass: m,
+                            color: Self.palette[i % Self.palette.count]))
         }
         return zeroTotalMomentum(arr)
     }
 
-    /// 전체 운동량이 0 이 되도록 평균 속도를 빼준다 (관성계 고정).
     private func zeroTotalMomentum(_ bs: [Star]) -> [Star] {
         let totalMass = bs.reduce(0) { $0 + $1.mass }
         let mom = bs.reduce(Vec2.zero) { $0 + $1.vel * $1.mass }
@@ -147,7 +184,7 @@ struct FreeGravityScene: View {
                              mass: $0.mass, color: $0.color) }
     }
 
-    // MARK: - 동역학
+    // MARK: - 동역학 (Velocity-Verlet)
 
     private func advance(to now: TimeInterval) {
         guard let last = lastTime else { lastTime = now; return }
@@ -155,10 +192,9 @@ struct FreeGravityScene: View {
         var dt = now - last
         if dt > 0.05 { dt = 0.05 }
         lastTime = now
-        let sub = 60
+        let sub = 60                       // 작은 dt 로 다체 안정성 확보
         let h = dt / Double(sub)
         for _ in 0..<sub { verletStep(h: h) }
-        // 자취.
         for b in bodies {
             trails[b.id, default: []].append(b.pos)
             if trails[b.id]!.count > trailMax {
@@ -168,7 +204,6 @@ struct FreeGravityScene: View {
         }
     }
 
-    /// Velocity-Verlet 한 스텝.
     private func verletStep(h: Double) {
         if accels.count != bodies.count { accels = computeAccelerations() }
         for i in bodies.indices {
@@ -211,39 +246,60 @@ struct FreeGravityScene: View {
         for i in 0..<n {
             for j in (i + 1)..<n {
                 let r = (bodies[j].pos - bodies[i].pos).length
-                if r > 1e-3 {
-                    E -= G * bodies[i].mass * bodies[j].mass / r
-                }
+                if r > 1e-3 { E -= G * bodies[i].mass * bodies[j].mass / r }
             }
         }
         return E
     }
 
-    // MARK: - 그리기
+    // MARK: - 그리기 (이미지 톤 — 검정 배경 + 글로우 트레일)
 
     private func draw(ctx: GraphicsContext, size: CGSize) {
-        let extent = max(6.0, bodies.map { max(abs($0.pos.x), abs($0.pos.y)) }.max() ?? 6) * 1.4
-        let world = CGRect(x: -extent, y: -extent, width: 2 * extent, height: 2 * extent)
-        let map = CanvasMap(view: size, world: world, padding: 12)
+        // 1) 순수 검정 배경 — 시뮬 viewport 의 deep 보다 더 어둡게.
+        ctx.fill(Path(CGRect(origin: .zero, size: size)),
+                 with: .color(.black))
 
-        // 자취.
+        let extent = max(6.0, bodies.map { max(abs($0.pos.x), abs($0.pos.y)) }.max() ?? 6) * 1.4
+        let world = CGRect(x: -extent, y: -extent,
+                           width: 2 * extent, height: 2 * extent)
+        let map = CanvasMap(view: size, world: world, padding: 16)
+
+        // 2) 트레일 — 외광 + 코어 두 번 stroke.
         for b in bodies {
-            guard let trail = trails[b.id], !trail.isEmpty else { continue }
+            guard let trail = trails[b.id], trail.count > 1 else { continue }
             var path = Path()
             for (i, p) in trail.enumerated() {
                 let pt = map.point(p)
                 if i == 0 { path.move(to: pt) } else { path.addLine(to: pt) }
             }
-            ctx.stroke(path, with: .color(b.color.opacity(0.45)), lineWidth: 1.1)
+            // 외광 — 굵고 흐리게.
+            ctx.stroke(path, with: .color(b.color.opacity(0.18)),
+                       style: StrokeStyle(lineWidth: 6, lineCap: .round, lineJoin: .round))
+            ctx.stroke(path, with: .color(b.color.opacity(0.40)),
+                       style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
+            // 코어 — 얇고 진하게.
+            ctx.stroke(path, with: .color(b.color.opacity(0.95)),
+                       style: StrokeStyle(lineWidth: 1.0, lineCap: .round, lineJoin: .round))
         }
 
-        // 별.
+        // 3) 별 본체 — 작은 코어 + 큰 헤일로.
         for b in bodies {
             let pt = map.point(b.pos)
-            let r: CGFloat = CGFloat(4 + 2 * sqrt(b.mass))
-            ctx.fill(Path(ellipseIn: CGRect(x: pt.x - r, y: pt.y - r,
-                                            width: r * 2, height: r * 2)),
-                     with: .color(b.color))
+            let coreR: CGFloat = CGFloat(2 + 1.5 * sqrt(b.mass))
+            let haloR: CGFloat = coreR * 4
+
+            // 헤일로 (radial gradient).
+            ctx.fill(
+                Path(ellipseIn: CGRect(x: pt.x - haloR, y: pt.y - haloR,
+                                       width: haloR * 2, height: haloR * 2)),
+                with: .radialGradient(
+                    Gradient(colors: [b.color.opacity(0.55), .clear]),
+                    center: pt, startRadius: 0, endRadius: haloR))
+            // 코어 — 거의 흰빛.
+            ctx.fill(
+                Path(ellipseIn: CGRect(x: pt.x - coreR, y: pt.y - coreR,
+                                       width: coreR * 2, height: coreR * 2)),
+                with: .color(.white.opacity(0.95)))
         }
     }
 }

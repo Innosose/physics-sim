@@ -49,11 +49,11 @@ struct RLCScene: View {
             LabeledSlider(title: "인덕턴스 L", value: $L, range: 0.05...3,
                           format: "%.2f", unit: "H", onEditingChanged: onSliderEnd)
             LabeledSlider(title: "전기용량 C", value: $C, range: 0.0005...0.05,
-                          format: "%.4f", unit: "F", onEditingChanged: onSliderEnd)
+                          format: "%.2f", unit: "F", onEditingChanged: onSliderEnd)
             LabeledSlider(title: "EMF 진폭 V₀", value: $V0, range: 0.1...30,
-                          format: "%.1f", unit: "V", onEditingChanged: onSliderEnd)
+                          format: "%.2f", unit: "V", onEditingChanged: onSliderEnd)
             LabeledSlider(title: "각진동수 ω", value: $omega, range: 0.5...100,
-                          format: "%.1f", unit: "rad/s", onEditingChanged: onSliderEnd)
+                          format: "%.2f", unit: "rad/s", onEditingChanged: onSliderEnd)
             PlayResetBar(running: $running,
                          onReset: { startTime = Date() },
                          resetLabel: "처음부터")
@@ -68,9 +68,9 @@ struct RLCScene: View {
             let Z = sqrt(R * R + (XL - XC) * (XL - XC))
             let phi = atan2(XL - XC, R)
             Readout(label: "|Z|", value: String(format: "%.2f Ω", Z))
-            Readout(label: "위상 φ", value: String(format: "%+.0f°", phi * 180 / .pi))
+            Readout(label: "위상 φ", value: String(format: "%+.2f°", phi * 180 / .pi))
             Readout(label: "전류 i(t)",
-                    value: String(format: "%+.3f A",
+                    value: String(format: "%+.2f A",
                                   state(at: max(0, Date().timeIntervalSince(startTime))).i))
         }
     }

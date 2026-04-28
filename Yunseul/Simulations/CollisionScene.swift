@@ -42,10 +42,10 @@ struct CollisionScene: View {
 
     private var controls: some View {
         VStack(alignment: .leading, spacing: 10) {
-            LabeledSlider(title: "질량 m₁", value: $m1, range: 0.2...10, format: "%.1f", unit: "kg")
-            LabeledSlider(title: "질량 m₂", value: $m2, range: 0.2...10, format: "%.1f", unit: "kg")
-            LabeledSlider(title: "초속 v₁", value: $v1, range: -8...8, format: "%.1f", unit: "m/s")
-            LabeledSlider(title: "초속 v₂", value: $v2, range: -8...8, format: "%.1f", unit: "m/s")
+            LabeledSlider(title: "질량 m₁", value: $m1, range: 0.2...10, format: "%.2f", unit: "kg")
+            LabeledSlider(title: "질량 m₂", value: $m2, range: 0.2...10, format: "%.2f", unit: "kg")
+            LabeledSlider(title: "초속 v₁", value: $v1, range: -8...8, format: "%.2f", unit: "m/s")
+            LabeledSlider(title: "초속 v₂", value: $v2, range: -8...8, format: "%.2f", unit: "m/s")
             LabeledSlider(title: "반발계수 e", value: $restitution, range: 0...1, format: "%.2f")
             PlayResetBar(running: $running, onReset: reset)
             Divider()

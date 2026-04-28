@@ -33,9 +33,9 @@ struct FreeFallScene: View {
     private var controls: some View {
         VStack(alignment: .leading, spacing: 10) {
             LabeledSlider(title: "처음 높이 y₀", value: $initialHeight,
-                          range: 0...50, format: "%.1f", unit: "m")
+                          range: 0...50, format: "%.2f", unit: "m")
             LabeledSlider(title: "처음 속도 v₀ (위 +)", value: $initialVelocity,
-                          range: -10...20, format: "%.1f", unit: "m/s")
+                          range: -10...20, format: "%.2f", unit: "m/s")
             LabeledSlider(title: "중력 g", value: $gravity,
                           range: 1.62...24.79, format: "%.2f", unit: "m/s²")
             PlayResetBar(running: $running, onReset: { startTime = Date(); running = true }, resetLabel: "처음부터")

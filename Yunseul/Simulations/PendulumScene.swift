@@ -55,7 +55,7 @@ struct PendulumScene: View {
                           range: 0...1.5, format: "%.2f", unit: "1/s",
                           onEditingChanged: onSliderEnd)
             LabeledSlider(title: "초기 각도", value: $initialAngleDeg,
-                          range: 1...170, step: 1, format: "%.0f", unit: "°",
+                          range: 1...170, step: 1, format: "%.2f", unit: "°",
                           onEditingChanged: onSliderEnd)
             PlayResetBar(running: $running,
                          onReset: { startTime = Date() },
@@ -67,18 +67,18 @@ struct PendulumScene: View {
             let k = sin(θmax / 2)
             let TNL = 4 * ellipticK(k: k) / ω0
             Readout(label: "고유진동수 ω₀ = √(g/L)",
-                    value: String(format: "%.3f rad/s", ω0))
+                    value: String(format: "%.2f rad/s", ω0))
             Readout(label: "선형 주기 T₀ = 2π/ω₀",
-                    value: String(format: "%.3f s", T0))
+                    value: String(format: "%.2f s", T0))
             Readout(label: "비선형 주기 T = 4·K(k)/ω₀",
-                    value: String(format: "%.3f s", TNL))
+                    value: String(format: "%.2f s", TNL))
             Readout(label: "차이 ΔT / T₀",
                     value: String(format: "%+.2f %%", (TNL - T0) / T0 * 100))
             let t = max(0, Date().timeIntervalSince(startTime))
             Readout(label: "비선형 θ(t)",
-                    value: String(format: "%+.1f°", nonlinearTheta(at: t) * 180 / .pi))
+                    value: String(format: "%+.2f°", nonlinearTheta(at: t) * 180 / .pi))
             Readout(label: "선형 θ(t)",
-                    value: String(format: "%+.1f°", linearTheta(at: t) * 180 / .pi))
+                    value: String(format: "%+.2f°", linearTheta(at: t) * 180 / .pi))
         }
     }
 

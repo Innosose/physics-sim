@@ -84,9 +84,9 @@ struct ProjectileScene: View {
             }
             .pickerStyle(.segmented)
             LabeledSlider(title: "발사각", value: $angle, range: 0...89,
-                          step: 1, format: "%.0f", unit: "°")
+                          step: 1, format: "%.2f", unit: "°")
             LabeledSlider(title: "초속력", value: $speed, range: 5...50,
-                          format: "%.1f", unit: "m/s")
+                          format: "%.2f", unit: "m/s")
             LabeledSlider(title: "중력가속도", value: $gravity, range: 1.62...24.79,
                           format: "%.2f", unit: "m/s²")
             LabeledSlider(title: "공기 저항 k", value: $drag, range: 0...0.6,

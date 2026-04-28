@@ -26,7 +26,7 @@ struct ReflectionScene: View {
     private var controls: some View {
         VStack(alignment: .leading, spacing: 10) {
             LabeledSlider(title: "입사각 θ₁", value: $incidenceDeg, range: 0...89,
-                          step: 0.5, format: "%.1f", unit: "°")
+                          step: 0.5, format: "%.2f", unit: "°")
             LabeledSlider(title: "위쪽 매질 굴절률 n₁", value: $n1, range: 1.0...2.5,
                           format: "%.2f")
             LabeledSlider(title: "아래쪽 매질 굴절률 n₂", value: $n2, range: 1.0...2.5,

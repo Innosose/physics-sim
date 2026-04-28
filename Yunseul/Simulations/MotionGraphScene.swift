@@ -34,9 +34,9 @@ struct MotionGraphScene: View {
     private var controls: some View {
         VStack(alignment: .leading, spacing: 10) {
             LabeledSlider(title: "등속 속도 v₁", value: $v1, range: 0...10,
-                          format: "%.1f", unit: "m/s")
+                          format: "%.2f", unit: "m/s")
             LabeledSlider(title: "등가속도 초기속도 v₀", value: $v0, range: 0...10,
-                          format: "%.1f", unit: "m/s")
+                          format: "%.2f", unit: "m/s")
             LabeledSlider(title: "가속도 a", value: $a, range: -3...4,
                           format: "%.2f", unit: "m/s²")
             PlayResetBar(running: $running, onReset: { startTime = Date(); running = true }, resetLabel: "처음부터")

@@ -174,20 +174,20 @@ struct FreeFallCalculator: View {
                     let tApex = v0 / g
                     let yApex = h0 + v0 * v0 / (2 * g)
                     CalcOutput(label: "최고점 시각 t_apex = v₀ / g",
-                               value: String(format: "%.3f s", tApex))
+                               value: String(format: "%.2f s", tApex))
                     CalcOutput(label: "최고점 높이 y_apex",
-                               value: String(format: "%.3f m", yApex), emphasis: true)
+                               value: String(format: "%.2f m", yApex), emphasis: true)
                 }
                 let disc = v0 * v0 + 2 * g * h0
                 if disc >= 0 {
                     let tGround = (v0 + sqrt(disc)) / g
                     let vImpact = sqrt(disc)
                     CalcOutput(label: "바닥 도달 시각 t_ground",
-                               value: String(format: "%.3f s", tGround), emphasis: true)
+                               value: String(format: "%.2f s", tGround), emphasis: true)
                     CalcOutput(label: "충격 속도 |v_impact| = √(v₀² + 2gh₀)",
-                               value: String(format: "%.3f m/s", vImpact))
+                               value: String(format: "%.2f m/s", vImpact))
                     CalcOutput(label: "충격 운동에너지 (단위질량당)",
-                               value: String(format: "%.3f J/kg", 0.5 * vImpact * vImpact))
+                               value: String(format: "%.2f J/kg", 0.5 * vImpact * vImpact))
                 } else {
                     Text("입력값이 비물리적 (g·h₀ + v₀²/2 < 0)")
                         .font(.footnote)
@@ -230,15 +230,15 @@ struct ProjectileCalculator: View {
                 let H = h0 + v0y * v0y / (2 * g)
                 let vImpact = sqrt(v0x * v0x + (v0y - g * T) * (v0y - g * T))
                 CalcOutput(label: "비행시간 T",
-                           value: String(format: "%.3f s", T), emphasis: true)
+                           value: String(format: "%.2f s", T), emphasis: true)
                 CalcOutput(label: "사거리 R = v₀ cosθ · T",
-                           value: String(format: "%.3f m", R), emphasis: true)
+                           value: String(format: "%.2f m", R), emphasis: true)
                 CalcOutput(label: "최고점 H = h₀ + v₀²sin²θ / 2g",
-                           value: String(format: "%.3f m", H))
+                           value: String(format: "%.2f m", H))
                 CalcOutput(label: "최고점 시각 t_apex = v₀ sinθ / g",
-                           value: String(format: "%.3f s", v0y / g))
+                           value: String(format: "%.2f s", v0y / g))
                 CalcOutput(label: "충격 속도",
-                           value: String(format: "%.3f m/s", vImpact))
+                           value: String(format: "%.2f m/s", vImpact))
             }
         }
     }
@@ -276,21 +276,21 @@ struct OhmCalculator: View {
             CalcSection(title: "결과") {
                 let result = computed
                 CalcOutput(label: "합성 저항 R_eq",
-                           value: String(format: "%.3f Ω", result.Req))
+                           value: String(format: "%.2f Ω", result.Req))
                 CalcOutput(label: "총 전류 I = V / R_eq",
-                           value: String(format: "%.3f A", result.I), emphasis: true)
+                           value: String(format: "%.2f A", result.I), emphasis: true)
                 CalcOutput(label: "총 전력 P = V·I",
-                           value: String(format: "%.3f W", V * result.I))
+                           value: String(format: "%.2f W", V * result.I))
                 if mode == .series {
                     CalcOutput(label: "V₁ = I·R₁",
-                               value: String(format: "%.3f V", result.I * R1))
+                               value: String(format: "%.2f V", result.I * R1))
                     CalcOutput(label: "V₂ = I·R₂",
-                               value: String(format: "%.3f V", result.I * R2))
+                               value: String(format: "%.2f V", result.I * R2))
                 } else if mode == .parallel {
                     CalcOutput(label: "I₁ (R₁ 통과)",
-                               value: String(format: "%.3f A", V / R1))
+                               value: String(format: "%.2f A", V / R1))
                     CalcOutput(label: "I₂ (R₂ 통과)",
-                               value: String(format: "%.3f A", V / R2))
+                               value: String(format: "%.2f A", V / R2))
                 }
             }
         }
@@ -325,11 +325,11 @@ struct RefractionCalculator: View {
                 let θ1 = theta1Deg * .pi / 180
                 let sin2 = n1 * sin(θ1) / n2
                 CalcOutput(label: "n₁ sinθ₁",
-                           value: String(format: "%.4f", n1 * sin(θ1)))
+                           value: String(format: "%.2f", n1 * sin(θ1)))
                 if abs(sin2) <= 1 {
                     let θ2 = asin(sin2)
                     CalcOutput(label: "굴절각 θ₂ = arcsin(n₁ sinθ₁ / n₂)",
-                               value: String(format: "%.3f°", θ2 * 180 / .pi),
+                               value: String(format: "%.2f°", θ2 * 180 / .pi),
                                emphasis: true)
                     CalcOutput(label: "굴절 광선 존재", value: "예")
                 } else {
@@ -339,7 +339,7 @@ struct RefractionCalculator: View {
                 if n1 > n2 {
                     let θc = asin(n2 / n1) * 180 / .pi
                     CalcOutput(label: "임계각 θ_c = arcsin(n₂ / n₁)",
-                               value: String(format: "%.3f°", θc))
+                               value: String(format: "%.2f°", θc))
                 } else {
                     CalcOutput(label: "임계각", value: "없음 (n₁ ≤ n₂)")
                 }
@@ -377,11 +377,11 @@ struct LensCalculator: View {
                     let m = -q / p
                     let hi = m * ho
                     CalcOutput(label: "상거리 q = pf/(p−f)",
-                               value: String(format: "%+.3f m", q), emphasis: true)
+                               value: String(format: "%+.2f m", q), emphasis: true)
                     CalcOutput(label: "배율 m = −q/p",
-                               value: String(format: "%+.3f", m))
+                               value: String(format: "%+.2f", m))
                     CalcOutput(label: "상 높이 h_i = m·h_o",
-                               value: String(format: "%+.3f m", hi))
+                               value: String(format: "%+.2f m", hi))
                     let real = q > 0
                     let inverted = m < 0
                     let enlarged = abs(m) > 1
@@ -414,7 +414,7 @@ struct PendulumCalculator: View {
             CalcSection(title: "결과") {
                 let T0 = 2 * .pi * sqrt(L / g)
                 CalcOutput(label: "작은-각 주기 T₀ = 2π√(L/g)",
-                           value: String(format: "%.4f s", T0), emphasis: true)
+                           value: String(format: "%.2f s", T0), emphasis: true)
 
                 // 진폭 보정 — 큰 각에서의 주기 (멱급수 근사, 정확):
                 //   T(θ_max) = T₀ · (1 + θ²/16 + 11·θ⁴/3072 + 173·θ⁶/737280 + …)
@@ -426,13 +426,13 @@ struct PendulumCalculator: View {
                 let correction = 1 + θ2 / 16 + 11 * θ4 / 3072 + 173 * θ6 / 737280
                 let T = T0 * correction
                 CalcOutput(label: "정확한 주기 T(θ_max) (멱급수 5차)",
-                           value: String(format: "%.4f s", T), emphasis: true)
+                           value: String(format: "%.2f s", T), emphasis: true)
                 CalcOutput(label: "보정 비율 T / T₀",
-                           value: String(format: "%.4f", correction))
+                           value: String(format: "%.2f", correction))
                 CalcOutput(label: "차이 ΔT / T₀",
                            value: String(format: "%+.2f %%", (correction - 1) * 100))
                 CalcOutput(label: "고유진동수 ω₀ = √(g/L)",
-                           value: String(format: "%.3f rad/s", sqrt(g / L)))
+                           value: String(format: "%.2f rad/s", sqrt(g / L)))
             }
             Text("작은 각 근사는 θ ≪ 1 일 때 유효. 60°에서 약 7%, 90°에서 약 18% 더 김.")
                 .font(.caption).foregroundStyle(.secondary).padding(.top, 4)
@@ -464,17 +464,17 @@ struct CollisionCalculator: View {
                 let v1p = ((m1 - e * m2) * v1 + (1 + e) * m2 * v2) / M
                 let v2p = ((m2 - e * m1) * v2 + (1 + e) * m1 * v1) / M
                 CalcOutput(label: "v₁′",
-                           value: String(format: "%+.3f m/s", v1p), emphasis: true)
+                           value: String(format: "%+.2f m/s", v1p), emphasis: true)
                 CalcOutput(label: "v₂′",
-                           value: String(format: "%+.3f m/s", v2p), emphasis: true)
+                           value: String(format: "%+.2f m/s", v2p), emphasis: true)
                 CalcOutput(label: "운동량 p (전·후)",
-                           value: String(format: "%.3f → %.3f", m1*v1+m2*v2, m1*v1p+m2*v2p))
+                           value: String(format: "%.2f → %.3f", m1*v1+m2*v2, m1*v1p+m2*v2p))
                 let KE  = 0.5 * (m1*v1*v1 + m2*v2*v2)
                 let KE2 = 0.5 * (m1*v1p*v1p + m2*v2p*v2p)
                 CalcOutput(label: "운동에너지 KE (전 → 후)",
-                           value: String(format: "%.3f → %.3f J", KE, KE2))
+                           value: String(format: "%.2f → %.3f J", KE, KE2))
                 CalcOutput(label: "ΔKE",
-                           value: String(format: "%+.3f J  (%+.1f %%)",
+                           value: String(format: "%+.2f J  (%+.1f %%)",
                                           KE2 - KE,
                                           KE > 1e-9 ? (KE2 - KE) / KE * 100 : 0))
                 let label: String =
@@ -509,7 +509,7 @@ struct KeplerCalculator: View {
                 let E = 0.5 * v * v - GM / r        // 비-에너지 (단위질량당)
                 let escape = sqrt(2 * GM / r)
                 CalcOutput(label: "탈출속력 v_esc = √(2GM/r)",
-                           value: String(format: "%.1f m/s", escape))
+                           value: String(format: "%.2f m/s", escape))
                 CalcOutput(label: "비-에너지 ε = ½v² − GM/r",
                            value: String(format: "%.3e J/kg", E))
                 if E >= 0 {
@@ -528,9 +528,9 @@ struct KeplerCalculator: View {
                     CalcOutput(label: "장반경 a = −GM / (2ε)",
                                value: String(format: "%.3e m", a), emphasis: true)
                     CalcOutput(label: "이심률 e (접선속력 가정)",
-                               value: String(format: "%.4f", ecc))
+                               value: String(format: "%.2f", ecc))
                     CalcOutput(label: "공전주기 T = 2π √(a³/GM)",
-                               value: String(format: "%.0f s  (%.3f h)", T, T / 3600),
+                               value: String(format: "%.2f s  (%.3f h)", T, T / 3600),
                                emphasis: true)
                     CalcOutput(label: "근일점 r_peri = a(1−e)",
                                value: String(format: "%.3e m", rPeri))
@@ -573,16 +573,16 @@ struct DopplerCalculator: View {
                 } else {
                     let fp = f0 * (c + vo) / (c - vs)
                     CalcOutput(label: "관측 진동수 f′ = f · (c + v_o)/(c − v_s)",
-                               value: String(format: "%.3f Hz", fp), emphasis: true)
+                               value: String(format: "%.2f Hz", fp), emphasis: true)
                     CalcOutput(label: "주기 T′ = 1 / f′",
-                               value: String(format: "%.4f s", 1 / fp))
+                               value: String(format: "%.2f s", 1 / fp))
                     CalcOutput(label: "f′ / f",
-                               value: String(format: "%.4f", fp / f0))
+                               value: String(format: "%.2f", fp / f0))
                     CalcOutput(label: "음정 변화",
-                               value: String(format: "%+.1f cents",
+                               value: String(format: "%+.2f cents",
                                               1200 * log2(fp / f0)))
                     CalcOutput(label: "마하 수 v_s / c",
-                               value: String(format: "%.3f", vs / c))
+                               value: String(format: "%.2f", vs / c))
                 }
             }
             Text("부호 규약: 다가가는 방향이 +. 멀어지면 −. 빛(상대론) 도플러는 별도 공식.")
@@ -616,16 +616,16 @@ struct DoubleSlitCalculator: View {
                 let dy = λ * D / d
                 let ya = λ * D / a
                 CalcOutput(label: "이웃 무늬 간격 Δy = λ·D / d",
-                           value: String(format: "%.3f mm", dy * 1000),
+                           value: String(format: "%.2f mm", dy * 1000),
                            emphasis: true)
                 CalcOutput(label: "회절 첫 영점 위치 y_a = λ·D / a",
-                           value: String(format: "%.3f mm", ya * 1000))
+                           value: String(format: "%.2f mm", ya * 1000))
                 CalcOutput(label: "봉투 안의 보강 무늬 수 (대략 2·d/a)",
-                           value: String(format: "%.0f 개", 2 * d / a))
+                           value: String(format: "%.2f 개", 2 * d / a))
                 // 첫 보강 회절 각.
                 let θ1 = asin(min(1, λ / d))
                 CalcOutput(label: "첫 보강 회절각 θ₁ = arcsin(λ/d)",
-                           value: String(format: "%.3f° (%.4f rad)",
+                           value: String(format: "%.2f° (%.2f rad)",
                                           θ1 * 180 / .pi, θ1))
             }
         }

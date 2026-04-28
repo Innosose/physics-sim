@@ -53,7 +53,7 @@ struct ElectricFieldScene: View {
                     Slider(value: Binding(
                         get: { charges[i].q },
                         set: { charges[i].q = $0 }), in: -2...2)
-                    Text(String(format: "%+.1f", charges[i].q))
+                    Text(String(format: "%+.2f", charges[i].q))
                         .font(.caption.monospacedDigit())
                         .frame(width: 40, alignment: .trailing)
                 }

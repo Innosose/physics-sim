@@ -73,7 +73,7 @@ struct LorentzScene: View {
             Readout(label: "사이클로트론 ω_c",
                     value: String(format: "%+.2f rad/s", omegaC))
             Readout(label: "자이로 반지름",
-                    value: r.isFinite ? String(format: "%.3f m", r) : "∞")
+                    value: r.isFinite ? String(format: "%.2f m", r) : "∞")
             Readout(label: "표류 속도 v_d",
                     value: String(format: "(%+.2f, %+.2f) m/s", vd.x, vd.y))
             let p = position(at: max(0, Date().timeIntervalSince(startTime)))

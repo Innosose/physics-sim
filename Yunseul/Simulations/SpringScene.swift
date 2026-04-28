@@ -52,13 +52,13 @@ struct SpringScene: View {
                           format: "%.2f", unit: "kg",
                           onEditingChanged: onSliderEnd)
             LabeledSlider(title: "강성 k", value: $stiffness, range: 1.0...80.0,
-                          format: "%.1f", unit: "N/m",
+                          format: "%.2f", unit: "N/m",
                           onEditingChanged: onSliderEnd)
             LabeledSlider(title: "감쇠 c", value: $damping, range: 0...4,
                           format: "%.2f", unit: "N·s/m",
                           onEditingChanged: onSliderEnd)
             LabeledSlider(title: "외력 진폭 F₀", value: $driveAmp, range: 0...20,
-                          format: "%.1f", unit: "N",
+                          format: "%.2f", unit: "N",
                           onEditingChanged: onSliderEnd)
             LabeledSlider(title: "구동 ω_d", value: $driveOmega, range: 0.1...15,
                           format: "%.2f", unit: "rad/s",
@@ -70,11 +70,11 @@ struct SpringScene: View {
             Readout(label: "고유진동수 ω₀",
                     value: String(format: "%.2f rad/s", omega0))
             Readout(label: "감쇠비 ζ",
-                    value: String(format: "%.3f  (%@)", zeta, dampingRegimeLabel))
+                    value: String(format: "%.2f  (%@)", zeta, dampingRegimeLabel))
             Readout(label: "정상상태 진폭 X",
-                    value: String(format: "%.3f m", steadyAmplitude))
+                    value: String(format: "%.2f m", steadyAmplitude))
             Readout(label: "현재 위치 x(t)",
-                    value: String(format: "%+.3f m", state(at: max(0, Date().timeIntervalSince(startTime)))))
+                    value: String(format: "%+.2f m", state(at: max(0, Date().timeIntervalSince(startTime)))))
         }
     }
 

@@ -42,7 +42,7 @@ struct KineticGasScene: View {
     private var controls: some View {
         VStack(alignment: .leading, spacing: 10) {
             LabeledSlider(title: "입자 수 N", value: $N, range: 20...300, step: 1,
-                          format: "%.0f", onEditingChanged: onSliderEnd)
+                          format: "%.2f", onEditingChanged: onSliderEnd)
             LabeledSlider(title: "초기 속력 스케일", value: $temperatureScale, range: 0.2...3,
                           format: "%.2f")
             Toggle("왼쪽 벽 가열 (열 흐름 관찰)", isOn: $heaterOn)
@@ -51,7 +51,7 @@ struct KineticGasScene: View {
             let speeds = particles.map { $0.vel.length }
             let mean = speeds.isEmpty ? 0 : speeds.reduce(0, +) / Double(speeds.count)
             let ke = particles.reduce(0) { $0 + 0.5 * mass * $1.vel.lengthSquared }
-            Readout(label: "평균 속력 ⟨|v|⟩", value: String(format: "%.3f", mean))
+            Readout(label: "평균 속력 ⟨|v|⟩", value: String(format: "%.2f", mean))
             Readout(label: "총 운동에너지", value: String(format: "%.2f", ke))
         }
     }

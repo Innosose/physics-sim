@@ -94,7 +94,7 @@ struct FreeCollisionScene: View {
             .pickerStyle(.segmented)
 
             LabeledSlider(title: "새 입자 반지름", value: $newRadius,
-                          range: 0.025...0.10, format: "%.3f", unit: "m")
+                          range: 0.025...0.10, format: "%.2f", unit: "m")
             LabeledSlider(title: "중력 g (아래쪽)", value: $gravity,
                           range: 0...3, format: "%.2f")
             HStack {
@@ -111,11 +111,11 @@ struct FreeCollisionScene: View {
             let ke = totalKE
             Readout(label: "입자 수", value: "\(particles.count)")
             Readout(label: "총 운동량 |p|",
-                    value: String(format: "%.3f kg·m/s", p.length))
+                    value: String(format: "%.2f kg·m/s", p.length))
             Readout(label: "총 운동량 (벡터)",
                     value: String(format: "(%.2f, %.2f)", p.x, p.y))
             Readout(label: "총 운동에너지",
-                    value: String(format: "%.3f J", ke))
+                    value: String(format: "%.2f J", ke))
             Readout(label: "충돌 횟수", value: "\(collisionCount)")
         }
     }

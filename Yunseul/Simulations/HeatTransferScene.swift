@@ -46,9 +46,9 @@ struct HeatTransferScene: View {
     private var controls: some View {
         VStack(alignment: .leading, spacing: 10) {
             LabeledSlider(title: "물체 1 처음 온도", value: $T1, range: 0...100,
-                          format: "%.0f", unit: "°C", onEditingChanged: onSliderEnd)
+                          format: "%.2f", unit: "°C", onEditingChanged: onSliderEnd)
             LabeledSlider(title: "물체 2 처음 온도", value: $T2, range: 0...100,
-                          format: "%.0f", unit: "°C", onEditingChanged: onSliderEnd)
+                          format: "%.2f", unit: "°C", onEditingChanged: onSliderEnd)
             LabeledSlider(title: "열용량 비 (m₂c₂)/(m₁c₁)",
                           value: $capRatio, range: 0.1...5,
                           format: "%.2f", onEditingChanged: onSliderEnd)
@@ -63,7 +63,7 @@ struct HeatTransferScene: View {
             Readout(label: "평형 온도 T_eq",
                     value: String(format: "%.2f °C", Teq))
             Readout(label: "시상수 τ",
-                    value: String(format: "%.3f s", tau))
+                    value: String(format: "%.2f s", tau))
             Readout(label: "현재 t",
                     value: String(format: "%.2f s", t))
             Readout(label: "T₁(t) (분석해)",

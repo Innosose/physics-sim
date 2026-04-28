@@ -26,11 +26,11 @@ struct DoubleSlitScene: View {
     private var controls: some View {
         VStack(alignment: .leading, spacing: 10) {
             LabeledSlider(title: "파장 λ", value: $wavelength, range: 380...780,
-                          format: "%.0f", unit: "nm")
+                          format: "%.2f", unit: "nm")
             LabeledSlider(title: "슬릿 간격 d", value: $slitSep, range: 10_000...200_000,
-                          format: "%.0f", unit: "nm")
+                          format: "%.2f", unit: "nm")
             LabeledSlider(title: "슬릿 폭 a", value: $slitWidth, range: 2_000...30_000,
-                          format: "%.0f", unit: "nm")
+                          format: "%.2f", unit: "nm")
             LabeledSlider(title: "막까지 거리 D", value: $screenDist, range: 0.3...3,
                           format: "%.2f", unit: "m")
             Toggle("회절 봉투 표시", isOn: $showEnvelope)
