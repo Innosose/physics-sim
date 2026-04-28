@@ -1,80 +1,120 @@
-# physics-sim — 교육용 물리 시뮬레이션 (단일 파일)
+# 온누리 (Onnuri)
 
-작은 SDL2 + OpenGL 3.3 프로그램. 외부 의존성은 SDL2 만. 학생이 코드 전체
-(~400 줄) 를 읽고 이해할 수 있도록 의도적으로 압축.
+> "온 세상" 을 뜻하는 순우리말. 초등 / 중등 / 고등 교육과정과 자유 샌드박스를
+> 한데 모은 SwiftUI 물리 시뮬 앱 — iOS 26 · iPadOS 26 · macOS 26 (Liquid Glass).
 
-## 학습 포인트
+외부 의존성 없음. SwiftUI 의 `Canvas`, `TimelineView`, `glassEffect`, 그리고
+`buttonStyle(.glass)` 만 사용.
 
-1. **Semi-implicit Euler 적분기** — `physics_step()` 함수 한 곳에 중력,
-   drag (선형 감쇠), 위치 갱신, 바닥 충돌이 모두 들어 있음.
-2. **에너지 보존** — drag=0 일 때 KE+PE 가 거의 일정 (수치 적분 1-2% drift).
-   bounce 시 inelastic → 가시적 KE 감소.
-3. **충돌 응답** — `if (b.pos.y < floor + radius)` 분기에서 위치 보정 +
-   속도 반사 (restitution). 가장 단순한 상호작용.
-4. **OpenGL 최소 파이프라인** — VS/FS shader 한 페어, 단위 cube 1 개,
-   uniform 으로 색/모델 행렬 변경. Lambert 조명만.
+## 시작화면 → 학년별 카탈로그
 
-## 의존성
+```
+            온누리
+   ──────────────────────
+       [ 초등학교 ]
+       [ 중학교  ]
+       [ 고등학교 ]
 
-| 플랫폼 | 패키지 |
-|--------|--------|
-| Linux (apt) | `libsdl2-dev` |
-| macOS (brew) | `sdl2` |
-| Windows (vcpkg) | `sdl2` |
+       자유 시뮬레이션
+```
+
+큰 타일 셋이 학년별 카탈로그로, 그 아래 작은 텍스트가 자유 샌드박스로 들어간다.
+
+## 수록 시뮬레이션
+
+### 초등학교 (3–6학년 과학)
+| 시뮬 | 다루는 개념 |
+|------|------|
+| 자석의 인력과 반발 | 같은 극끼리 밀고 다른 극끼리 당김 (역제곱 모형) |
+| 지렛대 | 받침점에서 거리 × 무게 — 토크 균형 |
+| 부력 | 잠긴 부피 비율 = 밀도 비율 |
+| 빛과 그림자 | 점광원과 닮음 삼각형 |
+| 그네 (진자) | 줄 길이와 주기 (단순화 UI) |
+
+### 중학교 (1–3학년 과학)
+| 시뮬 | 다루는 개념 |
+|------|------|
+| 자유낙하·연직 던지기 | y = y₀ + v₀t − ½gt², 분석해 |
+| 등속 vs 등가속도 | 위치–시간, 속도–시간 그래프 |
+| 빛의 반사·굴절 | n₁ sinθ₁ = n₂ sinθ₂, 임계각 |
+| 직렬·병렬 회로 | 옴의 법칙으로 정확히 계산 |
+| 열전달과 평형 | T_eq = (m₁c₁T₁ + m₂c₂T₂) / Σmc |
+| 1차원 충돌 | 운동량 보존, 반발계수 |
+
+### 고등학교 (물리Ⅰ·Ⅱ)
+| 시뮬 | 다루는 개념 |
+|------|------|
+| 포물선 운동 | 선형 drag 의 해석해 |
+| 단진자 (비선형) | RK4 vs 작은-각 근사 |
+| 감쇠·구동 진동자 | 공명 곡선 \|X(ω)\|, 감쇠비 ζ |
+| 케플러 궤도 | symplectic Euler, 에너지·L 보존 |
+| 파동의 중첩 | 맥놀이, 정상파 |
+| 도플러 효과 | 움직이는 음원의 파면 |
+| 기체 분자 운동 | 맥스웰–볼츠만 분포 |
+| 전기력선 | 점전하의 streamline |
+| 자기장 속 하전입자 | 사이클로트론, E×B 표류 |
+| 직렬 RLC | 공명 ω₀ = 1/√(LC), 위상 |
+| 이중 슬릿 | 간섭 ⊗ 회절의 합성 |
+| 얇은 렌즈 결상 | 1/f = 1/p + 1/q, 광선 작도 (수렴/발산 모두) |
+
+### 자유 시뮬레이션 (샌드박스)
+| 시뮬 | 다루는 개념 |
+|------|------|
+| 자유 충돌 박스 | 재질(강철·고무·점토·얼음)별 e·ρ, 다체 동시 충돌. 박스 안 어디든 탭하면 입자 생성. |
+| N체 중력 | Velocity-Verlet 으로 에너지·각운동량 보존. 태양–행성 / 이중성 / Chenciner–Montgomery 8자 / 8체 무작위 프리셋. |
+
+## 정확성 원칙
+
+> 보이는 것은 시각효과가 들어간 근사라도, **계산 결과는 정확하다.**
+
+- 등가속도 운동(자유낙하·등속/등가속도 그래프)은 닫힌 해를 사용 (수치오차 0).
+- 충돌은 법선 임펄스 J = (1+e)·μ·v·n̂ 으로 운동량을 매 충돌에서 정확히 보존.
+- 다체 중력은 velocity-Verlet (symplectic) — 에너지가 장기간 ε 범위에서 진동.
+- 회로·렌즈·슬넬·도플러는 닫힌 해.
+- 옴의 법칙·열용량 비례식·임피던스 등은 모두 정확한 분석식.
+
+각 시뮬의 우측 패널에 보존되는 양(총 운동량 / 운동에너지 / 각운동량 / 에너지)을
+실시간으로 표시해서 "정말 보존되는지" 직접 확인할 수 있다.
 
 ## 빌드 & 실행
 
-```bash
-./build.sh           # POSIX (Linux/macOS)
-./physics_sim
+`.xcodeproj` 는 저장소에 포함하지 않고 [XcodeGen](https://github.com/yonaskolb/XcodeGen) 으로 생성한다.
+
+```sh
+brew install xcodegen
+xcodegen generate
+open Onnuri.xcodeproj
 ```
 
-또는 수동 컴파일:
-```bash
-c++ -std=c++17 -O2 -o physics_sim src/physics_sim.cpp \
-    $(sdl2-config --cflags --libs) -lGL -ldl   # Linux
+직접 만들고 싶으면: Xcode → File ▸ New ▸ Project ▸ App (Multiplatform).
+Bundle ID `app.onnuri.Onnuri`, Interface SwiftUI, Language Swift. 기본 생성된
+`ContentView.swift`, `OnnuriApp.swift` 를 지우고 `Onnuri/` 안의 모든 `.swift`
+와 `Resources/Assets.xcassets` 를 끌어다 넣는다.
+
+### 시스템 요구사항
+
+- Xcode 17 이상
+- iOS 26 / iPadOS 26 / macOS 26 (Tahoe) 이상
+
+## 코드 구조
+
 ```
-
-## 조작
-
-| 키 | 동작 |
-|----|------|
-| `Space` | 다시 발사 (위치/속도 reset) |
-| `↑ ↓` | 발사각 ±5° (0..89°) |
-| `← →` | 초속력 ±2 m/s (1..50) |
-| `D` | drag toggle (0 ↔ 0.10) |
-| `ESC` | 종료 |
-
-stdout 에 0.5 초 간격으로 측정값 출력:
+Onnuri/
+├── OnnuriApp.swift               @main
+├── StartView.swift               시작화면 (학년 선택 + 자유 링크)
+├── CurriculumView.swift          학년별 시뮬 목록
+├── Util/
+│   ├── Vec2.swift                2D 벡터
+│   ├── CanvasMap.swift           월드(미터) ↔ 픽셀 변환
+│   ├── SimChrome.swift           공통 레이아웃·컨트롤
+│   └── LiquidGlass.swift         iOS 26 glassEffect 헬퍼
+├── Models/
+│   ├── Curriculum.swift          교육과정 enum + 색·아이콘
+│   └── SimulationCatalog.swift   ID → View 매핑 + 학년별 목록
+├── Simulations/                  24 개 시뮬 화면
+└── Resources/Assets.xcassets
 ```
-t= 1.00s  pos=( -6.97, 7.48)  vel=( 8.03, 1.66) |v|= 8.20  KE= 33.62 PE= 63.58 E= 97.20  [angle=55 speed=14 drag=0]
-```
-
-## 코드 구조 (src/physics_sim.cpp)
-
-| 섹션 | 줄 | 내용 |
-|------|----|------|
-| GL 함수 포인터 로드 | 35-90 | macOS/Win 용 `SDL_GL_GetProcAddress` |
-| `Vec3`, `Mat4` | 95-145 | 최소 선형대수 (perspective, look_at) |
-| `Body`, `physics_step` | 150-180 | 적분기 본체 |
-| Shader / mesh | 185-260 | VS+FS, 단위 cube 36 vert |
-| `main` | 265-끝 | SDL 초기화, 메인 루프, 발사 / 키 / 렌더 |
-
-## 실험 제안
-
-1. `gravity = 1.62` — 달 중력. 비행 시간 6 배.
-2. `restitution = 1.0` — 완전 탄성 → 영원히 튕김 (수치 오차 누적 시 결국 정지).
-3. `drag = 0.5` — 강한 공기 저항 → 포물선이 비대칭 (descent 가 더 짧음).
-4. 발사각 30°, 45°, 60° 실험 → 사정거리 비교 (h₀=1m 환경).
-5. 코드 수정: Verlet 적분기로 교체하여 `E` drift 비교.
-
-## 확장 (TODO)
-
-- on-screen HUD (현재는 stdout)
-- 다중 시나리오: pendulum, spring, 1D collision, billiards
-- 그래프 출력 (시간 vs E, vs vy 등)
-- JSON 시나리오 파일 + scenario 선택 메뉴
 
 ## 라이선스
 
-MIT (사용 / 수정 / 재배포 자유).
+MIT.
