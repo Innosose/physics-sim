@@ -1,38 +1,44 @@
 import SwiftUI
 
-/// 단진자 — 비선형 ODE 와 작은-각 근사 비교.
+/// 단진자 — **닫힌 해 (analytical)**.
 ///
-/// 비선형:  d²θ/dt² = -(g/L) sin θ  − γ·dθ/dt
-/// 선형:    d²θ/dt² = -(g/L) θ      − γ·dθ/dt
-/// RK4 적분.
+/// 두 진자를 같은 화면에 그려 비교한다:
+///
+/// 1) **선형 진자** (작은-각 근사)  — 감쇠 포함 닫힌 해
+///    - 무감쇠/소감쇠:  θ_L(t) = θ_max · e^{−γt/2} · cos(ω_d t),  ω_d = √(ω₀² − γ²/4)
+///    - 임계감쇠 (γ = 2ω₀): θ_L(t) = θ_max · (1 + γt/2) · e^{−γt/2}
+///    - 과감쇠:  지수 두 항의 합 (초기조건으로 풀림)
+///
+/// 2) **비선형 진자** (감쇠 없음) — Jacobi 타원함수 cn 으로 정확한 닫힌 해
+///    - k = sin(θ_max/2),  ω₀ = √(g/L)
+///    - θ_NL(t) = 2 · arcsin(k · cn(ω₀ t,  k))
+///    - 주기 T = 4·K(k) / ω₀  (작은 각이면 K → π/2, T → 2π/ω₀)
+///
+/// 적분 없음 — 시각 t 가 주어지면 위 식으로 직접 계산.
 struct PendulumScene: View {
     @State private var length: Double = 1.5      // m
     @State private var gravity: Double = 9.81    // m/s²
-    @State private var damping: Double = 0.0     // 1/s
+    @State private var damping: Double = 0.0     // 1/s — 선형 진자에만 적용
     @State private var initialAngleDeg: Double = 60
+    @State private var startTime = Date()
     @State private var running = true
-
-    // 두 진자의 (각, 각속도) — 비선형 / 선형.
-    @State private var nlState = (theta: 0.0, omega: 0.0)
-    @State private var linState = (theta: 0.0, omega: 0.0)
-    @State private var lastTime: TimeInterval? = nil
 
     var body: some View {
         SimChrome(
-            blurb: "노란색은 정확한 비선형 해 (RK4 수치적분 — 비선형 진자는 일반적으로 초등 함수로 표현 불가, 타원적분 sn 필요). 회색은 작은-각 근사 (닫힌 해). 진폭이 커질수록 둘은 점점 어긋난다.",
+            blurb: "노란색은 비선형 (Jacobi cn 닫힌 해), 회색은 작은-각 선형 근사. 진폭이 커질수록 둘은 점점 어긋난다 — 비선형의 주기가 더 길다.",
             canvas: { canvas },
             controls: { controls })
-            .onAppear { reset() }
     }
 
-    /// 슬라이더에서 손을 뗄 때만 호출 — 드래그 중 깜빡임 방지.
-    private func onSliderEnd(_ editing: Bool) { if !editing { reset() } }
+    private func onSliderEnd(_ editing: Bool) {
+        if !editing { startTime = Date() }
+    }
 
     private var canvas: some View {
-        TimelineView(.animation(paused: !running)) { ctx in
-            Canvas { gctx, size in
-                advance(to: ctx.date.timeIntervalSinceReferenceDate)
-                draw(ctx: gctx, size: size)
+        TimelineView(.animation(paused: !running)) { tl in
+            Canvas { ctx, size in
+                let t = max(0, tl.date.timeIntervalSince(startTime))
+                draw(ctx: ctx, size: size, t: t)
             }
         }
     }
@@ -43,65 +49,86 @@ struct PendulumScene: View {
                           format: "%.2f", unit: "m",
                           onEditingChanged: onSliderEnd)
             LabeledSlider(title: "중력", value: $gravity, range: 1.62...24.79,
-                          format: "%.2f", unit: "m/s²")
-            LabeledSlider(title: "감쇠 γ", value: $damping, range: 0...1.5,
-                          format: "%.2f", unit: "1/s")
-            LabeledSlider(title: "초기 각도", value: $initialAngleDeg, range: 1...170,
-                          step: 1, format: "%.0f", unit: "°",
+                          format: "%.2f", unit: "m/s²",
                           onEditingChanged: onSliderEnd)
-            PlayResetBar(running: $running, onReset: reset)
+            LabeledSlider(title: "감쇠 γ (선형 진자에만)", value: $damping,
+                          range: 0...1.5, format: "%.2f", unit: "1/s",
+                          onEditingChanged: onSliderEnd)
+            LabeledSlider(title: "초기 각도", value: $initialAngleDeg,
+                          range: 1...170, step: 1, format: "%.0f", unit: "°",
+                          onEditingChanged: onSliderEnd)
+            PlayResetBar(running: $running,
+                         onReset: { startTime = Date() },
+                         resetLabel: "처음부터")
             Divider()
-            Readout(label: "주기 (작은각) T₀",
-                    value: String(format: "%.3f s", 2 * .pi * sqrt(length / gravity)))
-            Readout(label: "비선형 θ",
-                    value: String(format: "%.1f°", nlState.theta * 180 / .pi))
-            Readout(label: "선형   θ",
-                    value: String(format: "%.1f°", linState.theta * 180 / .pi))
+            let ω0 = sqrt(gravity / length)
+            let T0 = 2 * .pi / ω0
+            let θmax = initialAngleDeg * .pi / 180
+            let k = sin(θmax / 2)
+            let TNL = 4 * ellipticK(k: k) / ω0
+            Readout(label: "고유진동수 ω₀ = √(g/L)",
+                    value: String(format: "%.3f rad/s", ω0))
+            Readout(label: "선형 주기 T₀ = 2π/ω₀",
+                    value: String(format: "%.3f s", T0))
+            Readout(label: "비선형 주기 T = 4·K(k)/ω₀",
+                    value: String(format: "%.3f s", TNL))
+            Readout(label: "차이 ΔT / T₀",
+                    value: String(format: "%+.2f %%", (TNL - T0) / T0 * 100))
+            let t = max(0, Date().timeIntervalSince(startTime))
+            Readout(label: "비선형 θ(t)",
+                    value: String(format: "%+.1f°", nonlinearTheta(at: t) * 180 / .pi))
+            Readout(label: "선형 θ(t)",
+                    value: String(format: "%+.1f°", linearTheta(at: t) * 180 / .pi))
         }
     }
 
-    // MARK: - 통합
+    // MARK: - 닫힌 해
 
-    private func reset() {
-        nlState = (theta: initialAngleDeg * .pi / 180, omega: 0)
-        linState = (theta: initialAngleDeg * .pi / 180, omega: 0)
-        lastTime = nil
+    /// 비선형 무감쇠 — Jacobi cn 닫힌 해.
+    private func nonlinearTheta(at t: Double) -> Double {
+        let θmax = initialAngleDeg * .pi / 180
+        let k = sin(θmax / 2)
+        let ω0 = sqrt(gravity / length)
+        // cn 은 주기 4·K(k). 큰 t 의 정밀 손실 방지 위해 mod 처리.
+        let K4 = 4 * ellipticK(k: k)
+        let u = (ω0 * t).truncatingRemainder(dividingBy: K4)
+        let cn = jacobiSnCnDn(u: u, k: k).cn
+        let arg = max(-1.0, min(1.0, k * cn))
+        return 2 * asin(arg)
     }
 
-    private func advance(to now: TimeInterval) {
-        guard running else { lastTime = now; return }
-        guard let last = lastTime else { lastTime = now; return }
-        var dt = now - last
-        if dt > 0.1 { dt = 0.1 }   // 큰 hitch 방지
-        // 고정 서브스텝.
-        let sub = max(1, Int((dt / 0.002).rounded()))
-        let h = dt / Double(sub)
-        for _ in 0..<sub {
-            nlState  = rk4(state: nlState,  h: h, accel: { -gravity / length * sin($0) - damping * $1 })
-            linState = rk4(state: linState, h: h, accel: { -gravity / length * $0       - damping * $1 })
+    /// 선형 (작은-각) 닫힌 해 — 감쇠 케이스 분기.
+    private func linearTheta(at t: Double) -> Double {
+        let θmax = initialAngleDeg * .pi / 180
+        let ω0 = sqrt(gravity / length)
+        let γ = damping
+
+        // 무감쇠.
+        if γ < 1e-9 { return θmax * cos(ω0 * t) }
+
+        let critical = 2 * ω0
+        if γ < critical - 1e-6 {
+            // 소감쇠.
+            let ωd = sqrt(ω0 * ω0 - γ * γ / 4)
+            return θmax * exp(-γ * t / 2) * cos(ωd * t)
+        } else if γ > critical + 1e-6 {
+            // 과감쇠.
+            let s = sqrt(γ * γ / 4 - ω0 * ω0)
+            let λ1 = -γ / 2 + s
+            let λ2 = -γ / 2 - s
+            // θ(0) = θmax, θ̇(0) = 0  ⇒  A = -λ2·θmax/(λ1−λ2),  B = λ1·θmax/(λ1−λ2)
+            let A = -λ2 * θmax / (λ1 - λ2)
+            let B =  λ1 * θmax / (λ1 - λ2)
+            return A * exp(λ1 * t) + B * exp(λ2 * t)
+        } else {
+            // 임계감쇠 — θ(t) = θmax · (1 + γt/2) · exp(−γt/2).
+            return θmax * (1 + γ * t / 2) * exp(-γ * t / 2)
         }
-        lastTime = now
-    }
-
-    private func rk4(state s: (theta: Double, omega: Double),
-                     h: Double,
-                     accel: (Double, Double) -> Double) -> (theta: Double, omega: Double) {
-        // y = (θ, ω). dθ/dt = ω, dω/dt = accel(θ, ω).
-        let k1t = s.omega
-        let k1o = accel(s.theta, s.omega)
-        let k2t = s.omega + 0.5 * h * k1o
-        let k2o = accel(s.theta + 0.5 * h * k1t, s.omega + 0.5 * h * k1o)
-        let k3t = s.omega + 0.5 * h * k2o
-        let k3o = accel(s.theta + 0.5 * h * k2t, s.omega + 0.5 * h * k2o)
-        let k4t = s.omega + h * k3o
-        let k4o = accel(s.theta + h * k3t, s.omega + h * k3o)
-        return (theta: s.theta + h / 6 * (k1t + 2 * k2t + 2 * k3t + k4t),
-                omega: s.omega + h / 6 * (k1o + 2 * k2o + 2 * k3o + k4o))
     }
 
     // MARK: - 그리기
 
-    private func draw(ctx: GraphicsContext, size: CGSize) {
+    private func draw(ctx: GraphicsContext, size: CGSize, t: Double) {
         let world = CGRect(x: -2.0, y: -2.0, width: 4.0, height: 3.0)
         let map = CanvasMap(view: size, world: world, padding: 16)
 
@@ -112,15 +139,14 @@ struct PendulumScene: View {
         ceil.addLine(to: CGPoint(x: pivotPx.x + 60, y: pivotPx.y))
         ctx.stroke(ceil, with: .color(.white.opacity(0.5)), lineWidth: 2)
 
-        // 두 진자 그리기.
         drawBob(ctx: ctx, map: map, pivot: Vec2(x: 0, y: 1.0),
-                theta: linState.theta, color: .gray, alpha: 0.55, label: nil)
+                theta: linearTheta(at: t), color: .gray, alpha: 0.55)
         drawBob(ctx: ctx, map: map, pivot: Vec2(x: 0, y: 1.0),
-                theta: nlState.theta, color: .yellow, alpha: 1.0, label: "비선형")
+                theta: nonlinearTheta(at: t), color: .yellow, alpha: 1.0)
     }
 
     private func drawBob(ctx: GraphicsContext, map: CanvasMap, pivot: Vec2,
-                         theta: Double, color: Color, alpha: Double, label: String?) {
+                         theta: Double, color: Color, alpha: Double) {
         let bob = Vec2(x: pivot.x + length * sin(theta),
                        y: pivot.y - length * cos(theta))
         var line = Path()
