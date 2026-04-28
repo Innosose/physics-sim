@@ -6,9 +6,7 @@ struct OnnuriApp: App {
         WindowGroup {
             StartView()
                 .preferredColorScheme(.dark)
+                .tint(BlenderTheme.accent)
         }
-        #if os(macOS)
-        .defaultSize(width: 1100, height: 760)
-        #endif
     }
 }

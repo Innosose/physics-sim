@@ -7,7 +7,7 @@ import SwiftUI
 /// Velocity-Verlet 적분기 사용: 작은 dt 에서 에너지·각운동량이 잘 보존된다.
 /// 측정값(에너지·각운동량)은 실제 적분된 상태에서 직접 계산.
 struct FreeGravityScene: View {
-    struct Body: Identifiable {
+    struct Star: Identifiable {
         let id = UUID()
         var pos: Vec2
         var vel: Vec2
@@ -16,7 +16,7 @@ struct FreeGravityScene: View {
     }
 
     @State private var G: Double = 1.0
-    @State private var bodies: [Body] = []
+    @State private var bodies: [Star] = []
     @State private var trails: [UUID: [Vec2]] = [:]
     private let trailMax = 600
 
@@ -87,14 +87,14 @@ struct FreeGravityScene: View {
         lastTime = nil
     }
 
-    private func solarSystem3() -> [Body] {
-        let sun = Body(pos: .zero, vel: .zero, mass: 100, color: .yellow)
+    private func solarSystem3() -> [Star] {
+        let sun = Star(pos: .zero, vel: .zero, mass: 100, color: .yellow)
         var arr = [sun]
         for (i, (r, c)) in [(2.0, Color.cyan), (3.5, .green), (5.0, .pink)].enumerated() {
             // 원궤도 속력 √(GM/r). 별이 정지하도록 운동량 0 으로 보정 (별의 vel 조정).
             let v = sqrt(G * sun.mass / r)
             let theta = Double(i) * 2.1
-            arr.append(Body(
+            arr.append(Star(
                 pos: Vec2(x: r * cos(theta), y: r * sin(theta)),
                 vel: Vec2(x: -v * sin(theta), y: v * cos(theta)),
                 mass: 0.5, color: c))
@@ -102,32 +102,32 @@ struct FreeGravityScene: View {
         return zeroTotalMomentum(arr)
     }
 
-    private func binary() -> [Body] {
+    private func binary() -> [Star] {
         let m: Double = 10
         let r: Double = 2
         let v = sqrt(G * m / (4 * r))   // 두 별이 r 만큼 떨어져 서로 도는 원궤도 속력
-        let a = Body(pos: Vec2(x: -r, y: 0), vel: Vec2(x: 0, y: -v),
+        let a = Star(pos: Vec2(x: -r, y: 0), vel: Vec2(x: 0, y: -v),
                      mass: m, color: .yellow)
-        let b = Body(pos: Vec2(x:  r, y: 0), vel: Vec2(x: 0, y:  v),
+        let b = Star(pos: Vec2(x:  r, y: 0), vel: Vec2(x: 0, y:  v),
                      mass: m, color: .orange)
         return [a, b]
     }
 
-    private func figureEight() -> [Body] {
+    private func figureEight() -> [Star] {
         // Chenciner–Montgomery 의 유명한 3체 8자 해 (G = m = 1 단위).
         // body 1, 2 는 (0.466…, 0.432…) 의 속도, body 3 은 그 −2 배.
         let v12 = Vec2(x: 0.93240737 / 2, y: 0.86473146 / 2)
         let v3  = Vec2(x: -0.93240737, y: -0.86473146)
         return [
-            Body(pos: Vec2(x: -0.97000436, y:  0.24308753), vel: v12, mass: 1, color: .cyan),
-            Body(pos: Vec2(x:  0.97000436, y: -0.24308753), vel: v12, mass: 1, color: .green),
-            Body(pos: Vec2.zero, vel: v3, mass: 1, color: .pink),
+            Star(pos: Vec2(x: -0.97000436, y:  0.24308753), vel: v12, mass: 1, color: .cyan),
+            Star(pos: Vec2(x:  0.97000436, y: -0.24308753), vel: v12, mass: 1, color: .green),
+            Star(pos: Vec2.zero, vel: v3, mass: 1, color: .pink),
         ]
     }
 
-    private func randomEight() -> [Body] {
+    private func randomEight() -> [Star] {
         var rng = SystemRandomNumberGenerator()
-        var arr: [Body] = []
+        var arr: [Star] = []
         for _ in 0..<8 {
             let r = Double.random(in: 1...4, using: &rng)
             let theta = Double.random(in: 0...(2 * .pi), using: &rng)
@@ -135,7 +135,7 @@ struct FreeGravityScene: View {
             let v = Double.random(in: 0.3...0.9, using: &rng)
             let vel = Vec2(x: -v * sin(theta), y: v * cos(theta))
             let m = Double.random(in: 0.5...3, using: &rng)
-            arr.append(Body(
+            arr.append(Star(
                 pos: pos, vel: vel, mass: m,
                 color: Color(hue: Double.random(in: 0...1, using: &rng),
                              saturation: 0.85, brightness: 1)))
@@ -144,11 +144,11 @@ struct FreeGravityScene: View {
     }
 
     /// 전체 운동량이 0 이 되도록 평균 속도를 빼준다 (관성계 고정).
-    private func zeroTotalMomentum(_ bs: [Body]) -> [Body] {
+    private func zeroTotalMomentum(_ bs: [Star]) -> [Star] {
         let totalMass = bs.reduce(0) { $0 + $1.mass }
         let mom = bs.reduce(Vec2.zero) { $0 + $1.vel * $1.mass }
         let dv = mom / totalMass
-        return bs.map { Body(pos: $0.pos, vel: $0.vel - dv,
+        return bs.map { Star(pos: $0.pos, vel: $0.vel - dv,
                              mass: $0.mass, color: $0.color) }
     }
 

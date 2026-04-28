@@ -1,10 +1,12 @@
 # 온누리 (Onnuri)
 
 > "온 세상" 을 뜻하는 순우리말. 초등 / 중등 / 고등 교육과정과 자유 샌드박스를
-> 한데 모은 SwiftUI 물리 시뮬 앱 — iOS 26 · iPadOS 26 · macOS 26 (Liquid Glass).
+> 한데 모은 SwiftUI 물리 시뮬 앱 — **iOS 26 / iPadOS 26 전용**.
 
-외부 의존성 없음. SwiftUI 의 `Canvas`, `TimelineView`, `glassEffect`, 그리고
-`buttonStyle(.glass)` 만 사용.
+iOS 26 의 Liquid Glass 위에 Blender 모바일 풍의 어두운 그래파이트 + 오렌지
+액센트를 입힌, "전문 도구의 모바일 버전" 같은 분위기를 노렸다.
+외부 의존성은 SwiftUI 표준 (`Canvas`, `TimelineView`, `glassEffect`,
+`buttonStyle(.glass)`) 만 사용.
 
 ## 시작화면 → 학년별 카탈로그
 
@@ -20,7 +22,7 @@
 
 큰 타일 셋이 학년별 카탈로그로, 그 아래 작은 텍스트가 자유 샌드박스로 들어간다.
 
-## 수록 시뮬레이션
+## 수록 시뮬레이션 (총 24개)
 
 ### 초등학교 (3–6학년 과학)
 | 시뮬 | 다루는 개념 |
@@ -60,7 +62,7 @@
 ### 자유 시뮬레이션 (샌드박스)
 | 시뮬 | 다루는 개념 |
 |------|------|
-| 자유 충돌 박스 | 재질(강철·고무·점토·얼음)별 e·ρ, 다체 동시 충돌. 박스 안 어디든 탭하면 입자 생성. |
+| 자유 충돌 박스 | 재질(강철·고무·점토·얼음)별 e·ρ. 박스 안 어디든 **탭하면 그 자리에 새 입자 생성**. "3개 충돌 / 뉴턴 요람 / 무작위 12" 프리셋. |
 | N체 중력 | Velocity-Verlet 으로 에너지·각운동량 보존. 태양–행성 / 이중성 / Chenciner–Montgomery 8자 / 8체 무작위 프리셋. |
 
 ## 정확성 원칙
@@ -69,12 +71,20 @@
 
 - 등가속도 운동(자유낙하·등속/등가속도 그래프)은 닫힌 해를 사용 (수치오차 0).
 - 충돌은 법선 임펄스 J = (1+e)·μ·v·n̂ 으로 운동량을 매 충돌에서 정확히 보존.
+  서로 다른 재질의 입자는 e_pair = √(e₁·e₂) (기하 평균).
 - 다체 중력은 velocity-Verlet (symplectic) — 에너지가 장기간 ε 범위에서 진동.
-- 회로·렌즈·슬넬·도플러는 닫힌 해.
-- 옴의 법칙·열용량 비례식·임피던스 등은 모두 정확한 분석식.
+- 회로·렌즈·스넬·도플러·임피던스 등은 모두 정확한 분석식.
+- 단진자만 RK4 (비선형 ODE 라 닫힌 해 없음) — 작은-각 근사와 나란히 그려서 차이를 직접 볼 수 있다.
 
 각 시뮬의 우측 패널에 보존되는 양(총 운동량 / 운동에너지 / 각운동량 / 에너지)을
 실시간으로 표시해서 "정말 보존되는지" 직접 확인할 수 있다.
+
+## 디자인
+
+- **iOS 26 Liquid Glass** 위에 Blender 모바일 풍 그래파이트 톤.
+- viewport (어두운 회색 + 점 격자)  +  N-panel 풍 properties 패널.
+- 액션은 오렌지(#E87D0E), 선택은 블루(#4772B3), 측정값은 모노스페이스.
+- 큰 화면(가로 ≥ 760pt)에서는 좌·우 split, 좁으면 위·아래 stack.
 
 ## 빌드 & 실행
 
@@ -86,15 +96,16 @@ xcodegen generate
 open Onnuri.xcodeproj
 ```
 
-직접 만들고 싶으면: Xcode → File ▸ New ▸ Project ▸ App (Multiplatform).
-Bundle ID `app.onnuri.Onnuri`, Interface SwiftUI, Language Swift. 기본 생성된
-`ContentView.swift`, `OnnuriApp.swift` 를 지우고 `Onnuri/` 안의 모든 `.swift`
-와 `Resources/Assets.xcassets` 를 끌어다 넣는다.
+`project.yml` 한 파일이 모든 빌드 설정을 담고 있다. 직접 만들고 싶으면
+Xcode → File ▸ New ▸ Project ▸ App (iOS), Bundle ID `app.onnuri.Onnuri`,
+Interface SwiftUI, Language Swift. 기본 `ContentView.swift`/`OnnuriApp.swift`
+삭제 후 이 저장소의 `Onnuri/` 안 모든 `.swift` 와 `Resources/Assets.xcassets`
+를 끌어 넣는다.
 
 ### 시스템 요구사항
 
-- Xcode 17 이상
-- iOS 26 / iPadOS 26 / macOS 26 (Tahoe) 이상
+- Xcode 17 이상 (iOS 26 SDK 포함)
+- iOS 26 / iPadOS 26 이상
 
 ## 코드 구조
 
@@ -106,8 +117,9 @@ Onnuri/
 ├── Util/
 │   ├── Vec2.swift                2D 벡터
 │   ├── CanvasMap.swift           월드(미터) ↔ 픽셀 변환
-│   ├── SimChrome.swift           공통 레이아웃·컨트롤
-│   └── LiquidGlass.swift         iOS 26 glassEffect 헬퍼
+│   ├── SimChrome.swift           viewport + properties + 슬라이더
+│   ├── LiquidGlass.swift         glassEffect 헬퍼
+│   └── BlenderTheme.swift        팔레트·폰트·blenderCard
 ├── Models/
 │   ├── Curriculum.swift          교육과정 enum + 색·아이콘
 │   └── SimulationCatalog.swift   ID → View 매핑 + 학년별 목록

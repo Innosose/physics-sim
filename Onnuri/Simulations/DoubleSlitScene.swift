@@ -83,7 +83,7 @@ struct DoubleSlitScene: View {
         wall.addLine(to: CGPoint(x: slitX, y: r.maxY - 20))
         ctx.stroke(wall, with: .color(.white.opacity(0.6)), lineWidth: 3)
 
-        // 슬릿에서 막 방향으로 호이겐스 파.
+        // 슬릿에서 막 방향으로 호이겐스 파 — 동심원으로 표시.
         for sign in [-1, 1] {
             let center = CGPoint(x: slitX, y: cy + CGFloat(sign) * CGFloat(slitGap))
             let waves = 5
@@ -91,10 +91,8 @@ struct DoubleSlitScene: View {
                 let rad: CGFloat = CGFloat(k) * (screenX - slitX) / CGFloat(waves * 2)
                 let rect = CGRect(x: center.x - rad, y: center.y - rad,
                                   width: rad * 2, height: rad * 2)
-                ctx.stroke(Path(ellipseIn: rect)
-                            .trimmedPath(from: 0.75, to: 0.0)
-                            .applying(.identity),
-                           with: .color(wavelengthColor(wavelength).opacity(0.25)),
+                ctx.stroke(Path(ellipseIn: rect),
+                           with: .color(wavelengthColor(wavelength).opacity(0.18)),
                            lineWidth: 1)
             }
         }

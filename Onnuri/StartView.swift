@@ -1,31 +1,24 @@
 import SwiftUI
 
-/// 앱의 첫 화면. 큰 학년 타일 3개 + 그 아래 작은 "자유 시뮬레이션" 링크.
+/// 시작화면 — 학년 선택 + 자유 시뮬 진입.
+///
+/// Blender 모바일 풍 — 위쪽에 앱 표제, 가운데 학년 타일 3개, 그 아래 작은 자유 시뮬 링크.
 struct StartView: View {
     var body: some View {
         NavigationStack {
             GeometryReader { geo in
-                let isPortrait = geo.size.height > geo.size.width
+                let portrait = geo.size.height > geo.size.width
                 ZStack {
                     background
-                    VStack(spacing: 24) {
-                        Spacer(minLength: isPortrait ? 60 : 24)
+                    VStack(spacing: 0) {
+                        Spacer(minLength: portrait ? 36 : 12)
                         header
-                        Spacer(minLength: 0)
-
-                        Group {
-                            if isPortrait {
-                                VStack(spacing: 16) { gradeTiles }
-                                    .padding(.horizontal, 24)
-                            } else {
-                                HStack(spacing: 16) { gradeTiles }
-                                    .padding(.horizontal, 32)
-                            }
-                        }
-
                         Spacer(minLength: 12)
+                        tiles(portrait: portrait)
+                            .padding(.horizontal, portrait ? 18 : 28)
+                        Spacer(minLength: 16)
                         freeSimLink
-                            .padding(.bottom, 24)
+                            .padding(.bottom, 28)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
@@ -39,20 +32,41 @@ struct StartView: View {
     // MARK: - 구성요소
 
     private var header: some View {
-        VStack(spacing: 6) {
+        VStack(spacing: 8) {
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(BlenderTheme.accent)
+                    .frame(width: 8, height: 8)
+                Text("ONNURI")
+                    .font(.system(size: 12, weight: .bold, design: .monospaced))
+                    .tracking(3)
+                    .foregroundStyle(BlenderTheme.dimText)
+            }
             Text("온누리")
-                .font(.system(size: 56, weight: .bold, design: .rounded))
-                .foregroundStyle(.primary)
+                .font(.system(size: 56, weight: .heavy, design: .rounded))
+                .foregroundStyle(BlenderTheme.monoText)
             Text("물리를 눈으로 보는 시뮬레이션 모음")
                 .font(.callout)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(BlenderTheme.dimText)
         }
     }
 
-    private var gradeTiles: some View {
+    private func tiles(portrait: Bool) -> some View {
+        Group {
+            if portrait {
+                VStack(spacing: 12) { tileList }
+            } else {
+                HStack(alignment: .top, spacing: 12) { tileList }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var tileList: some View {
         ForEach([Curriculum.elementary, .middle, .high]) { c in
             NavigationLink(value: c) {
-                GradeTile(curriculum: c)
+                GradeTile(curriculum: c,
+                          count: SimulationCatalog.items(for: c).count)
             }
             .buttonStyle(.plain)
         }
@@ -62,69 +76,98 @@ struct StartView: View {
         NavigationLink(value: Curriculum.free) {
             HStack(spacing: 8) {
                 Image(systemName: Curriculum.free.iconSystemName)
+                    .font(.footnote.weight(.semibold))
                 Text(Curriculum.free.rawValue)
+                    .font(.subheadline.weight(.semibold))
+                Image(systemName: "chevron.right")
+                    .font(.caption2.weight(.semibold))
             }
-            .font(.subheadline.weight(.medium))
             .padding(.horizontal, 18)
             .padding(.vertical, 10)
         }
         .buttonStyle(.glass)
-        .tint(Curriculum.free.accent)
+        .tint(BlenderTheme.highlight)
     }
 
     private var background: some View {
-        // 학년 타일과 어울리는 그라데이션 배경.
-        LinearGradient(
-            colors: [
-                Color(red: 0.07, green: 0.06, blue: 0.12),
-                Color(red: 0.02, green: 0.04, blue: 0.10)
-            ],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
-        .ignoresSafeArea()
-        .overlay(alignment: .top) {
-            // 부드러운 광원 한 점.
-            RadialGradient(colors: [Color.white.opacity(0.10), .clear],
-                           center: .top, startRadius: 0, endRadius: 380)
+        ZStack {
+            BlenderTheme.viewportBg.ignoresSafeArea()
+            // 살짝 떠 있는 광원.
+            RadialGradient(
+                colors: [BlenderTheme.accent.opacity(0.12), .clear],
+                center: .top, startRadius: 0, endRadius: 360)
+                .ignoresSafeArea()
+            // 미세 dot.
+            DotPattern()
+                .opacity(0.10)
                 .ignoresSafeArea()
         }
     }
 }
 
-/// 학년 큰 타일 — Liquid Glass + 강조색 그림자.
+// MARK: - 학년 타일
+
 private struct GradeTile: View {
     let curriculum: Curriculum
+    let count: Int
 
     var body: some View {
-        HStack(spacing: 18) {
+        HStack(spacing: 16) {
             ZStack {
-                Circle()
-                    .fill(curriculum.accent.opacity(0.25))
-                    .frame(width: 64, height: 64)
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(curriculum.accent.opacity(0.18))
+                    .frame(width: 56, height: 56)
                 Image(systemName: curriculum.iconSystemName)
-                    .font(.system(size: 28, weight: .semibold))
+                    .font(.system(size: 24, weight: .semibold))
                     .foregroundStyle(curriculum.accent)
             }
-            VStack(alignment: .leading, spacing: 4) {
-                Text(curriculum.rawValue)
-                    .font(.title2.bold())
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 8) {
+                    Text(curriculum.rawValue)
+                        .font(.title3.bold())
+                        .foregroundStyle(BlenderTheme.monoText)
+                    Text("\(count)").font(.blenderMonoBold)
+                        .foregroundStyle(BlenderTheme.dimText)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 1)
+                        .background(BlenderTheme.header,
+                                    in: Capsule())
+                }
                 Text(curriculum.subtitle)
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(BlenderTheme.dimText)
             }
             Spacer()
             Image(systemName: "chevron.right")
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(BlenderTheme.dimText)
         }
-        .padding(20)
-        .frame(maxWidth: 720, minHeight: 100)
-        .glassCard(cornerRadius: 28)
-        .shadow(color: curriculum.accent.opacity(0.18), radius: 24, x: 0, y: 8)
+        .padding(18)
+        .frame(maxWidth: 720, minHeight: 92)
+        .blenderCard(cornerRadius: 18)
+        .shadow(color: curriculum.accent.opacity(0.16), radius: 22, x: 0, y: 10)
     }
 }
 
-#Preview {
-    StartView()
+private struct DotPattern: View {
+    var body: some View {
+        Canvas { ctx, size in
+            let step: CGFloat = 32
+            let r: CGFloat = 1.0
+            var x: CGFloat = 0
+            while x < size.width {
+                var y: CGFloat = 0
+                while y < size.height {
+                    let rect = CGRect(x: x - r, y: y - r,
+                                      width: r * 2, height: r * 2)
+                    ctx.fill(Path(ellipseIn: rect),
+                             with: .color(.white.opacity(0.45)))
+                    y += step
+                }
+                x += step
+            }
+        }
+    }
 }
+
+#Preview { StartView() }

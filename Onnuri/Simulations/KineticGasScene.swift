@@ -11,7 +11,6 @@ struct KineticGasScene: View {
     @State private var running = true
 
     @State private var particles: [Particle] = []
-    @State private var box = CGSize(width: 1.0, height: 1.0)   // 정규화된 단위 박스 (0..1)
     @State private var lastTime: TimeInterval? = nil
 
     private let radius = 0.012
