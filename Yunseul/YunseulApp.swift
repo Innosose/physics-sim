@@ -4,7 +4,7 @@ import SwiftUI
 struct YunseulApp: App {
     var body: some Scene {
         WindowGroup {
-            StartView()
+            RootSplitView()
                 .preferredColorScheme(.dark)
                 .tint(Theme.glow)
         }

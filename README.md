@@ -26,19 +26,30 @@
 - 외부 의존성 없음. SwiftUI 표준(`Canvas`, `TimelineView`, `glassEffect`,
   `buttonStyle(.glass)`, `buttonStyle(.glassProminent)`) 만 사용.
 
-## 시작화면 → 학년별 카탈로그
+## 화면 구조 — 계층형 (`NavigationSplitView`)
+
+HIG 의 *Sidebars / Navigation* 권장에 따라 3-column NavigationSplitView 를
+앱의 최상위로 사용한다. iPhone 에서는 자동으로 push-style stack 으로
+collapse 되고, iPad/Mac 에서는 세 컬럼이 동시에 보인다.
 
 ```
-              윤슬
-   ──────────────────────
-       [ 초등학교 ]
-       [ 중학교  ]
-       [ 고등학교 ]
-
-       자유 시뮬레이션
+┌──────────────┬──────────────────┬─────────────────────┐
+│  ◉ YUNSEUL   │  중학교           │   포물선 운동        │
+│   윤슬        │  운동과 에너지     │   ┌─ Concept ────┐  │
+│   ~~~~~       │  ─ 자유낙하       │   │ 🎓 물리Ⅰ      │  │
+│              │  ─ 등속 vs 등가속  │   │ y = …         │  │
+│  🌱 초등학교   │  …              │   └──────────────┘  │
+│  ⚛ 중학교 ●  │                  │   ◀ viewport ▶      │
+│  ƒ 고등학교   │                  │   [ 슬라이더 …]    │
+│  ✦ 자유      │                  │   ▶ 재생  ↻ 초기화  │
+└──────────────┴──────────────────┴─────────────────────┘
+   sidebar       content              detail
 ```
 
-큰 타일 셋이 학년별 카탈로그로, 그 아래 작은 텍스트가 자유 샌드박스로 들어간다.
+- **Sidebar**: 윤슬 브랜드 헤더(YUNSEUL 라벨 + 큰 표제 + 잔물결) +
+  4 개 학년 행 (초등 / 중학교 / 고등학교 / 자유 시뮬레이션).
+- **Content**: 선택된 학년의 시뮬을 카테고리별 그룹으로. 각 행에 단원 칩.
+- **Detail**: 선택된 시뮬 화면. 미선택 시 환영 화면 (별자리 + 큰 윤슬 표제).
 
 ## 수록 시뮬레이션 (총 24개)
 
@@ -152,17 +163,17 @@ Interface SwiftUI, Language Swift. 기본 `ContentView.swift`/`YunseulApp.swift`
 
 ```
 Yunseul/
-├── YunseulApp.swift              @main
-├── StartView.swift               시작화면 (학년 선택 + 자유 링크)
-├── CurriculumView.swift          학년별 시뮬 목록
+├── YunseulApp.swift              @main — RootSplitView 만 호출
+├── RootSplitView.swift           NavigationSplitView 3-column
+│                                 (sidebar / content / detail + 환영 화면)
 ├── Util/
 │   ├── Vec2.swift                2D 벡터
 │   ├── CanvasMap.swift           월드(미터) ↔ 픽셀 변환
-│   ├── SimChrome.swift           viewport + properties + 슬라이더
+│   ├── SimChrome.swift           viewport + ConceptCard + properties + 슬라이더
 │   └── Theme.swift               윤슬 팔레트·폰트·themeCard·RippleField·StarField
 ├── Models/
 │   ├── Curriculum.swift          교육과정 enum + 색·아이콘
-│   └── SimulationCatalog.swift   ID → View 매핑 + 학년별 목록
+│   └── SimulationCatalog.swift   ID → View 매핑 + 학년별 목록 + 환경값
 ├── Simulations/                  24 개 시뮬 화면
 └── Resources/Assets.xcassets
 ```
