@@ -6,19 +6,18 @@ enum SimCategory: String, CaseIterable, Identifiable, Hashable {
     case waveThermo = "파동·열"
     case electromagnetism = "전자기"
     case optics = "광학"
-    case everyday = "일상 속 물리"
     case sandbox  = "샌드박스"
 
     var id: String { rawValue }
 
-    var systemImage: String {
+    /// 한글 한 글자 마크 — 아이콘 대신 타이포그래피로 정체성 표현.
+    var letterMark: String {
         switch self {
-        case .mechanics:        return "scope"
-        case .waveThermo:       return "waveform.path"
-        case .electromagnetism: return "bolt.fill"
-        case .optics:           return "eye"
-        case .everyday:         return "house.fill"
-        case .sandbox:          return "wand.and.stars"
+        case .mechanics:        return "역"
+        case .waveThermo:       return "파"
+        case .electromagnetism: return "전"
+        case .optics:           return "광"
+        case .sandbox:          return "샌"
         }
     }
 }
@@ -44,38 +43,6 @@ enum SimulationCatalog {
     // MARK: - 시뮬 사전
 
     static let allItems: [SimulationItem] = [
-        // ────── 초등학교 ──────
-        .init(id: "magnet",
-              title: "자석의 인력과 반발",
-              subtitle: "두 자석을 끌어서 같은 극·다른 극의 힘을 느껴 보기",
-              category: .everyday,
-              curriculum: "초등 3학년 · 자석의 이용",
-              formula: "F  ∝  1 / r²"),
-        .init(id: "lever",
-              title: "지렛대",
-              subtitle: "받침점에서의 거리 × 무게가 같으면 균형",
-              category: .everyday,
-              curriculum: "초등 6학년 · 도구의 원리",
-              formula: "w₁ · d₁  =  w₂ · d₂"),
-        .init(id: "buoyancy",
-              title: "부력",
-              subtitle: "물체의 밀도가 액체보다 작으면 뜬다",
-              category: .everyday,
-              curriculum: "초등 5학년 · 물체의 무게",
-              formula: "F_부력  =  ρ_액체 · g · V_잠긴부분"),
-        .init(id: "shadow",
-              title: "빛과 그림자",
-              subtitle: "광원이 가까울수록 그림자가 커진다",
-              category: .optics,
-              curriculum: "초등 4학년 · 그림자와 거울",
-              formula: "h_그림자 / h_물체  =  D_스크린 / D_물체  (닮음)"),
-        .init(id: "pendulumSimple",
-              title: "그네 (진자)",
-              subtitle: "줄이 길수록 천천히 흔들린다",
-              category: .everyday,
-              curriculum: "초등 5학년 · 물체의 운동",
-              formula: "T  =  2π √(L / g)"),
-
         // ────── 중학교 ──────
         .init(id: "freefall",
               title: "자유낙하·연직 던지기",
@@ -104,7 +71,7 @@ enum SimulationCatalog {
         .init(id: "heat",
               title: "열전달과 평형",
               subtitle: "두 물체의 온도가 같아질 때까지 열이 흐른다",
-              category: .everyday,
+              category: .waveThermo,
               curriculum: "중1 과학 · 열과 우리 생활",
               formula: "T_eq  =  (m₁c₁ T₁ + m₂c₂ T₂) / (m₁c₁ + m₂c₂)"),
         .init(id: "collision1d",
@@ -212,8 +179,6 @@ enum SimulationCatalog {
     static func items(for c: Curriculum) -> [SimulationItem] {
         let ids: [String]
         switch c {
-        case .elementary:
-            ids = ["magnet", "lever", "buoyancy", "shadow", "pendulumSimple"]
         case .middle:
             ids = ["freefall", "motiongraph", "reflection",
                    "circuit", "heat", "collision1d"]
@@ -243,13 +208,6 @@ enum SimulationCatalog {
     @ViewBuilder
     static func view(for id: String) -> some View {
         switch id {
-        // 초등
-        case "magnet":         MagnetScene()
-        case "lever":          LeverScene()
-        case "buoyancy":       BuoyancyScene()
-        case "shadow":         ShadowScene()
-        case "pendulumSimple": PendulumScene(simpleMode: true)
-
         // 중등
         case "freefall":     FreeFallScene()
         case "motiongraph":  MotionGraphScene()

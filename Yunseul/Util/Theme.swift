@@ -1,44 +1,98 @@
 import SwiftUI
+import UIKit
 
 /// **윤슬 (Yunseul)** 디자인 시스템 — 앱 이름이자 테마 이름.
 ///
-/// "햇빛·달빛에 어린 잔물결" 이라는 순우리말. 깊은 밤바다 위에 떠 있는
-/// 따뜻한 금빛 결을 모티프로 한 고유 팔레트와 보조 뷰의 모음.
+/// "햇빛·달빛에 어린 잔물결" 이라는 순우리말. 깊은 밤바다(다크) 또는
+/// 잔잔한 새벽 수면(라이트) 위에 떠 있는 따뜻한 금빛 결을 모티프로 한다.
 ///
-/// 팔레트는 한 곳에서만 정의되어 있고, `themeCard`, `themeHeaderBar`,
-/// `RippleField`, `StarField` 같은 보조 뷰가 같은 톤을 재사용한다.
+/// 모든 토큰은 `Color.adaptive(light:dark:)` 로 정의되어 시스템 테마 또는
+/// 사용자 선택에 자동 반응한다.
 enum Theme {
     // MARK: - 팔레트
 
-    /// 가장 깊은 어둠 — 앱의 외곽 그라데이션 끝.
-    static let void     = Color(red: 0.020, green: 0.031, blue: 0.086)   // #050816
-    /// 뷰포트 바닥 — 잔잔한 밤바다.
-    static let deep     = Color(red: 0.043, green: 0.067, blue: 0.149)   // #0B1126
-    /// 패널 표면 — 아주 살짝 떠 보이는 수면.
-    static let surface  = Color(red: 0.075, green: 0.102, blue: 0.220)   // #131A38
-    /// 헤더 바·강조 행 — 가장 가까운 수면.
-    static let crest    = Color(red: 0.118, green: 0.153, blue: 0.314)   // #1E2750
+    /// 가장 깊은 어둠/가장 옅은 빛 — 앱의 외곽 그라데이션 끝.
+    static let void = Color.adaptive(
+        light: Color(red: 0.93, green: 0.94, blue: 0.97),   // 옅은 안개
+        dark:  Color(red: 0.020, green: 0.031, blue: 0.086)) // #050816
 
-    /// 주 액션 — 따뜻한 황금빛 윤슬.
-    static let glow     = Color(red: 0.878, green: 0.710, blue: 0.455)   // #E0B574
-    /// 보조 액션·하이라이트 — 청록 진주.
-    static let accent   = Color(red: 0.400, green: 0.831, blue: 0.753)   // #66D4C0
+    /// 뷰포트 바닥 — 잔잔한 수면.
+    static let deep = Color.adaptive(
+        light: Color(red: 0.95, green: 0.96, blue: 0.99),
+        dark:  Color(red: 0.043, green: 0.067, blue: 0.149)) // #0B1126
+
+    /// 패널 표면.
+    static let surface = Color.adaptive(
+        light: Color.white,
+        dark:  Color(red: 0.075, green: 0.102, blue: 0.220)) // #131A38
+
+    /// 헤더 바·강조 행.
+    static let crest = Color.adaptive(
+        light: Color(red: 0.91, green: 0.93, blue: 0.97),
+        dark:  Color(red: 0.118, green: 0.153, blue: 0.314)) // #1E2750
+
+    /// 주 액션 — 따뜻한 황금빛 윤슬 (라이트·다크 공통, 라이트는 약간 진하게).
+    static let glow = Color.adaptive(
+        light: Color(red: 0.78, green: 0.55, blue: 0.18),
+        dark:  Color(red: 0.878, green: 0.710, blue: 0.455)) // #E0B574
+
+    /// 보조 — 청록 진주.
+    static let accent = Color.adaptive(
+        light: Color(red: 0.20, green: 0.65, blue: 0.58),
+        dark:  Color(red: 0.400, green: 0.831, blue: 0.753)) // #66D4C0
+
     /// 선택 강조 — 부드러운 자수정.
-    static let pulse    = Color(red: 0.725, green: 0.553, blue: 0.898)   // #B98DE5
-    /// 보존·성공 — 박하 새벽.
-    static let confirm  = Color(red: 0.561, green: 0.890, blue: 0.635)   // #8FE3A2
-    /// 위험·삭제 — 따뜻한 산호.
-    static let danger   = Color(red: 0.878, green: 0.482, blue: 0.482)   // #E07B7B
+    static let pulse = Color.adaptive(
+        light: Color(red: 0.55, green: 0.36, blue: 0.78),
+        dark:  Color(red: 0.725, green: 0.553, blue: 0.898)) // #B98DE5
 
-    /// 본문 텍스트 — 따뜻한 상아.
-    static let ink      = Color(red: 0.945, green: 0.925, blue: 0.878)   // #F1ECE0
-    /// 보조 텍스트 — 안개 푸른 회색.
-    static let mist     = Color(red: 0.533, green: 0.584, blue: 0.718)   // #8895B7
+    /// 보존·성공 — 박하.
+    static let confirm = Color.adaptive(
+        light: Color(red: 0.30, green: 0.65, blue: 0.40),
+        dark:  Color(red: 0.561, green: 0.890, blue: 0.635)) // #8FE3A2
+
+    /// 위험 — 따뜻한 산호.
+    static let danger = Color.adaptive(
+        light: Color(red: 0.78, green: 0.30, blue: 0.30),
+        dark:  Color(red: 0.878, green: 0.482, blue: 0.482)) // #E07B7B
+
+    /// 본문 텍스트.
+    static let ink = Color.adaptive(
+        light: Color(red: 0.05, green: 0.07, blue: 0.16),
+        dark:  Color(red: 0.945, green: 0.925, blue: 0.878)) // #F1ECE0
+
+    /// 보조 텍스트.
+    static let mist = Color.adaptive(
+        light: Color(red: 0.36, green: 0.40, blue: 0.50),
+        dark:  Color(red: 0.533, green: 0.584, blue: 0.718)) // #8895B7
 
     /// 외곽선·1px 보더.
-    static let stroke   = Color.white.opacity(0.08)
+    static let stroke = Color.adaptive(
+        light: Color.black.opacity(0.10),
+        dark:  Color.white.opacity(0.08))
+
     /// 분할선.
-    static let divider  = Color.white.opacity(0.04)
+    static let divider = Color.adaptive(
+        light: Color.black.opacity(0.06),
+        dark:  Color.white.opacity(0.04))
+
+    /// 별자리·잔물결 등 장식 라인의 잉크색 — 라이트에서는 검정 톤, 다크는 흰 톤.
+    static let decorationLine = Color.adaptive(
+        light: Color.black,
+        dark:  Color.white)
+}
+
+// MARK: - Color.adaptive
+
+extension Color {
+    /// `UITraitCollection.userInterfaceStyle` 에 따라 자동으로 라이트/다크 색을 고른다.
+    /// 시스템 테마 또는 `.preferredColorScheme(_:)` 양쪽에 반응.
+    static func adaptive(light: Color, dark: Color) -> Color {
+        Color(uiColor: UIColor { traits in
+            traits.userInterfaceStyle == .dark
+                ? UIColor(dark) : UIColor(light)
+        })
+    }
 }
 
 // MARK: - 폰트
@@ -94,6 +148,34 @@ private struct ThemeCard: ViewModifier {
     }
 }
 
+// MARK: - 한글 글자 마크 (정체성 표현 — 아이콘 대체)
+
+/// 한글 한 글자 + 색 배경의 작은 정사각 마크.
+///
+/// 이전엔 SF Symbol 큰 글리프로 쓰던 정체성 표현(학년·카테고리)을 글자로 대체.
+/// 작은 보조 심볼은 따로 유지 (▶, ↻, › 등).
+struct LetterMark: View {
+    let mark: String
+    let tint: Color
+    var size: CGFloat = 38
+
+    var body: some View {
+        Text(mark)
+            .font(.system(size: size * 0.50, weight: .heavy, design: .rounded))
+            .foregroundStyle(tint)
+            .frame(width: size, height: size)
+            .background(
+                RoundedRectangle(cornerRadius: size * 0.22, style: .continuous)
+                    .fill(tint.opacity(0.16))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: size * 0.22, style: .continuous)
+                    .stroke(tint.opacity(0.30), lineWidth: 1)
+            )
+            .accessibilityHidden(true)        // 옆 라벨이 의미 전달
+    }
+}
+
 // MARK: - 윤슬 — 잔물결 라인 배경 (시뮬 뷰포트 용)
 
 /// 가로로 길게 누운 잔물결을 몇 줄 그려서 "수면" 같은 느낌을 준다.
@@ -128,14 +210,13 @@ struct RippleField: View {
     }
 }
 
-// MARK: - 별자리 — 시작화면 배경
+// MARK: - 별자리 — 시작화면 / 환영 화면 배경
 
 /// 듬성듬성한 점 + 두세 개의 빛나는 별. 비결정적이지만 안정적인 배치를 위해
-/// 단일 시드 기반 의사난수를 사용.
+/// 단일 시드 기반 의사난수를 사용. 라이트 모드에서는 검은 톤으로 자동 전환.
 struct StarField: View {
     var body: some View {
         Canvas { ctx, size in
-            // 전체 화면에 작은 점 분포.
             var rng = SeededGenerator(seed: 1729)
             let n = max(40, Int(size.width * size.height / 12_000))
             for _ in 0..<n {
@@ -146,7 +227,7 @@ struct StarField: View {
                 ctx.fill(
                     Path(ellipseIn: CGRect(x: x - r, y: y - r,
                                            width: r * 2, height: r * 2)),
-                    with: .color(.white.opacity(a)))
+                    with: .color(Theme.decorationLine.opacity(a)))
             }
             // 두 개의 큰 별 — glow 색.
             for (cx, cy, br) in [(size.width * 0.18, size.height * 0.22, 1.0),
@@ -156,7 +237,6 @@ struct StarField: View {
                     Path(ellipseIn: CGRect(x: cx - core, y: cy - core,
                                            width: core * 2, height: core * 2)),
                     with: .color(Theme.glow.opacity(0.8 * br)))
-                // halo
                 let h: CGFloat = 14
                 ctx.fill(
                     Path(ellipseIn: CGRect(x: cx - h, y: cy - h,
@@ -168,7 +248,7 @@ struct StarField: View {
             }
         }
         .allowsHitTesting(false)
-        .accessibilityHidden(true)              // HIG: 장식 요소
+        .accessibilityHidden(true)
     }
 }
 
@@ -195,7 +275,7 @@ struct RippleAccent: View {
                        lineWidth: 1.2)
         }
         .allowsHitTesting(false)
-        .accessibilityHidden(true)              // HIG: 장식 요소
+        .accessibilityHidden(true)
     }
 }
 
@@ -214,11 +294,9 @@ private struct SeededGenerator: RandomNumberGenerator {
 
 // MARK: - 그라데이션 배경 (앱 전체 공용)
 
-/// 앱 전체에서 쓰는 깊은 밤바다 그라데이션.
+/// 앱 전체에서 쓰는 윤슬 그라데이션 배경. 라이트/다크 자동 전환.
 struct YunseulBackground: View {
-    /// 위쪽에서 부드럽게 떨어지는 광원의 색 — 화면별로 달리해 분위기 차이.
     var topGlow: Color = Theme.glow.opacity(0.10)
-    /// 별자리 패턴을 깔지 여부.
     var stars: Bool = true
 
     var body: some View {

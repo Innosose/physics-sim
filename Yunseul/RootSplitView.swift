@@ -4,22 +4,27 @@ import SwiftUI
 ///
 /// HIG 근거:
 /// - *Sidebars* — "Use a sidebar to navigate between top-level collections of
-///   content in a hierarchical app." 학년(초·중·고·자유) 이 정확히 그 케이스.
+///   content in a hierarchical app." 학년이 정확히 그 케이스.
 /// - *Navigation* — iPad/Mac 에서 NavigationSplitView 권장. iPhone 에서는
 ///   자동으로 stack 으로 collapse 되어 push 처럼 동작.
 ///
 /// 컬럼:
-/// - **Sidebar**: 윤슬 브랜드 헤더 + 4개 학년.
+/// - **Sidebar**: 윤슬 브랜드 헤더 + 3개 학년 (중·고·자유).
 /// - **Content**: 선택된 학년의 시뮬 목록 (카테고리별 그룹).
-/// - **Detail**: 선택된 시뮬 화면. 미선택 상태에서는 환영 화면 (별자리 + 잔물결).
+/// - **Detail**: 선택된 시뮬 화면. 미선택 상태에서는 환영 화면.
+///
+/// 정체성은 한글 글자 마크(`LetterMark`) 로 표현하고, 작은 보조 심볼(▶·↻·›·🎓)
+/// 만 SF Symbol 로 사용한다.
 struct RootSplitView: View {
     @State private var curriculumSelection: Curriculum? = nil
     @State private var simSelection: SimulationItem? = nil
     @State private var columnVisibility: NavigationSplitViewVisibility = .all
+    @State private var showSettings: Bool = false
 
     var body: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
-            Sidebar(selection: $curriculumSelection)
+            Sidebar(selection: $curriculumSelection,
+                    showSettings: $showSettings)
                 .navigationSplitViewColumnWidth(min: 240, ideal: 280)
         } content: {
             if let c = curriculumSelection {
@@ -27,9 +32,8 @@ struct RootSplitView: View {
                     .navigationSplitViewColumnWidth(min: 300, ideal: 360)
             } else {
                 EmptyState(
-                    icon: "sparkles",
                     title: "학년을 선택하세요",
-                    message: "왼쪽 사이드바에서 초등 · 중학 · 고등 · 자유 시뮬레이션 중 하나를 골라 보세요."
+                    message: "왼쪽 사이드바에서 중학교 · 고등학교 · 자유 시뮬레이션 중 하나를 골라 보세요."
                 )
             }
         } detail: {
@@ -43,8 +47,7 @@ struct RootSplitView: View {
             }
         }
         .navigationSplitViewStyle(.balanced)
-        // iPhone collapse 시 자동으로 stack 으로 동작. detail 이 비어 있어도
-        // root 가 sidebar 로 보임.
+        .sheet(isPresented: $showSettings) { SettingsView() }
     }
 }
 
@@ -52,6 +55,7 @@ struct RootSplitView: View {
 
 private struct Sidebar: View {
     @Binding var selection: Curriculum?
+    @Binding var showSettings: Bool
 
     var body: some View {
         List(selection: $selection) {
@@ -64,26 +68,34 @@ private struct Sidebar: View {
             } header: {
                 YunseulBrand()
                     .padding(.vertical, 6)
-                    .textCase(nil)             // section header 의 자동 대문자화 제거
+                    .textCase(nil)
             }
         }
         .listStyle(.sidebar)
         .navigationTitle("윤슬")
         .navigationBarTitleDisplayMode(.inline)
-        .scrollContentBackground(.hidden)      // List 기본 배경 숨겨서 윤슬 톤 통과
+        .scrollContentBackground(.hidden)
         .background(YunseulBackground(topGlow: Theme.glow.opacity(0.10),
                                        stars: false))
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button { showSettings = true } label: {
+                    Image(systemName: "gearshape")
+                        .accessibilityLabel("설정")
+                }
+            }
+        }
     }
 }
 
 private struct YunseulBrand: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 6) {
-                Circle()
-                    .fill(Theme.glow)
-                    .frame(width: 7, height: 7)
-                    .accessibilityHidden(true)
+            HStack(spacing: 8) {
+                // 사용자 로고가 들어갈 슬롯. Assets.xcassets 의 "AppLogo" 가 있으면
+                // 그걸 쓰고, 없으면 typographic fallback (작은 금빛 점) 으로.
+                LogoOrFallback()
+                    .frame(width: 22, height: 22)
                 Text("YUNSEUL")
                     .font(.system(.caption2, design: .monospaced).weight(.bold))
                     .tracking(3)
@@ -105,20 +117,31 @@ private struct YunseulBrand: View {
     }
 }
 
+/// `Assets.xcassets/AppLogo` 가 있으면 그걸 쓰고, 없으면 작은 금빛 점으로 떨어짐.
+/// 사용자가 직접 만든 로고를 끼워 넣을 수 있는 슬롯.
+private struct LogoOrFallback: View {
+    var body: some View {
+        // SwiftUI 는 Image(name:) 에 없는 asset 도 컴파일은 통과시키고 런타임에
+        // 빈 이미지를 그린다. 따라서 fallback 을 ZStack 으로 같이 그려두면 안전.
+        ZStack {
+            Circle()
+                .fill(Theme.glow)
+                .accessibilityHidden(true)
+            Image("AppLogo")                              // 사용자 슬롯
+                .resizable()
+                .scaledToFit()
+        }
+    }
+}
+
 private struct CurriculumRow: View {
     let curriculum: Curriculum
 
     var body: some View {
         HStack(spacing: 12) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(curriculum.accent.opacity(0.20))
-                    .frame(width: 38, height: 38)
-                Image(systemName: curriculum.iconSystemName)
-                    .font(.body.weight(.semibold))
-                    .foregroundStyle(curriculum.accent)
-                    .accessibilityHidden(true)
-            }
+            LetterMark(mark: curriculum.letterMark,
+                       tint: curriculum.accent,
+                       size: 38)
             VStack(alignment: .leading, spacing: 2) {
                 Text(curriculum.rawValue)
                     .font(.body.weight(.semibold))
@@ -151,10 +174,15 @@ private struct SimList: View {
                         }
                     }
                 } header: {
-                    HStack(spacing: 6) {
-                        Image(systemName: cat.systemImage)
-                            .imageScale(.small)
+                    HStack(spacing: 8) {
+                        Text(cat.letterMark)
+                            .font(.system(size: 11, weight: .heavy, design: .rounded))
                             .foregroundStyle(curriculum.accent)
+                            .frame(width: 16, height: 16)
+                            .background(
+                                RoundedRectangle(cornerRadius: 4)
+                                    .fill(curriculum.accent.opacity(0.16))
+                            )
                             .accessibilityHidden(true)
                         Text(cat.rawValue)
                             .font(.themeHeader)
@@ -179,15 +207,9 @@ private struct SimRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(accent.opacity(0.18))
-                    .frame(width: 36, height: 36)
-                Image(systemName: item.category.systemImage)
-                    .font(.callout.weight(.semibold))
-                    .foregroundStyle(accent)
-                    .accessibilityHidden(true)
-            }
+            LetterMark(mark: item.category.letterMark,
+                       tint: accent,
+                       size: 36)
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.title)
                     .font(.body.weight(.semibold))
@@ -197,6 +219,7 @@ private struct SimRow: View {
                     .foregroundStyle(Theme.mist)
                     .lineLimit(2)
                 HStack(spacing: 4) {
+                    // 작은 보조 심볼은 유지 (포인트 용도)
                     Image(systemName: "graduationcap.fill")
                         .imageScale(.small)
                         .accessibilityHidden(true)
@@ -216,10 +239,7 @@ private struct SimRow: View {
 
 // MARK: - Detail (환영 / 빈 상태)
 
-/// 시뮬을 아직 선택하지 않았을 때 detail 컬럼이 보여주는 환영 화면.
-///
-/// 여기에 윤슬 splash 의 정수(별자리 배경, 큰 표제, 잔물결) 가 응축되어
-/// 흡수됨. 사용자가 시뮬을 처음 선택하기 전에만 보이는 "표지" 역할.
+/// 시뮬 미선택 시 detail 컬럼이 보여주는 환영 화면.
 private struct WelcomeDetail: View {
     var body: some View {
         ZStack {
@@ -234,15 +254,10 @@ private struct WelcomeDetail: View {
                 RippleAccent()
                     .frame(width: 120, height: 12)
                     .padding(.top, 6)
-                HStack(spacing: 6) {
-                    Image(systemName: "hand.point.up.left.fill")
-                        .imageScale(.small)
-                        .accessibilityHidden(true)
-                    Text("왼쪽에서 학년과 시뮬을 골라 보세요")
-                        .font(.footnote)
-                }
-                .foregroundStyle(Theme.mist)
-                .padding(.top, 18)
+                Text("‹ 왼쪽에서 학년과 시뮬을 골라 보세요")
+                    .font(.footnote)
+                    .foregroundStyle(Theme.mist)
+                    .padding(.top, 18)
             }
             .padding()
         }
@@ -251,10 +266,7 @@ private struct WelcomeDetail: View {
     }
 }
 
-/// 학년이 선택됐지만 그 학년 안에서 아직 시뮬을 안 골랐을 때 (iPad 가운데 컬럼)
-/// 또는 일반 빈 상태 표시.
 private struct EmptyState: View {
-    let icon: String
     let title: String
     let message: String
 
@@ -262,8 +274,9 @@ private struct EmptyState: View {
         ZStack {
             YunseulBackground(topGlow: Theme.glow.opacity(0.10), stars: false)
             VStack(spacing: 12) {
-                Image(systemName: icon)
-                    .font(.largeTitle)
+                // 큰 타이포 마크 — 아이콘 대신 정체성 표현
+                Text("?")
+                    .font(.system(size: 64, weight: .heavy, design: .rounded))
                     .foregroundStyle(Theme.glow.opacity(0.7))
                     .accessibilityHidden(true)
                 Text(title)
@@ -282,5 +295,4 @@ private struct EmptyState: View {
 
 #Preview {
     RootSplitView()
-        .preferredColorScheme(.dark)
 }
