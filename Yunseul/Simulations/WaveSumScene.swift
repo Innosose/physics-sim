@@ -41,10 +41,7 @@ struct WaveSumScene: View {
             LabeledSlider(title: "f₂", value: $f2, range: 0.1...4, format: "%.2f", unit: "Hz")
             LabeledSlider(title: "k₂", value: $k2, range: 0.2...4, format: "%.2f", unit: "rad/m")
             Toggle("두 번째 파 반대 진행 (정상파)", isOn: $oppose)
-            HStack {
-                Button(running ? "일시정지" : "재생") { running.toggle() }
-                Button("처음부터") { startTime = Date(); running = true }
-            }
+            PlayResetBar(running: $running, onReset: { startTime = Date(); running = true }, resetLabel: "처음부터")
             Divider()
             Readout(label: "맥놀이 진동수 |f₁−f₂|",
                     value: String(format: "%.2f Hz", abs(f1 - f2)))

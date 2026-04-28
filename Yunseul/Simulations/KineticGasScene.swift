@@ -45,10 +45,7 @@ struct KineticGasScene: View {
             LabeledSlider(title: "초기 속력 스케일", value: $temperatureScale, range: 0.2...3,
                           format: "%.2f")
             Toggle("왼쪽 벽 가열 (열 흐름 관찰)", isOn: $heaterOn)
-            HStack {
-                Button(running ? "일시정지" : "재생") { running.toggle() }
-                Button("초기화") { reset() }
-            }
+            PlayResetBar(running: $running, onReset: reset)
             Divider()
             let speeds = particles.map { $0.vel.length }
             let mean = speeds.isEmpty ? 0 : speeds.reduce(0, +) / Double(speeds.count)

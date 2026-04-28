@@ -38,10 +38,7 @@ struct FreeFallScene: View {
                           range: -10...20, format: "%.1f", unit: "m/s")
             LabeledSlider(title: "중력 g", value: $gravity,
                           range: 1.62...24.79, format: "%.2f", unit: "m/s²")
-            HStack {
-                Button(running ? "일시정지" : "재생") { running.toggle() }
-                Button("처음부터") { startTime = Date(); running = true }
-            }
+            PlayResetBar(running: $running, onReset: { startTime = Date(); running = true }, resetLabel: "처음부터")
             Divider()
             let t = elapsed(at: Date())
             let s = state(at: t)

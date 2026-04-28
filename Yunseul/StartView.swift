@@ -38,7 +38,7 @@ struct StartView: View {
                     .fill(Theme.glow)
                     .frame(width: 8, height: 8)
                 Text("YUNSEUL")
-                    .font(.system(size: 12, weight: .bold, design: .monospaced))
+                    .font(.system(.caption2, design: .monospaced).weight(.bold))
                     .tracking(3)
                     .foregroundStyle(Theme.mist)
             }
@@ -112,8 +112,9 @@ private struct GradeTile: View {
                     .fill(curriculum.accent.opacity(0.18))
                     .frame(width: 56, height: 56)
                 Image(systemName: curriculum.iconSystemName)
-                    .font(.system(size: 24, weight: .semibold))
+                    .font(.title.weight(.semibold))      // HIG: Dynamic Type
                     .foregroundStyle(curriculum.accent)
+                    .accessibilityHidden(true)
             }
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 8) {
@@ -124,8 +125,8 @@ private struct GradeTile: View {
                         .foregroundStyle(Theme.mist)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 1)
-                        .background(Theme.crest,
-                                    in: Capsule())
+                        .background(Theme.crest, in: Capsule())
+                        .accessibilityLabel("시뮬레이션 \(count) 개")
                 }
                 Text(curriculum.subtitle)
                     .font(.subheadline)
@@ -135,11 +136,15 @@ private struct GradeTile: View {
             Image(systemName: "chevron.right")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(Theme.mist)
+                .accessibilityHidden(true)
         }
         .padding(18)
         .frame(maxWidth: 720, minHeight: 92)
         .themeCard(cornerRadius: 18)
         .shadow(color: curriculum.accent.opacity(0.16), radius: 22, x: 0, y: 10)
+        // HIG: 한 카드 = 한 버튼 = 하나의 VoiceOver 요소.
+        .accessibilityElement(children: .combine)
+        .accessibilityHint("\(count) 개 시뮬레이션 보기")
     }
 }
 

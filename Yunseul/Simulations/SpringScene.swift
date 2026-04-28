@@ -52,10 +52,7 @@ struct SpringScene: View {
                           format: "%.1f", unit: "N")
             LabeledSlider(title: "구동 ω_d", value: $driveOmega, range: 0.1...15,
                           format: "%.2f", unit: "rad/s")
-            HStack {
-                Button(running ? "일시정지" : "재생") { running.toggle() }
-                Button("초기화") { restart() }
-            }
+            PlayResetBar(running: $running, onReset: restart)
             Divider()
             let omega0 = sqrt(stiffness / mass)
             let zeta = damping / (2 * sqrt(stiffness * mass))

@@ -105,12 +105,7 @@ struct FreeCollisionScene: View {
                 Button("무작위 12") { particles = randomMany(12); collisionCount = 0 }
                     .buttonStyle(.glass)
             }
-            HStack {
-                Button(running ? "일시정지" : "재생") { running.toggle() }
-                    .buttonStyle(.glassProminent)
-                Button("비우기") { particles.removeAll(); collisionCount = 0 }
-                    .buttonStyle(.glass)
-            }
+            PlayResetBar(running: $running, onReset: { particles.removeAll(); collisionCount = 0 }, resetLabel: "비우기")
             Divider()
             let p = totalMomentum
             let ke = totalKE

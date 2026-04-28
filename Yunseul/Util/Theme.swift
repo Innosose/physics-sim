@@ -88,6 +88,7 @@ private struct ThemeCard: ViewModifier {
                         .frame(width: 5, height: 5)
                         .shadow(color: Theme.glow.opacity(0.7), radius: 4)
                         .padding(10)
+                        .accessibilityHidden(true)         // HIG: 순수 장식
                 }
             }
     }
@@ -123,6 +124,7 @@ struct RippleField: View {
             }
         }
         .allowsHitTesting(false)
+        .accessibilityHidden(true)              // HIG: 장식 요소
     }
 }
 
@@ -166,6 +168,7 @@ struct StarField: View {
             }
         }
         .allowsHitTesting(false)
+        .accessibilityHidden(true)              // HIG: 장식 요소
     }
 }
 
@@ -192,6 +195,7 @@ struct RippleAccent: View {
                        lineWidth: 1.2)
         }
         .allowsHitTesting(false)
+        .accessibilityHidden(true)              // HIG: 장식 요소
     }
 }
 

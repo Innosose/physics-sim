@@ -46,10 +46,7 @@ struct RLCScene: View {
             LabeledSlider(title: "전기용량 C", value: $C, range: 0.0005...0.05, format: "%.4f", unit: "F")
             LabeledSlider(title: "EMF 진폭 V₀", value: $V0, range: 0.1...30, format: "%.1f", unit: "V")
             LabeledSlider(title: "각진동수 ω", value: $omega, range: 0.5...100, format: "%.1f", unit: "rad/s")
-            HStack {
-                Button(running ? "일시정지" : "재생") { running.toggle() }
-                Button("초기화") { restart() }
-            }
+            PlayResetBar(running: $running, onReset: restart)
             Divider()
             let omega0 = 1 / sqrt(L * C)
             let XL = omega * L

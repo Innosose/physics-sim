@@ -35,10 +35,7 @@ struct DopplerScene: View {
                           format: "%.0f", unit: "m/s")
             LabeledSlider(title: "방출 진동수 f", value: $freq, range: 0.5...4,
                           format: "%.2f", unit: "Hz")
-            HStack {
-                Button(running ? "일시정지" : "재생") { running.toggle() }
-                Button("처음부터") { startTime = Date(); running = true }
-            }
+            PlayResetBar(running: $running, onReset: { startTime = Date(); running = true }, resetLabel: "처음부터")
             Divider()
             let mach = sourceSpeed / soundSpeed
             Readout(label: "마하 수 v_s / c", value: String(format: "%.2f", mach))

@@ -47,10 +47,7 @@ struct CollisionScene: View {
             LabeledSlider(title: "초속 v₁", value: $v1, range: -8...8, format: "%.1f", unit: "m/s")
             LabeledSlider(title: "초속 v₂", value: $v2, range: -8...8, format: "%.1f", unit: "m/s")
             LabeledSlider(title: "반발계수 e", value: $restitution, range: 0...1, format: "%.2f")
-            HStack {
-                Button(running ? "일시정지" : "재생") { running.toggle() }
-                Button("초기화") { reset() }
-            }
+            PlayResetBar(running: $running, onReset: reset)
             Divider()
             let p = m1 * u1 + m2 * u2
             let ke = 0.5 * m1 * u1 * u1 + 0.5 * m2 * u2 * u2

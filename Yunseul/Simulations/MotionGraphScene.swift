@@ -39,10 +39,7 @@ struct MotionGraphScene: View {
                           format: "%.1f", unit: "m/s")
             LabeledSlider(title: "가속도 a", value: $a, range: -3...4,
                           format: "%.2f", unit: "m/s²")
-            HStack {
-                Button(running ? "일시정지" : "재생") { running.toggle() }
-                Button("처음부터") { startTime = Date(); running = true }
-            }
+            PlayResetBar(running: $running, onReset: { startTime = Date(); running = true }, resetLabel: "처음부터")
             Divider()
             let t = max(0, Date().timeIntervalSince(startTime))
             Readout(label: "현재 t", value: String(format: "%.2f s", t))

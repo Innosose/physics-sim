@@ -103,8 +103,9 @@ private struct SimRow: View {
                     .fill(accent.opacity(0.18))
                     .frame(width: 40, height: 40)
                 Image(systemName: item.category.systemImage)
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(.body.weight(.semibold))         // HIG: Dynamic Type
                     .foregroundStyle(accent)
+                    .accessibilityHidden(true)
             }
             VStack(alignment: .leading, spacing: 4) {
                 Text(item.title)
@@ -117,7 +118,8 @@ private struct SimRow: View {
                 // 교육과정 단원 칩 — 들어가기 전부터 어느 단원인지 보이도록.
                 HStack(spacing: 4) {
                     Image(systemName: "graduationcap.fill")
-                        .font(.system(size: 9, weight: .semibold))
+                        .imageScale(.small)
+                        .accessibilityHidden(true)
                     Text(item.curriculum)
                         .font(.caption2.weight(.semibold))
                         .lineLimit(1)
@@ -129,10 +131,14 @@ private struct SimRow: View {
             Image(systemName: "chevron.right")
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(Theme.mist.opacity(0.6))
+                .accessibilityHidden(true)
         }
         .padding(12)
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, minHeight: 72)         // HIG: 탭 영역 ≥ 44pt
         .themeCard(cornerRadius: 14)
+        // HIG: 한 행 = 한 버튼 = 하나의 VoiceOver 요소.
+        .accessibilityElement(children: .combine)
+        .accessibilityHint("열기 — \(item.curriculum)")
     }
 }
 

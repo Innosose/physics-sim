@@ -48,10 +48,7 @@ struct LorentzScene: View {
             LabeledSlider(title: "질량 m", value: $mass, range: 0.2...3, format: "%.2f")
             LabeledSlider(title: "초기 v_x", value: $initialVx, range: -3...3, format: "%.2f")
             LabeledSlider(title: "초기 v_y", value: $initialVy, range: -3...3, format: "%.2f")
-            HStack {
-                Button(running ? "일시정지" : "재생") { running.toggle() }
-                Button("초기화") { reset() }
-            }
+            PlayResetBar(running: $running, onReset: reset)
             Divider()
             let omegaC = abs(charge * Bz / mass)
             let speed = vel.length

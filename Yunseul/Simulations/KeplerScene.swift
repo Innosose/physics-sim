@@ -41,10 +41,7 @@ struct KeplerScene: View {
             LabeledSlider(title: "GM",     value: $GM, range: 50...600, format: "%.0f")
             LabeledSlider(title: "초기 거리 r₀", value: $r0, range: 2...10, format: "%.2f")
             LabeledSlider(title: "초기 접선속력 v₀", value: $v0, range: 1...12, format: "%.2f")
-            HStack {
-                Button(running ? "일시정지" : "재생") { running.toggle() }
-                Button("초기화") { reset() }
-            }
+            PlayResetBar(running: $running, onReset: reset)
             Divider()
             let r = pos.length
             let speed = vel.length

@@ -116,20 +116,24 @@ struct ConceptCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            // 교육과정 칩.
+            // 교육과정 칩 — HIG: 아이콘 + 라벨 (color-only 가 아닌 텍스트 동반).
             HStack(spacing: 6) {
                 Image(systemName: "graduationcap.fill")
-                    .font(.system(size: 11, weight: .semibold))
+                    .imageScale(.small)
                     .foregroundStyle(Theme.glow)
+                    .accessibilityHidden(true)             // HIG: 옆 라벨이 의미 전달
                 Text(item.curriculum)
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(Theme.ink)
                     .lineLimit(2)
                 Spacer(minLength: 0)
             }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("교육과정 위치: \(item.curriculum)")
+
             // 공식 박스 — GeoGebra 의 수식 영역처럼 강조.
             Text(item.formula)
-                .font(.system(size: 13, weight: .medium, design: .monospaced))
+                .font(.system(.footnote, design: .monospaced).weight(.medium))   // HIG: Dynamic Type
                 .foregroundStyle(Theme.ink)
                 .lineSpacing(3)
                 .minimumScaleFactor(0.78)
@@ -145,6 +149,7 @@ struct ConceptCard: View {
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
                         .stroke(Theme.glow.opacity(0.22), lineWidth: 1)
                 )
+                .accessibilityLabel("핵심 공식: \(item.formula)")
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -194,10 +199,12 @@ struct LabeledSlider: View {
 
     @ViewBuilder
     private var sliderControl: some View {
+        // HIG: Touch targets — 시스템 기본(.regular) 슬라이더는 44pt 가까이의
+        // 탭 영역을 보장. .controlSize(.small) 은 정보 밀도 화면에서만 권장.
         if step > 0 {
-            Slider(value: $value, in: range, step: step).controlSize(.small)
+            Slider(value: $value, in: range, step: step)
         } else {
-            Slider(value: $value, in: range).controlSize(.small)
+            Slider(value: $value, in: range)
         }
     }
 }
@@ -229,7 +236,7 @@ struct PropertySection<Content: View>: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 4) {
                 Image(systemName: "chevron.down")
-                    .font(.system(size: 9, weight: .semibold))
+                    .imageScale(.small)             // HIG: Dynamic Type 따라 함께 확대
                     .foregroundStyle(Theme.mist)
                 Text(title.uppercased())
                     .font(.themeHeader)

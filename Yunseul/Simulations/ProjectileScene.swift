@@ -39,10 +39,7 @@ struct ProjectileScene: View {
                           format: "%.2f", unit: "m/s²")
             LabeledSlider(title: "공기 저항 k", value: $drag, range: 0...0.6,
                           format: "%.2f", unit: "1/s")
-            HStack {
-                Button(running ? "일시정지" : "재생") { running.toggle() }
-                Button("다시 발사") { startTime = Date(); running = true }
-            }
+            PlayResetBar(running: $running, onReset: { startTime = Date(); running = true }, resetLabel: "다시 발사")
             Divider()
             let tt = Date().timeIntervalSince(startTime)
             let p = trajectoryPoint(t: tt, drag: drag)

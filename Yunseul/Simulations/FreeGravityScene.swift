@@ -54,12 +54,7 @@ struct FreeGravityScene: View {
             .pickerStyle(.segmented)
             LabeledSlider(title: "중력 상수 G", value: $G, range: 0.2...3,
                           format: "%.2f")
-            HStack {
-                Button(running ? "일시정지" : "재생") { running.toggle() }
-                    .buttonStyle(.glassProminent)
-                Button("초기화") { applyPreset() }
-                    .buttonStyle(.glass)
-            }
+            PlayResetBar(running: $running, onReset: applyPreset)
             Divider()
             Readout(label: "별 수", value: "\(bodies.count)")
             let p = totalMomentum
