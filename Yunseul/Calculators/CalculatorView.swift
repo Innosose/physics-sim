@@ -17,9 +17,14 @@ struct CalculatorView: View {
                     switch topic {
                     case .freefall:   FreeFallCalculator()
                     case .projectile: ProjectileCalculator()
+                    case .pendulum:   PendulumCalculator()
+                    case .collision:  CollisionCalculator()
+                    case .kepler:     KeplerCalculator()
                     case .ohm:        OhmCalculator()
+                    case .doppler:    DopplerCalculator()
                     case .refraction: RefractionCalculator()
                     case .lens:       LensCalculator()
+                    case .slit:       DoubleSlitCalculator()
                     }
                 }
                 .padding(14)
@@ -390,6 +395,243 @@ struct LensCalculator: View {
     }
 }
 
+// MARK: - 단진자 주기
+
+struct PendulumCalculator: View {
+    @State private var L: Double  = 1.0
+    @State private var g: Double  = 9.81
+    @State private var thetaDeg: Double = 30
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            CalcSection(title: "입력값") {
+                CalcInputField(title: "줄 길이 L", value: $L, unit: "m")
+                CalcInputField(title: "중력가속도 g", value: $g, unit: "m/s²")
+                CalcInputField(title: "최대 각도 θ_max", value: $thetaDeg, unit: "°",
+                               range: 0...170)
+            }
+            PropertyDivider()
+            CalcSection(title: "결과") {
+                let T0 = 2 * .pi * sqrt(L / g)
+                CalcOutput(label: "작은-각 주기 T₀ = 2π√(L/g)",
+                           value: String(format: "%.4f s", T0), emphasis: true)
+
+                // 진폭 보정 — 큰 각에서의 주기 (멱급수 근사, 정확):
+                //   T(θ_max) = T₀ · (1 + θ²/16 + 11·θ⁴/3072 + 173·θ⁶/737280 + …)
+                // 5차 항까지 — θ_max ≤ 170° 까지 < 1% 오차.
+                let θ = thetaDeg * .pi / 180
+                let θ2 = θ * θ
+                let θ4 = θ2 * θ2
+                let θ6 = θ4 * θ2
+                let correction = 1 + θ2 / 16 + 11 * θ4 / 3072 + 173 * θ6 / 737280
+                let T = T0 * correction
+                CalcOutput(label: "정확한 주기 T(θ_max) (멱급수 5차)",
+                           value: String(format: "%.4f s", T), emphasis: true)
+                CalcOutput(label: "보정 비율 T / T₀",
+                           value: String(format: "%.4f", correction))
+                CalcOutput(label: "차이 ΔT / T₀",
+                           value: String(format: "%+.2f %%", (correction - 1) * 100))
+                CalcOutput(label: "고유진동수 ω₀ = √(g/L)",
+                           value: String(format: "%.3f rad/s", sqrt(g / L)))
+            }
+            Text("작은 각 근사는 θ ≪ 1 일 때 유효. 60°에서 약 7%, 90°에서 약 18% 더 김.")
+                .font(.caption).foregroundStyle(.secondary).padding(.top, 4)
+        }
+    }
+}
+
+// MARK: - 1차원 충돌
+
+struct CollisionCalculator: View {
+    @State private var m1: Double = 2.0
+    @State private var v1: Double = 3.0
+    @State private var m2: Double = 1.0
+    @State private var v2: Double = -1.0
+    @State private var e: Double  = 1.0
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            CalcSection(title: "입력값") {
+                CalcInputField(title: "질량 m₁", value: $m1, unit: "kg")
+                CalcInputField(title: "초속 v₁", value: $v1, unit: "m/s")
+                CalcInputField(title: "질량 m₂", value: $m2, unit: "kg")
+                CalcInputField(title: "초속 v₂", value: $v2, unit: "m/s")
+                CalcInputField(title: "반발계수 e (0..1)", value: $e, range: 0...1)
+            }
+            PropertyDivider()
+            CalcSection(title: "결과 — 충돌 후") {
+                let M = m1 + m2
+                let v1p = ((m1 - e * m2) * v1 + (1 + e) * m2 * v2) / M
+                let v2p = ((m2 - e * m1) * v2 + (1 + e) * m1 * v1) / M
+                CalcOutput(label: "v₁′",
+                           value: String(format: "%+.3f m/s", v1p), emphasis: true)
+                CalcOutput(label: "v₂′",
+                           value: String(format: "%+.3f m/s", v2p), emphasis: true)
+                CalcOutput(label: "운동량 p (전·후)",
+                           value: String(format: "%.3f → %.3f", m1*v1+m2*v2, m1*v1p+m2*v2p))
+                let KE  = 0.5 * (m1*v1*v1 + m2*v2*v2)
+                let KE2 = 0.5 * (m1*v1p*v1p + m2*v2p*v2p)
+                CalcOutput(label: "운동에너지 KE (전 → 후)",
+                           value: String(format: "%.3f → %.3f J", KE, KE2))
+                CalcOutput(label: "ΔKE",
+                           value: String(format: "%+.3f J  (%+.1f %%)",
+                                          KE2 - KE,
+                                          KE > 1e-9 ? (KE2 - KE) / KE * 100 : 0))
+                let label: String =
+                    abs(e - 1) < 1e-6 ? "완전탄성 (KE 보존)"
+                    : (e < 1e-6 ? "완전비탄성 (서로 같은 속도)"
+                                : "부분탄성")
+                CalcOutput(label: "분류", value: label)
+            }
+        }
+    }
+}
+
+// MARK: - 케플러 궤도 매개변수
+
+struct KeplerCalculator: View {
+    @State private var GM: Double = 3.986e14   // 지구 GM (m³/s²)
+    @State private var r: Double  = 6.78e6     // 저궤도 (m)
+    @State private var v: Double  = 7700       // m/s
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            CalcSection(title: "입력값 (현재 위치·속도)") {
+                CalcInputField(title: "GM (중심체)", value: $GM, unit: "m³/s²")
+                CalcInputField(title: "현재 거리 r", value: $r, unit: "m")
+                CalcInputField(title: "현재 속력 v", value: $v, unit: "m/s")
+            }
+            PropertyDivider()
+            CalcSection(title: "결과") {
+                guard r > 0, GM > 0 else {
+                    Text("입력값 오류"); return
+                }
+                let E = 0.5 * v * v - GM / r        // 비-에너지 (단위질량당)
+                let escape = sqrt(2 * GM / r)
+                CalcOutput(label: "탈출속력 v_esc = √(2GM/r)",
+                           value: String(format: "%.1f m/s", escape))
+                CalcOutput(label: "비-에너지 ε = ½v² − GM/r",
+                           value: String(format: "%.3e J/kg", E))
+                if E >= 0 {
+                    CalcOutput(label: "궤도 종류", value: "탈출 (E ≥ 0) — 포물선/쌍곡선",
+                               emphasis: true)
+                } else {
+                    let a = -GM / (2 * E)
+                    // 근사: 접선속도 가정 (속력 v 가 위치 r 와 직각). 일반은 각운동량 L = r·v_t 필요.
+                    // 학습용으로 접선속력 가정으로 e 단순 추정.
+                    let L = r * v
+                    let term = max(0, 1 + 2 * E * L * L / (GM * GM))
+                    let ecc = sqrt(term)
+                    let T = 2 * .pi * sqrt(pow(a, 3) / GM)
+                    let rPeri = a * (1 - ecc)
+                    let rApo  = a * (1 + ecc)
+                    CalcOutput(label: "장반경 a = −GM / (2ε)",
+                               value: String(format: "%.3e m", a), emphasis: true)
+                    CalcOutput(label: "이심률 e (접선속력 가정)",
+                               value: String(format: "%.4f", ecc))
+                    CalcOutput(label: "공전주기 T = 2π √(a³/GM)",
+                               value: String(format: "%.0f s  (%.3f h)", T, T / 3600),
+                               emphasis: true)
+                    CalcOutput(label: "근일점 r_peri = a(1−e)",
+                               value: String(format: "%.3e m", rPeri))
+                    CalcOutput(label: "원일점 r_apo  = a(1+e)",
+                               value: String(format: "%.3e m", rApo))
+                }
+            }
+            Text("e 계산은 v 가 r 에 직각인 접선속력이라고 가정 — 일반 궤도에선 v 의 방향 정보가 추가로 필요.")
+                .font(.caption).foregroundStyle(.secondary).padding(.top, 4)
+        }
+    }
+}
+
+// MARK: - 도플러 효과
+
+struct DopplerCalculator: View {
+    @State private var f0: Double = 440        // Hz
+    @State private var c: Double  = 343        // m/s (공기, 20°C)
+    @State private var vs: Double = 0          // 음원 속력 (관측자에게 다가가면 +)
+    @State private var vo: Double = 0          // 관측자 속력 (음원에게 다가가면 +)
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            CalcSection(title: "입력값") {
+                CalcInputField(title: "원래 진동수 f", value: $f0, unit: "Hz")
+                CalcInputField(title: "음속 c", value: $c, unit: "m/s")
+                CalcInputField(title: "음원 속력 v_s (관측자 향함 +)",
+                               value: $vs, unit: "m/s")
+                CalcInputField(title: "관측자 속력 v_o (음원 향함 +)",
+                               value: $vo, unit: "m/s")
+            }
+            PropertyDivider()
+            CalcSection(title: "결과") {
+                if c - vs <= 1e-9 {
+                    CalcOutput(label: "f′",
+                               value: "정의되지 않음 — 음원이 음속 이상",
+                               emphasis: true)
+                    Text("v_s ≥ c — 충격파(마하 콘) 발생 영역.")
+                        .font(.caption).foregroundStyle(.orange)
+                } else {
+                    let fp = f0 * (c + vo) / (c - vs)
+                    CalcOutput(label: "관측 진동수 f′ = f · (c + v_o)/(c − v_s)",
+                               value: String(format: "%.3f Hz", fp), emphasis: true)
+                    CalcOutput(label: "주기 T′ = 1 / f′",
+                               value: String(format: "%.4f s", 1 / fp))
+                    CalcOutput(label: "f′ / f",
+                               value: String(format: "%.4f", fp / f0))
+                    CalcOutput(label: "음정 변화",
+                               value: String(format: "%+.1f cents",
+                                              1200 * log2(fp / f0)))
+                    CalcOutput(label: "마하 수 v_s / c",
+                               value: String(format: "%.3f", vs / c))
+                }
+            }
+            Text("부호 규약: 다가가는 방향이 +. 멀어지면 −. 빛(상대론) 도플러는 별도 공식.")
+                .font(.caption).foregroundStyle(.secondary).padding(.top, 4)
+        }
+    }
+}
+
+// MARK: - 이중 슬릿
+
+struct DoubleSlitCalculator: View {
+    @State private var lambdaNm: Double = 550   // nm
+    @State private var dUm: Double      = 50    // μm — 슬릿 간격
+    @State private var aUm: Double      = 8     // μm — 슬릿 폭
+    @State private var D: Double        = 1.5   // m — 막까지 거리
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            CalcSection(title: "입력값") {
+                CalcInputField(title: "파장 λ", value: $lambdaNm, unit: "nm")
+                CalcInputField(title: "슬릿 간격 d", value: $dUm, unit: "μm")
+                CalcInputField(title: "슬릿 폭 a", value: $aUm, unit: "μm")
+                CalcInputField(title: "막까지 거리 D", value: $D, unit: "m")
+            }
+            PropertyDivider()
+            CalcSection(title: "결과") {
+                let λ = lambdaNm * 1e-9
+                let d = dUm * 1e-6
+                let a = aUm * 1e-6
+                guard d > 0, λ > 0 else { Text("입력값 오류"); return }
+                let dy = λ * D / d
+                let ya = λ * D / a
+                CalcOutput(label: "이웃 무늬 간격 Δy = λ·D / d",
+                           value: String(format: "%.3f mm", dy * 1000),
+                           emphasis: true)
+                CalcOutput(label: "회절 첫 영점 위치 y_a = λ·D / a",
+                           value: String(format: "%.3f mm", ya * 1000))
+                CalcOutput(label: "봉투 안의 보강 무늬 수 (대략 2·d/a)",
+                           value: String(format: "%.0f 개", 2 * d / a))
+                // 첫 보강 회절 각.
+                let θ1 = asin(min(1, λ / d))
+                CalcOutput(label: "첫 보강 회절각 θ₁ = arcsin(λ/d)",
+                           value: String(format: "%.3f° (%.4f rad)",
+                                          θ1 * 180 / .pi, θ1))
+            }
+        }
+    }
+}
+
 #Preview {
-    NavigationStack { CalculatorView(topic: .projectile) }
+    NavigationStack { CalculatorView(topic: .pendulum) }
 }

@@ -309,19 +309,31 @@ private struct CalculatorList: View {
 
     private let toolTint = Color(red: 0.45, green: 0.78, blue: 0.95)
 
+    /// 섹션별로 묶은 토픽 — `CalculatorTopic.section` 기준.
+    private var grouped: [(String, [CalculatorTopic])] {
+        let order = ["역학", "전자기", "파동·광학"]
+        var dict: [String: [CalculatorTopic]] = [:]
+        for t in CalculatorTopic.allCases { dict[t.section, default: []].append(t) }
+        return order.compactMap { name in
+            dict[name].map { (name, $0) }
+        }
+    }
+
     var body: some View {
         List(selection: $selection) {
-            Section {
-                ForEach(CalculatorTopic.allCases) { topic in
-                    NavigationLink(value: DetailItem.calculator(topic)) {
-                        CalcTopicRow(topic: topic, tint: toolTint)
+            ForEach(grouped, id: \.0) { (name, topics) in
+                Section {
+                    ForEach(topics) { topic in
+                        NavigationLink(value: DetailItem.calculator(topic)) {
+                            CalcTopicRow(topic: topic, tint: toolTint)
+                        }
                     }
+                } header: {
+                    Text(name.uppercased())
+                        .font(.themeHeader)
+                        .foregroundStyle(Theme.mist)
+                        .textCase(nil)
                 }
-            } header: {
-                Text("토픽")
-                    .font(.themeHeader)
-                    .foregroundStyle(Theme.mist)
-                    .textCase(nil)
             }
         }
         .listStyle(.insetGrouped)
