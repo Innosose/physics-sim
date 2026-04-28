@@ -1,0 +1,7 @@
+physics_sim
+*.o
+*.obj
+*.dSYM/
+build/
+.vscode/
+.idea/
