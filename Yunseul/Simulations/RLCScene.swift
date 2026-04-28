@@ -26,9 +26,9 @@ struct RLCScene: View {
                   blurb: "공명 진동수 ω₀ = 1/√(LC) 에서 |Z| 가 최소이고 전류가 최대. ω 가 ω₀ 보다 작으면 용량성, 크면 유도성 위상.",
                   canvas: { canvas },
                   controls: { controls })
-            .onChange(of: L) { _, _ in restart() }
-            .onChange(of: C) { _, _ in restart() }
     }
+
+    private func onSliderEnd(_ editing: Bool) { if !editing { restart() } }
 
     private var canvas: some View {
         TimelineView(.animation(paused: !running)) { tl in
@@ -42,8 +42,10 @@ struct RLCScene: View {
     private var controls: some View {
         VStack(alignment: .leading, spacing: 10) {
             LabeledSlider(title: "저항 R", value: $R, range: 0.1...30, format: "%.2f", unit: "Ω")
-            LabeledSlider(title: "인덕턴스 L", value: $L, range: 0.05...3, format: "%.2f", unit: "H")
-            LabeledSlider(title: "전기용량 C", value: $C, range: 0.0005...0.05, format: "%.4f", unit: "F")
+            LabeledSlider(title: "인덕턴스 L", value: $L, range: 0.05...3,
+                          format: "%.2f", unit: "H", onEditingChanged: onSliderEnd)
+            LabeledSlider(title: "전기용량 C", value: $C, range: 0.0005...0.05,
+                          format: "%.4f", unit: "F", onEditingChanged: onSliderEnd)
             LabeledSlider(title: "EMF 진폭 V₀", value: $V0, range: 0.1...30, format: "%.1f", unit: "V")
             LabeledSlider(title: "각진동수 ω", value: $omega, range: 0.5...100, format: "%.1f", unit: "rad/s")
             PlayResetBar(running: $running, onReset: restart)

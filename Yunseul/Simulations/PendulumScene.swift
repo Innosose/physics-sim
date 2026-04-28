@@ -28,9 +28,10 @@ struct PendulumScene: View {
                   canvas: { canvas },
                   controls: { controls })
             .onAppear { reset() }
-            .onChange(of: initialAngleDeg) { _, _ in reset() }
-            .onChange(of: length) { _, _ in reset() }
     }
+
+    /// 슬라이더에서 손을 뗄 때만 호출 — 드래그 중 깜빡임 방지.
+    private func onSliderEnd(_ editing: Bool) { if !editing { reset() } }
 
     private var canvas: some View {
         TimelineView(.animation(paused: !running)) { ctx in
@@ -44,7 +45,8 @@ struct PendulumScene: View {
     private var controls: some View {
         VStack(alignment: .leading, spacing: 10) {
             LabeledSlider(title: "줄 길이 L", value: $length, range: 0.3...3.0,
-                          format: "%.2f", unit: "m")
+                          format: "%.2f", unit: "m",
+                          onEditingChanged: onSliderEnd)
             if !simpleMode {
                 LabeledSlider(title: "중력", value: $gravity, range: 1.62...24.79,
                               format: "%.2f", unit: "m/s²")
@@ -52,7 +54,8 @@ struct PendulumScene: View {
                               format: "%.2f", unit: "1/s")
             }
             LabeledSlider(title: "초기 각도", value: $initialAngleDeg, range: 1...170,
-                          step: 1, format: "%.0f", unit: "°")
+                          step: 1, format: "%.0f", unit: "°",
+                          onEditingChanged: onSliderEnd)
             PlayResetBar(running: $running, onReset: reset)
             Divider()
             Readout(label: simpleMode ? "흔들리는 한 번 시간 (주기)" : "주기 (작은각) T₀",

@@ -167,6 +167,10 @@ struct ConceptCard: View {
 // MARK: - 윤슬 풍 슬라이더·측정값
 
 /// 슬라이더 + 라벨 + 모노스페이스 값.
+///
+/// `onEditingChanged` 는 드래그 시작·끝 신호. 이 값이 false 가 됐을 때만
+/// 무거운 작업(예: `reset()`) 을 호출하면, 드래그 중 "매 틱마다 리셋" 하는
+/// 끔찍한 깜빡임이 사라진다.
 struct LabeledSlider: View {
     let title: String
     @Binding var value: Double
@@ -174,6 +178,7 @@ struct LabeledSlider: View {
     var step: Double = 0
     var format: String = "%.2f"
     var unit: String = ""
+    var onEditingChanged: (Bool) -> Void = { _ in }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
@@ -202,9 +207,11 @@ struct LabeledSlider: View {
         // HIG: Touch targets — 시스템 기본(.regular) 슬라이더는 44pt 가까이의
         // 탭 영역을 보장. .controlSize(.small) 은 정보 밀도 화면에서만 권장.
         if step > 0 {
-            Slider(value: $value, in: range, step: step)
+            Slider(value: $value, in: range, step: step,
+                   onEditingChanged: onEditingChanged)
         } else {
-            Slider(value: $value, in: range)
+            Slider(value: $value, in: range,
+                   onEditingChanged: onEditingChanged)
         }
     }
 }

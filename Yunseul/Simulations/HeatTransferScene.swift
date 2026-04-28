@@ -34,10 +34,9 @@ struct HeatTransferScene: View {
             blurb: "두 물체가 닿으면 따뜻한 쪽에서 차가운 쪽으로 열이 흘러 같아진다. 평형 온도는 (m·c) 가 큰 쪽으로 치우친다.",
             canvas: { canvas },
             controls: { controls })
-            .onChange(of: T1) { _, _ in restart() }
-            .onChange(of: T2) { _, _ in restart() }
-            .onChange(of: capRatio) { _, _ in restart() }
     }
+
+    private func onSliderEnd(_ editing: Bool) { if !editing { restart() } }
 
     private var canvas: some View {
         TimelineView(.animation(paused: !running)) { tl in
@@ -51,12 +50,12 @@ struct HeatTransferScene: View {
     private var controls: some View {
         VStack(alignment: .leading, spacing: 10) {
             LabeledSlider(title: "물체 1 처음 온도", value: $T1, range: 0...100,
-                          format: "%.0f", unit: "°C")
+                          format: "%.0f", unit: "°C", onEditingChanged: onSliderEnd)
             LabeledSlider(title: "물체 2 처음 온도", value: $T2, range: 0...100,
-                          format: "%.0f", unit: "°C")
+                          format: "%.0f", unit: "°C", onEditingChanged: onSliderEnd)
             LabeledSlider(title: "열용량 비 (m₂c₂)/(m₁c₁)",
                           value: $capRatio, range: 0.1...5,
-                          format: "%.2f")
+                          format: "%.2f", onEditingChanged: onSliderEnd)
             LabeledSlider(title: "전달 계수 h·A", value: $hA, range: 0.1...5,
                           format: "%.2f")
             PlayResetBar(running: $running, onReset: restart)

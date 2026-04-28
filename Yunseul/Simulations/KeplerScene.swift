@@ -22,10 +22,9 @@ struct KeplerScene: View {
                   canvas: { canvas },
                   controls: { controls })
             .onAppear { reset() }
-            .onChange(of: r0) { _, _ in reset() }
-            .onChange(of: v0) { _, _ in reset() }
-            .onChange(of: GM) { _, _ in reset() }
     }
+
+    private func onSliderEnd(_ editing: Bool) { if !editing { reset() } }
 
     private var canvas: some View {
         TimelineView(.animation(paused: !running)) { tl in
@@ -38,9 +37,12 @@ struct KeplerScene: View {
 
     private var controls: some View {
         VStack(alignment: .leading, spacing: 10) {
-            LabeledSlider(title: "GM",     value: $GM, range: 50...600, format: "%.0f")
-            LabeledSlider(title: "초기 거리 r₀", value: $r0, range: 2...10, format: "%.2f")
-            LabeledSlider(title: "초기 접선속력 v₀", value: $v0, range: 1...12, format: "%.2f")
+            LabeledSlider(title: "GM", value: $GM, range: 50...600,
+                          format: "%.0f", onEditingChanged: onSliderEnd)
+            LabeledSlider(title: "초기 거리 r₀", value: $r0, range: 2...10,
+                          format: "%.2f", onEditingChanged: onSliderEnd)
+            LabeledSlider(title: "초기 접선속력 v₀", value: $v0, range: 1...12,
+                          format: "%.2f", onEditingChanged: onSliderEnd)
             PlayResetBar(running: $running, onReset: reset)
             Divider()
             let r = pos.length
@@ -82,8 +84,10 @@ struct KeplerScene: View {
             vel += acc * h
             pos += vel * h
         }
-        // 너무 멀리 가면 리셋 (탈출 궤도 보호).
-        if pos.length > 60 { reset(); return }
+        // 탈출 궤도 (너무 멀리 가면) 더 이상 적분 X — 자동 reset 은 SwiftUI 의
+        // "render 중 상태 변경" 경고를 일으키므로, 사용자가 [초기화] 누를 때까지
+        // 그대로 둔다.
+        if pos.length > 60 { lastTime = now; return }
         trail.append(pos)
         if trail.count > trailMax { trail.removeFirst(trail.count - trailMax) }
         lastTime = now

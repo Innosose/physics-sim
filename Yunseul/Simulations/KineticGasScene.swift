@@ -26,8 +26,9 @@ struct KineticGasScene: View {
                   canvas: { canvas },
                   controls: { controls })
             .onAppear { reset() }
-            .onChange(of: N) { _, _ in reset() }
     }
+
+    private func onSliderEnd(_ editing: Bool) { if !editing { reset() } }
 
     private var canvas: some View {
         TimelineView(.animation(paused: !running)) { tl in
@@ -41,7 +42,7 @@ struct KineticGasScene: View {
     private var controls: some View {
         VStack(alignment: .leading, spacing: 10) {
             LabeledSlider(title: "입자 수 N", value: $N, range: 20...300, step: 1,
-                          format: "%.0f")
+                          format: "%.0f", onEditingChanged: onSliderEnd)
             LabeledSlider(title: "초기 속력 스케일", value: $temperatureScale, range: 0.2...3,
                           format: "%.2f")
             Toggle("왼쪽 벽 가열 (열 흐름 관찰)", isOn: $heaterOn)

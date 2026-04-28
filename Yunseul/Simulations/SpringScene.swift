@@ -27,9 +27,9 @@ struct SpringScene: View {
                   blurb: "감쇠 진동의 시간 응답과 공명 곡선. 구동 진동수 ω_d 를 고유진동수 √(k/m) 근처로 맞추면 진폭이 최대가 된다.",
                   canvas: { canvas },
                   controls: { controls })
-            .onChange(of: mass) { _, _ in restart() }
-            .onChange(of: stiffness) { _, _ in restart() }
     }
+
+    private func onSliderEnd(_ editing: Bool) { if !editing { restart() } }
 
     private var canvas: some View {
         TimelineView(.animation(paused: !running)) { tl in
@@ -43,9 +43,11 @@ struct SpringScene: View {
     private var controls: some View {
         VStack(alignment: .leading, spacing: 10) {
             LabeledSlider(title: "질량 m", value: $mass, range: 0.2...5.0,
-                          format: "%.2f", unit: "kg")
+                          format: "%.2f", unit: "kg",
+                          onEditingChanged: onSliderEnd)
             LabeledSlider(title: "강성 k", value: $stiffness, range: 1.0...80.0,
-                          format: "%.1f", unit: "N/m")
+                          format: "%.1f", unit: "N/m",
+                          onEditingChanged: onSliderEnd)
             LabeledSlider(title: "감쇠 c", value: $damping, range: 0...4,
                           format: "%.2f", unit: "N·s/m")
             LabeledSlider(title: "외력 진폭 F₀", value: $driveAmp, range: 0...20,
