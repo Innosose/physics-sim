@@ -222,23 +222,25 @@ struct ProjectileCalculator: View {
                 let v0y = speed * sin(θ)
                 // 비행시간: ½ g T² − v₀y T − h₀ = 0 양의 해
                 let disc = v0y * v0y + 2 * g * h0
-                guard disc >= 0 else {
-                    Text("입력값 오류"); return
+                if disc < 0 {
+                    Text("입력값 오류")
+                        .font(.footnote).foregroundStyle(.orange)
+                } else {
+                    let T = (v0y + sqrt(disc)) / g
+                    let R = v0x * T
+                    let H = h0 + v0y * v0y / (2 * g)
+                    let vImpact = sqrt(v0x * v0x + (v0y - g * T) * (v0y - g * T))
+                    CalcOutput(label: "비행시간 T",
+                               value: String(format: "%.2f s", T), emphasis: true)
+                    CalcOutput(label: "사거리 R = v₀ cosθ · T",
+                               value: String(format: "%.2f m", R), emphasis: true)
+                    CalcOutput(label: "최고점 H = h₀ + v₀²sin²θ / 2g",
+                               value: String(format: "%.2f m", H))
+                    CalcOutput(label: "최고점 시각 t_apex = v₀ sinθ / g",
+                               value: String(format: "%.2f s", v0y / g))
+                    CalcOutput(label: "충격 속도",
+                               value: String(format: "%.2f m/s", vImpact))
                 }
-                let T = (v0y + sqrt(disc)) / g
-                let R = v0x * T
-                let H = h0 + v0y * v0y / (2 * g)
-                let vImpact = sqrt(v0x * v0x + (v0y - g * T) * (v0y - g * T))
-                CalcOutput(label: "비행시간 T",
-                           value: String(format: "%.2f s", T), emphasis: true)
-                CalcOutput(label: "사거리 R = v₀ cosθ · T",
-                           value: String(format: "%.2f m", R), emphasis: true)
-                CalcOutput(label: "최고점 H = h₀ + v₀²sin²θ / 2g",
-                           value: String(format: "%.2f m", H))
-                CalcOutput(label: "최고점 시각 t_apex = v₀ sinθ / g",
-                           value: String(format: "%.2f s", v0y / g))
-                CalcOutput(label: "충격 속도",
-                           value: String(format: "%.2f m/s", vImpact))
             }
         }
     }
@@ -503,39 +505,40 @@ struct KeplerCalculator: View {
             }
             PropertyDivider()
             CalcSection(title: "결과") {
-                guard r > 0, GM > 0 else {
-                    Text("입력값 오류"); return
-                }
-                let E = 0.5 * v * v - GM / r        // 비-에너지 (단위질량당)
-                let escape = sqrt(2 * GM / r)
-                CalcOutput(label: "탈출속력 v_esc = √(2GM/r)",
-                           value: String(format: "%.2f m/s", escape))
-                CalcOutput(label: "비-에너지 ε = ½v² − GM/r",
-                           value: String(format: "%.3e J/kg", E))
-                if E >= 0 {
-                    CalcOutput(label: "궤도 종류", value: "탈출 (E ≥ 0) — 포물선/쌍곡선",
-                               emphasis: true)
+                if r <= 0 || GM <= 0 {
+                    Text("입력값 오류 — r, GM 은 양수")
+                        .font(.footnote).foregroundStyle(.orange)
                 } else {
-                    let a = -GM / (2 * E)
-                    // 근사: 접선속도 가정 (속력 v 가 위치 r 와 직각). 일반은 각운동량 L = r·v_t 필요.
-                    // 학습용으로 접선속력 가정으로 e 단순 추정.
-                    let L = r * v
-                    let term = max(0, 1 + 2 * E * L * L / (GM * GM))
-                    let ecc = sqrt(term)
-                    let T = 2 * .pi * sqrt(pow(a, 3) / GM)
-                    let rPeri = a * (1 - ecc)
-                    let rApo  = a * (1 + ecc)
-                    CalcOutput(label: "장반경 a = −GM / (2ε)",
-                               value: String(format: "%.3e m", a), emphasis: true)
-                    CalcOutput(label: "이심률 e (접선속력 가정)",
-                               value: String(format: "%.2f", ecc))
-                    CalcOutput(label: "공전주기 T = 2π √(a³/GM)",
-                               value: String(format: "%.2f s  (%.3f h)", T, T / 3600),
-                               emphasis: true)
-                    CalcOutput(label: "근일점 r_peri = a(1−e)",
-                               value: String(format: "%.3e m", rPeri))
-                    CalcOutput(label: "원일점 r_apo  = a(1+e)",
-                               value: String(format: "%.3e m", rApo))
+                    let E = 0.5 * v * v - GM / r        // 비-에너지 (단위질량당)
+                    let escape = sqrt(2 * GM / r)
+                    CalcOutput(label: "탈출속력 v_esc = √(2GM/r)",
+                               value: String(format: "%.2f m/s", escape))
+                    CalcOutput(label: "비-에너지 ε = ½v² − GM/r",
+                               value: String(format: "%.2e J/kg", E))
+                    if E >= 0 {
+                        CalcOutput(label: "궤도 종류", value: "탈출 (E ≥ 0) — 포물선/쌍곡선",
+                                   emphasis: true)
+                    } else {
+                        let a = -GM / (2 * E)
+                        // 학습용 접선속력 가정 — e 단순 추정.
+                        let L = r * v
+                        let term = max(0, 1 + 2 * E * L * L / (GM * GM))
+                        let ecc = sqrt(term)
+                        let T = 2 * .pi * sqrt(pow(a, 3) / GM)
+                        let rPeri = a * (1 - ecc)
+                        let rApo  = a * (1 + ecc)
+                        CalcOutput(label: "장반경 a = −GM / (2ε)",
+                                   value: String(format: "%.2e m", a), emphasis: true)
+                        CalcOutput(label: "이심률 e (접선속력 가정)",
+                                   value: String(format: "%.2f", ecc))
+                        CalcOutput(label: "공전주기 T = 2π √(a³/GM)",
+                                   value: String(format: "%.2f s  (%.2f h)", T, T / 3600),
+                                   emphasis: true)
+                        CalcOutput(label: "근일점 r_peri = a(1−e)",
+                                   value: String(format: "%.2e m", rPeri))
+                        CalcOutput(label: "원일점 r_apo  = a(1+e)",
+                                   value: String(format: "%.2e m", rApo))
+                    }
                 }
             }
             Text("e 계산은 v 가 r 에 직각인 접선속력이라고 가정 — 일반 궤도에선 v 의 방향 정보가 추가로 필요.")
@@ -612,21 +615,24 @@ struct DoubleSlitCalculator: View {
                 let λ = lambdaNm * 1e-9
                 let d = dUm * 1e-6
                 let a = aUm * 1e-6
-                guard d > 0, λ > 0 else { Text("입력값 오류"); return }
-                let dy = λ * D / d
-                let ya = λ * D / a
-                CalcOutput(label: "이웃 무늬 간격 Δy = λ·D / d",
-                           value: String(format: "%.2f mm", dy * 1000),
-                           emphasis: true)
-                CalcOutput(label: "회절 첫 영점 위치 y_a = λ·D / a",
-                           value: String(format: "%.2f mm", ya * 1000))
-                CalcOutput(label: "봉투 안의 보강 무늬 수 (대략 2·d/a)",
-                           value: String(format: "%.2f 개", 2 * d / a))
-                // 첫 보강 회절 각.
-                let θ1 = asin(min(1, λ / d))
-                CalcOutput(label: "첫 보강 회절각 θ₁ = arcsin(λ/d)",
-                           value: String(format: "%.2f° (%.2f rad)",
-                                          θ1 * 180 / .pi, θ1))
+                if d <= 0 || λ <= 0 {
+                    Text("입력값 오류 — d, λ 는 양수")
+                        .font(.footnote).foregroundStyle(.orange)
+                } else {
+                    let dy = λ * D / d
+                    let ya = λ * D / a
+                    CalcOutput(label: "이웃 무늬 간격 Δy = λ·D / d",
+                               value: String(format: "%.2f mm", dy * 1000),
+                               emphasis: true)
+                    CalcOutput(label: "회절 첫 영점 위치 y_a = λ·D / a",
+                               value: String(format: "%.2f mm", ya * 1000))
+                    CalcOutput(label: "봉투 안의 보강 무늬 수 (대략 2·d/a)",
+                               value: String(format: "%.2f 개", 2 * d / a))
+                    let θ1 = asin(min(1, λ / d))
+                    CalcOutput(label: "첫 보강 회절각 θ₁ = arcsin(λ/d)",
+                               value: String(format: "%.2f° (%.2f rad)",
+                                              θ1 * 180 / .pi, θ1))
+                }
             }
         }
     }
