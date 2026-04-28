@@ -11,6 +11,8 @@ struct SimChrome<Canvas: View, Controls: View>: View {
     @ViewBuilder var canvas: () -> Canvas
     @ViewBuilder var controls: () -> Controls
 
+    @Environment(\.simulationItem) private var item
+
     var body: some View {
         GeometryReader { geo in
             let wide = geo.size.width > 760
@@ -53,8 +55,14 @@ struct SimChrome<Canvas: View, Controls: View>: View {
     }
 
     private func propertiesPanel(width: CGFloat?) -> some View {
-        VStack(spacing: 8) {
-            // 헤더.
+        VStack(spacing: 0) {
+            // 1) 교육과정 + 공식 카드 (있을 때만).
+            if let item {
+                ConceptCard(item: item)
+                    .padding(14)
+            }
+
+            // 2) 작은 PROPERTIES 헤더.
             HStack {
                 Image(systemName: "slider.horizontal.3")
                     .font(.caption.weight(.semibold))
@@ -65,9 +73,9 @@ struct SimChrome<Canvas: View, Controls: View>: View {
                 Spacer()
             }
             .padding(.horizontal, 14)
-            .padding(.top, 10)
+            .padding(.top, item == nil ? 10 : 4)
 
-            // 컨트롤.
+            // 3) blurb + 컨트롤.
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 12) {
                     if !blurb.isEmpty {
@@ -76,6 +84,7 @@ struct SimChrome<Canvas: View, Controls: View>: View {
                             .foregroundStyle(Theme.mist)
                             .lineSpacing(2)
                             .padding(.horizontal, 14)
+                            .padding(.top, 8)
                             .padding(.bottom, 4)
                     }
                     controls()
@@ -93,6 +102,60 @@ struct SimChrome<Canvas: View, Controls: View>: View {
     private var background: some View {
         // 전체 화면: void 그라데이션 + 위쪽 금빛 광원 (별 패턴은 시뮬에서는 생략).
         YunseulBackground(topGlow: Theme.glow.opacity(0.06), stars: false)
+    }
+}
+
+// MARK: - ConceptCard — 교육과정 + 공식
+
+/// 시뮬 화면 properties 패널 상단에 고정으로 보여주는 정보 카드.
+///
+/// GeoGebra 의 "이론" 영역처럼, 이 시뮬이 "어느 단원의 무엇" 인지 명시적으로
+/// 짚어주고 핵심 공식을 모노스페이스 박스로 강조한다.
+struct ConceptCard: View {
+    let item: SimulationItem
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            // 교육과정 칩.
+            HStack(spacing: 6) {
+                Image(systemName: "graduationcap.fill")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(Theme.glow)
+                Text(item.curriculum)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Theme.ink)
+                    .lineLimit(2)
+                Spacer(minLength: 0)
+            }
+            // 공식 박스 — GeoGebra 의 수식 영역처럼 강조.
+            Text(item.formula)
+                .font(.system(size: 13, weight: .medium, design: .monospaced))
+                .foregroundStyle(Theme.ink)
+                .lineSpacing(3)
+                .minimumScaleFactor(0.78)
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(Theme.crest.opacity(0.55))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .stroke(Theme.glow.opacity(0.22), lineWidth: 1)
+                )
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Theme.surface.opacity(0.55))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(Theme.stroke, lineWidth: 1)
+        )
     }
 }
 

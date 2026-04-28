@@ -40,6 +40,7 @@ struct CurriculumView: View {
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(for: SimulationItem.self) { item in
             SimulationCatalog.view(for: item.id)
+                .environment(\.simulationItem, item)
                 .navigationTitle(item.title)
                 .navigationBarTitleDisplayMode(.inline)
         }
@@ -105,7 +106,7 @@ private struct SimRow: View {
                     .font(.system(size: 17, weight: .semibold))
                     .foregroundStyle(accent)
             }
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(item.title)
                     .font(.callout.weight(.semibold))
                     .foregroundStyle(Theme.ink)
@@ -113,6 +114,16 @@ private struct SimRow: View {
                     .font(.caption)
                     .foregroundStyle(Theme.mist)
                     .lineLimit(2)
+                // 교육과정 단원 칩 — 들어가기 전부터 어느 단원인지 보이도록.
+                HStack(spacing: 4) {
+                    Image(systemName: "graduationcap.fill")
+                        .font(.system(size: 9, weight: .semibold))
+                    Text(item.curriculum)
+                        .font(.caption2.weight(.semibold))
+                        .lineLimit(1)
+                }
+                .foregroundStyle(Theme.glow.opacity(0.85))
+                .padding(.top, 2)
             }
             Spacer()
             Image(systemName: "chevron.right")
