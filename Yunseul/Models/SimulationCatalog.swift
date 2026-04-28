@@ -315,7 +315,10 @@ extension EnvironmentValues {
 
 /// 시뮬에서 짝이 되는 계산기로 점프할 때 호출하는 환경 액션.
 /// `SwiftUI.OpenURLAction` 패턴을 따름 — `callAsFunction(_:)` 으로 호출.
-struct OpenCalculatorAction {
+///
+/// `@unchecked Sendable`: 실제로는 항상 MainActor 에서만 생성·호출되므로
+/// 동시성 안전. Swift 6 엄격 검사를 통과시키기 위한 명시.
+struct OpenCalculatorAction: @unchecked Sendable {
     let action: ((CalculatorTopic) -> Void)?
 
     func callAsFunction(_ topic: CalculatorTopic) {
