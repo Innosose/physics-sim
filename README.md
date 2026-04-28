@@ -58,9 +58,24 @@
    sidebar       content              detail
 ```
 
-- **Sidebar**: 윤슬 브랜드 헤더 + 3 학년 행 (중·고·자유). 우상단 ⚙ 로 Settings.
-- **Content**: 카테고리(역·파·전·광·샌) 별 그룹 + 시뮬 행. 각 행에 단원 칩.
-- **Detail**: 선택된 시뮬 화면. 미선택 시 환영 화면.
+- **Sidebar**: [학년 섹션] 윤슬 헤더 + 중·고·자유  +  [도구 섹션] 계산기.
+  우상단 ⚙ 로 Settings.
+- **Content**: 시뮬 목록 (학년 선택 시) 또는 계산기 토픽 목록.
+- **Detail**: 선택된 시뮬 / 계산기 화면. 미선택 시 환영 화면.
+
+## 계산기 (값 입력 → 닫힌 해 결과)
+
+학생이 숙제 풀 때 빠르게 쓰는 도구. 5개 토픽으로 시작:
+
+| 토픽 | 입력 | 출력 |
+|------|------|------|
+| 자유낙하 | h₀, v₀, g | t_apex, y_apex, t_ground, v_impact |
+| 포물선 운동 | θ, v₀, h₀, g | T, R, H, t_apex, v_impact |
+| 옴의 법칙 | V, R₁, R₂ + 단일/직렬/병렬 | R_eq, I, P, V_각, I_각 |
+| 스넬의 법칙 | θ₁, n₁, n₂ | θ₂, 임계각, 전반사 여부 |
+| 얇은 렌즈 | f, p, h_o | q, m, h_i, 실/허·정/도립·확/축 |
+
+모든 결과는 **닫힌 해** — 입력 즉시 계산.
 
 ## 수록 시뮬레이션 (총 20개)
 
@@ -131,9 +146,12 @@ Yunseul/
 │   ├── SimChrome.swift           viewport + ConceptCard + properties
 │   └── Theme.swift               adaptive 팔레트 + LetterMark + 장식 뷰
 ├── Models/
-│   ├── Curriculum.swift          학년 enum + letterMark + accent
+│   ├── Curriculum.swift          학년 enum
+│   ├── CalculatorTopic.swift     계산기 토픽 enum
 │   └── SimulationCatalog.swift   ID → View 매핑 + 학년별 목록 + 환경값
 ├── Simulations/                  20 개 시뮬 화면
+├── Calculators/
+│   └── CalculatorView.swift      5 개 계산기 + 공통 컴포넌트
 └── Resources/Assets.xcassets/
     ├── AppIcon.appiconset
     ├── AccentColor.colorset

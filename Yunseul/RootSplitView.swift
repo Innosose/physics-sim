@@ -4,70 +4,132 @@ import SwiftUI
 ///
 /// HIG 근거:
 /// - *Sidebars* — "Use a sidebar to navigate between top-level collections of
-///   content in a hierarchical app." 학년이 정확히 그 케이스.
+///   content in a hierarchical app." 학년·도구가 그 케이스.
 /// - *Navigation* — iPad/Mac 에서 NavigationSplitView 권장. iPhone 에서는
 ///   자동으로 stack 으로 collapse 되어 push 처럼 동작.
 ///
 /// 컬럼:
-/// - **Sidebar**: 윤슬 브랜드 헤더 + 3개 학년 (중·고·자유).
-/// - **Content**: 선택된 학년의 시뮬 목록 (카테고리별 그룹).
-/// - **Detail**: 선택된 시뮬 화면. 미선택 상태에서는 환영 화면.
+/// - **Sidebar**: [학년 섹션] 중·고·자유  +  [도구 섹션] 계산기
+/// - **Content**: 선택된 학년 시뮬 목록 / 계산기 토픽 목록
+/// - **Detail**: 선택된 시뮬 또는 계산기 화면. 미선택 시 환영 화면.
 ///
-/// 정체성은 한글 글자 마크(`LetterMark`) 로 표현하고, 작은 보조 심볼(▶·↻·›·🎓)
+/// 정체성은 한글 글자 마크(`LetterMark`) 로 표현하고, 작은 보조 심볼(▶·↻·›·🎓·계)
 /// 만 SF Symbol 로 사용한다.
 struct RootSplitView: View {
-    @State private var curriculumSelection: Curriculum? = nil
-    @State private var simSelection: SimulationItem? = nil
+    @State private var sidebarSelection: SidebarSection? = nil
+    @State private var detailSelection: DetailItem? = nil
     @State private var columnVisibility: NavigationSplitViewVisibility = .all
     @State private var showSettings: Bool = false
 
     var body: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
-            Sidebar(selection: $curriculumSelection,
+            Sidebar(selection: $sidebarSelection,
                     showSettings: $showSettings)
                 .navigationSplitViewColumnWidth(min: 240, ideal: 280)
         } content: {
-            if let c = curriculumSelection {
-                SimList(curriculum: c, selection: $simSelection)
-                    .navigationSplitViewColumnWidth(min: 300, ideal: 360)
-            } else {
-                EmptyState(
-                    title: "학년을 선택하세요",
-                    message: "왼쪽 사이드바에서 중학교 · 고등학교 · 자유 시뮬레이션 중 하나를 골라 보세요."
-                )
-            }
+            contentColumn
+                .navigationSplitViewColumnWidth(min: 300, ideal: 360)
         } detail: {
-            if let sim = simSelection {
-                SimulationCatalog.view(for: sim.id)
-                    .environment(\.simulationItem, sim)
-                    .navigationTitle(sim.title)
-                    .navigationBarTitleDisplayMode(.inline)
-            } else {
-                WelcomeDetail()
-            }
+            detailColumn
         }
         .navigationSplitViewStyle(.balanced)
         .sheet(isPresented: $showSettings) { SettingsView() }
+        // 사이드바 선택이 바뀌면 detail 도 초기화 (이전 학년 시뮬이 남아 있으면 어색).
+        .onChange(of: sidebarSelection) { _, _ in detailSelection = nil }
+    }
+
+    // MARK: - 컬럼
+
+    @ViewBuilder
+    private var contentColumn: some View {
+        switch sidebarSelection {
+        case .curriculum(let c):
+            SimList(curriculum: c, selection: $detailSelection)
+        case .calculator:
+            CalculatorList(selection: $detailSelection)
+        case nil:
+            EmptyState(
+                title: "학년 또는 도구를 선택하세요",
+                message: "왼쪽 사이드바에서 시뮬 또는 계산기를 골라 보세요."
+            )
+        }
+    }
+
+    @ViewBuilder
+    private var detailColumn: some View {
+        switch detailSelection {
+        case .simulation(let item):
+            SimulationCatalog.view(for: item.id)
+                .environment(\.simulationItem, item)
+                .navigationTitle(item.title)
+                .navigationBarTitleDisplayMode(.inline)
+        case .calculator(let topic):
+            CalculatorView(topic: topic)
+        case nil:
+            WelcomeDetail()
+        }
     }
 }
 
-// MARK: - Sidebar (학년)
+// MARK: - 선택 모델
+
+/// 사이드바의 최상위 항목.
+enum SidebarSection: Hashable, Identifiable {
+    case curriculum(Curriculum)
+    case calculator
+
+    var id: String {
+        switch self {
+        case .curriculum(let c): return "curriculum:\(c.rawValue)"
+        case .calculator:        return "tool:calculator"
+        }
+    }
+}
+
+/// Detail 컬럼이 보여줄 대상.
+enum DetailItem: Hashable, Identifiable {
+    case simulation(SimulationItem)
+    case calculator(CalculatorTopic)
+
+    var id: String {
+        switch self {
+        case .simulation(let s): return "sim:\(s.id)"
+        case .calculator(let t): return "calc:\(t.id)"
+        }
+    }
+}
+
+// MARK: - Sidebar
 
 private struct Sidebar: View {
-    @Binding var selection: Curriculum?
+    @Binding var selection: SidebarSection?
     @Binding var showSettings: Bool
 
     var body: some View {
         List(selection: $selection) {
             Section {
                 ForEach(Curriculum.allCases) { c in
-                    NavigationLink(value: c) {
+                    NavigationLink(value: SidebarSection.curriculum(c)) {
                         CurriculumRow(curriculum: c)
                     }
                 }
             } header: {
                 YunseulBrand()
                     .padding(.vertical, 6)
+                    .textCase(nil)
+            }
+
+            Section {
+                NavigationLink(value: SidebarSection.calculator) {
+                    ToolRow(letterMark: "계",
+                            title: "계산기",
+                            subtitle: "값 입력 → 닫힌 해 결과",
+                            tint: Color(red: 0.45, green: 0.78, blue: 0.95))
+                }
+            } header: {
+                Text("도구")
+                    .font(.themeHeader)
+                    .foregroundStyle(Theme.mist)
                     .textCase(nil)
             }
         }
@@ -92,10 +154,7 @@ private struct YunseulBrand: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 8) {
-                // 사용자 로고가 들어갈 슬롯. Assets.xcassets 의 "AppLogo" 가 있으면
-                // 그걸 쓰고, 없으면 typographic fallback (작은 금빛 점) 으로.
-                LogoOrFallback()
-                    .frame(width: 22, height: 22)
+                LogoOrFallback().frame(width: 22, height: 22)
                 Text("YUNSEUL")
                     .font(.system(.caption2, design: .monospaced).weight(.bold))
                     .tracking(3)
@@ -117,39 +176,48 @@ private struct YunseulBrand: View {
     }
 }
 
-/// `Assets.xcassets/AppLogo` 가 있으면 그걸 쓰고, 없으면 작은 금빛 점으로 떨어짐.
-/// 사용자가 직접 만든 로고를 끼워 넣을 수 있는 슬롯.
 private struct LogoOrFallback: View {
     var body: some View {
-        // SwiftUI 는 Image(name:) 에 없는 asset 도 컴파일은 통과시키고 런타임에
-        // 빈 이미지를 그린다. 따라서 fallback 을 ZStack 으로 같이 그려두면 안전.
         ZStack {
-            Circle()
-                .fill(Theme.glow)
-                .accessibilityHidden(true)
-            Image("AppLogo")                              // 사용자 슬롯
-                .resizable()
-                .scaledToFit()
+            Circle().fill(Theme.glow).accessibilityHidden(true)
+            Image("AppLogo").resizable().scaledToFit()
         }
     }
 }
 
 private struct CurriculumRow: View {
     let curriculum: Curriculum
-
     var body: some View {
         HStack(spacing: 12) {
-            LetterMark(mark: curriculum.letterMark,
-                       tint: curriculum.accent,
-                       size: 38)
+            LetterMark(mark: curriculum.letterMark, tint: curriculum.accent, size: 38)
             VStack(alignment: .leading, spacing: 2) {
                 Text(curriculum.rawValue)
                     .font(.body.weight(.semibold))
                     .foregroundStyle(Theme.ink)
                 Text(curriculum.subtitle)
-                    .font(.caption)
-                    .foregroundStyle(Theme.mist)
-                    .lineLimit(1)
+                    .font(.caption).foregroundStyle(Theme.mist).lineLimit(1)
+            }
+        }
+        .padding(.vertical, 4)
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct ToolRow: View {
+    let letterMark: String
+    let title: String
+    let subtitle: String
+    let tint: Color
+
+    var body: some View {
+        HStack(spacing: 12) {
+            LetterMark(mark: letterMark, tint: tint, size: 38)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(Theme.ink)
+                Text(subtitle)
+                    .font(.caption).foregroundStyle(Theme.mist).lineLimit(1)
             }
         }
         .padding(.vertical, 4)
@@ -161,7 +229,7 @@ private struct CurriculumRow: View {
 
 private struct SimList: View {
     let curriculum: Curriculum
-    @Binding var selection: SimulationItem?
+    @Binding var selection: DetailItem?
 
     var body: some View {
         let groups = SimulationCatalog.grouped(for: curriculum)
@@ -169,7 +237,7 @@ private struct SimList: View {
             ForEach(groups, id: \.0) { (cat, items) in
                 Section {
                     ForEach(items) { item in
-                        NavigationLink(value: item) {
+                        NavigationLink(value: DetailItem.simulation(item)) {
                             SimRow(item: item, accent: curriculum.accent)
                         }
                     }
@@ -207,9 +275,7 @@ private struct SimRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            LetterMark(mark: item.category.letterMark,
-                       tint: accent,
-                       size: 36)
+            LetterMark(mark: item.category.letterMark, tint: accent, size: 36)
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.title)
                     .font(.body.weight(.semibold))
@@ -219,7 +285,6 @@ private struct SimRow: View {
                     .foregroundStyle(Theme.mist)
                     .lineLimit(2)
                 HStack(spacing: 4) {
-                    // 작은 보조 심볼은 유지 (포인트 용도)
                     Image(systemName: "graduationcap.fill")
                         .imageScale(.small)
                         .accessibilityHidden(true)
@@ -237,9 +302,70 @@ private struct SimRow: View {
     }
 }
 
+// MARK: - 계산기 목록 (Content column when 도구.계산기 선택)
+
+private struct CalculatorList: View {
+    @Binding var selection: DetailItem?
+
+    private let toolTint = Color(red: 0.45, green: 0.78, blue: 0.95)
+
+    var body: some View {
+        List(selection: $selection) {
+            Section {
+                ForEach(CalculatorTopic.allCases) { topic in
+                    NavigationLink(value: DetailItem.calculator(topic)) {
+                        CalcTopicRow(topic: topic, tint: toolTint)
+                    }
+                }
+            } header: {
+                Text("토픽")
+                    .font(.themeHeader)
+                    .foregroundStyle(Theme.mist)
+                    .textCase(nil)
+            }
+        }
+        .listStyle(.insetGrouped)
+        .scrollContentBackground(.hidden)
+        .background(YunseulBackground(topGlow: toolTint.opacity(0.10), stars: false))
+        .navigationTitle("계산기")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+private struct CalcTopicRow: View {
+    let topic: CalculatorTopic
+    let tint: Color
+    var body: some View {
+        HStack(spacing: 12) {
+            LetterMark(mark: "계", tint: tint, size: 36)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(topic.rawValue)
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(Theme.ink)
+                Text(topic.subtitle)
+                    .font(.caption)
+                    .foregroundStyle(Theme.mist)
+                    .lineLimit(2)
+                HStack(spacing: 4) {
+                    Image(systemName: "graduationcap.fill")
+                        .imageScale(.small)
+                        .accessibilityHidden(true)
+                    Text(topic.curriculum)
+                        .font(.caption2.weight(.semibold))
+                        .lineLimit(1)
+                }
+                .foregroundStyle(Theme.glow.opacity(0.85))
+                .padding(.top, 1)
+            }
+        }
+        .padding(.vertical, 4)
+        .accessibilityElement(children: .combine)
+        .accessibilityHint("계산기 열기 — \(topic.curriculum)")
+    }
+}
+
 // MARK: - Detail (환영 / 빈 상태)
 
-/// 시뮬 미선택 시 detail 컬럼이 보여주는 환영 화면.
 private struct WelcomeDetail: View {
     var body: some View {
         ZStack {
@@ -254,7 +380,7 @@ private struct WelcomeDetail: View {
                 RippleAccent()
                     .frame(width: 120, height: 12)
                     .padding(.top, 6)
-                Text("‹ 왼쪽에서 학년과 시뮬을 골라 보세요")
+                Text("‹ 왼쪽에서 학년·도구를 골라 보세요")
                     .font(.footnote)
                     .foregroundStyle(Theme.mist)
                     .padding(.top, 18)
@@ -262,7 +388,7 @@ private struct WelcomeDetail: View {
             .padding()
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("환영 화면. 왼쪽 사이드바에서 학년과 시뮬을 선택하세요.")
+        .accessibilityLabel("환영 화면. 왼쪽 사이드바에서 학년 또는 도구를 선택하세요.")
     }
 }
 
@@ -274,7 +400,6 @@ private struct EmptyState: View {
         ZStack {
             YunseulBackground(topGlow: Theme.glow.opacity(0.10), stars: false)
             VStack(spacing: 12) {
-                // 큰 타이포 마크 — 아이콘 대신 정체성 표현
                 Text("?")
                     .font(.system(size: 64, weight: .heavy, design: .rounded))
                     .foregroundStyle(Theme.glow.opacity(0.7))
