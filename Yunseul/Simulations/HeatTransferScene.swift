@@ -1,48 +1,44 @@
 import SwiftUI
 
-/// 열전달과 평형 — 두 물체 직접 접촉.
+/// 열전달과 평형 — 두 물체 직접 접촉. **닫힌 해 (analytical)**.
 ///
-///  m₁c₁ dT₁/dt = −h·A·(T₁ − T₂)
-///  m₂c₂ dT₂/dt = +h·A·(T₁ − T₂)        (에너지 보존: 한쪽 잃은 만큼 다른쪽 얻음)
+/// 운동방정식:
+///   m₁c₁ dT₁/dt = −h·A·(T₁ − T₂)
+///   m₂c₂ dT₂/dt = +h·A·(T₁ − T₂)
 ///
-/// 평형 온도(분석해): T_eq = (m₁c₁·T₁ + m₂c₂·T₂) / (m₁c₁ + m₂c₂)
+/// 합·차로 분해하면 차 (T₁ − T₂) 는 1계 선형 ODE 라 닫힌 해를 가진다:
 ///
-/// 두 ODE 는 부호 반대여서 (T₁ − T₂) 가 지수적으로 0 에 가까워진다:
-///   τ = (m₁c₁·m₂c₂) / (h·A·(m₁c₁ + m₂c₂))
-///   T₁(t) − T₂(t) = (T₁₀ − T₂₀) · exp(−t / τ)
+///   T_eq = (m₁c₁·T₁₀ + m₂c₂·T₂₀) / (m₁c₁ + m₂c₂)            (보존)
+///   τ    = (m₁c₁·m₂c₂) / (h·A·(m₁c₁ + m₂c₂))                (시상수)
+///   T₁(t) = T_eq + (T₁₀ − T_eq) · exp(−t / τ)
+///   T₂(t) = T_eq + (T₂₀ − T_eq) · exp(−t / τ)
 ///
-/// 적분기는 정확한 해석해와 동일하게 떨어지도록 작은 dt 의 Euler 사용 + 대조군으로
-/// 분석해를 점선으로 그림.
+/// 적분기 없음 — 시간 t 가 주어지면 위 식으로 직접 계산.
 struct HeatTransferScene: View {
-    @State private var T1: Double = 80     // °C
-    @State private var T2: Double = 20
-    @State private var capRatio: Double = 1.0   // m₂c₂ / m₁c₁
-    @State private var hA: Double = 1.0
+    @State private var T1: Double = 80      // °C — 초기 온도 1
+    @State private var T2: Double = 20      // °C — 초기 온도 2
+    @State private var capRatio: Double = 1 // m₂c₂ / m₁c₁
+    @State private var hA: Double = 1       // h·A (전달 계수)
+    @State private var startTime = Date()
     @State private var running = true
-
-    @State private var t1Cur: Double = 80
-    @State private var t2Cur: Double = 20
-    @State private var time: Double = 0
-    @State private var lastTime: TimeInterval? = nil
-
-    @State private var trace1: [Double] = []
-    @State private var trace2: [Double] = []
-    private let traceLen = 300
 
     var body: some View {
         SimChrome(
-            blurb: "두 물체가 닿으면 따뜻한 쪽에서 차가운 쪽으로 열이 흘러 같아진다. 평형 온도는 (m·c) 가 큰 쪽으로 치우친다.",
+            blurb: "두 물체가 닿으면 따뜻한 쪽에서 차가운 쪽으로 열이 흘러 같아진다. 평형 온도는 (m·c) 가 큰 쪽으로 치우치고, 차이는 시상수 τ 로 지수적으로 0 에 가까워진다.",
             canvas: { canvas },
             controls: { controls })
     }
 
-    private func onSliderEnd(_ editing: Bool) { if !editing { restart() } }
+    /// 슬라이더 손 떼면 시작 시간 리셋 — 새 매개변수로 처음부터.
+    private func onSliderEnd(_ editing: Bool) {
+        if !editing { startTime = Date() }
+    }
 
     private var canvas: some View {
         TimelineView(.animation(paused: !running)) { tl in
             Canvas { ctx, size in
-                advance(to: tl.date.timeIntervalSinceReferenceDate)
-                draw(ctx: ctx, size: size)
+                let t = max(0, tl.date.timeIntervalSince(startTime))
+                draw(ctx: ctx, size: size, t: t)
             }
         }
     }
@@ -57,93 +53,81 @@ struct HeatTransferScene: View {
                           value: $capRatio, range: 0.1...5,
                           format: "%.2f", onEditingChanged: onSliderEnd)
             LabeledSlider(title: "전달 계수 h·A", value: $hA, range: 0.1...5,
-                          format: "%.2f")
-            PlayResetBar(running: $running, onReset: restart)
+                          format: "%.2f", onEditingChanged: onSliderEnd)
+            PlayResetBar(running: $running,
+                         onReset: { startTime = Date() },
+                         resetLabel: "처음부터")
             Divider()
-            let Teq = (T1 + capRatio * T2) / (1 + capRatio)
+            let t = max(0, Date().timeIntervalSince(startTime))
+            let s = state(at: t)
             Readout(label: "평형 온도 T_eq",
                     value: String(format: "%.2f °C", Teq))
-            Readout(label: "현재 T₁",
-                    value: String(format: "%.2f °C", t1Cur))
-            Readout(label: "현재 T₂",
-                    value: String(format: "%.2f °C", t2Cur))
-            // 시상수 τ. m₁c₁ = 1 단위, m₂c₂ = capRatio.
-            let tau = capRatio / (hA * (1 + capRatio))
             Readout(label: "시상수 τ",
-                    value: String(format: "%.2f", tau))
+                    value: String(format: "%.3f s", tau))
+            Readout(label: "현재 t",
+                    value: String(format: "%.2f s", t))
+            Readout(label: "T₁(t) (분석해)",
+                    value: String(format: "%.2f °C", s.T1))
+            Readout(label: "T₂(t) (분석해)",
+                    value: String(format: "%.2f °C", s.T2))
         }
     }
 
-    // MARK: - 동역학
+    // MARK: - 닫힌 해
 
-    private func restart() {
-        t1Cur = T1; t2Cur = T2; time = 0
-        trace1.removeAll(); trace2.removeAll()
-        lastTime = nil
-    }
+    /// 평형 온도. m₁c₁ = 1 단위로 정규화.
+    private var Teq: Double { (T1 + capRatio * T2) / (1 + capRatio) }
 
-    private func advance(to now: TimeInterval) {
-        guard let last = lastTime else { lastTime = now; return }
-        guard running else { lastTime = now; return }
-        var dt = now - last
-        if dt > 0.05 { dt = 0.05 }
-        lastTime = now
-        let sub = max(1, Int((dt / 0.001).rounded()))
-        let h = dt / Double(sub)
-        for _ in 0..<sub {
-            // m₁c₁ = 1 단위로 정규화.
-            let flow = hA * (t1Cur - t2Cur)
-            t1Cur += -flow * h
-            t2Cur += +flow / capRatio * h
-            time += h
-        }
-        trace1.append(t1Cur)
-        trace2.append(t2Cur)
-        if trace1.count > traceLen {
-            trace1.removeFirst(trace1.count - traceLen)
-            trace2.removeFirst(trace2.count - traceLen)
-        }
+    /// 시상수.
+    private var tau: Double { capRatio / (hA * (1 + capRatio)) }
+
+    /// 시각 t 에서의 두 물체 온도 — 분석해.
+    private func state(at t: Double) -> (T1: Double, T2: Double) {
+        let f = exp(-t / tau)
+        return (T1: Teq + (T1 - Teq) * f,
+                T2: Teq + (T2 - Teq) * f)
     }
 
     // MARK: - 그리기
 
-    private func draw(ctx: GraphicsContext, size: CGSize) {
+    private func draw(ctx: GraphicsContext, size: CGSize, t: Double) {
         let topRect = CGRect(x: 0, y: 0, width: size.width, height: size.height * 0.40)
         let botRect = CGRect(x: 0, y: topRect.maxY, width: size.width,
                              height: size.height - topRect.maxY)
-        drawObjects(ctx: ctx, in: topRect)
-        drawGraph(ctx: ctx, in: botRect)
+        let s = state(at: t)
+        drawObjects(ctx: ctx, in: topRect, T1Now: s.T1, T2Now: s.T2)
+        drawGraph(ctx: ctx, in: botRect, tNow: t)
     }
 
-    private func drawObjects(ctx: GraphicsContext, in r: CGRect) {
+    private func drawObjects(ctx: GraphicsContext, in r: CGRect,
+                             T1Now: Double, T2Now: Double) {
         let w: CGFloat = 140
         let h: CGFloat = 100
         let center1 = CGPoint(x: r.midX - w * 0.55, y: r.midY)
         let center2 = CGPoint(x: r.midX + w * 0.55, y: r.midY)
         let r1 = CGRect(x: center1.x - w / 2, y: center1.y - h / 2, width: w, height: h)
         let r2 = CGRect(x: center2.x - w / 2, y: center2.y - h / 2, width: w, height: h)
-        ctx.fill(Path(roundedRect: r1, cornerRadius: 12), with: .color(tempColor(t1Cur)))
-        ctx.fill(Path(roundedRect: r2, cornerRadius: 12), with: .color(tempColor(t2Cur)))
+        ctx.fill(Path(roundedRect: r1, cornerRadius: 12), with: .color(tempColor(T1Now)))
+        ctx.fill(Path(roundedRect: r2, cornerRadius: 12), with: .color(tempColor(T2Now)))
         ctx.stroke(Path(roundedRect: r1, cornerRadius: 12), with: .color(.white.opacity(0.4)), lineWidth: 1)
         ctx.stroke(Path(roundedRect: r2, cornerRadius: 12), with: .color(.white.opacity(0.4)), lineWidth: 1)
 
         // 라벨.
-        ctx.draw(Text(String(format: "T₁ = %.0f °C", t1Cur))
+        ctx.draw(Text(String(format: "T₁ = %.0f °C", T1Now))
                     .font(.caption.weight(.bold)).foregroundColor(.black),
                  at: center1)
-        ctx.draw(Text(String(format: "T₂ = %.0f °C", t2Cur))
+        ctx.draw(Text(String(format: "T₂ = %.0f °C", T2Now))
                     .font(.caption.weight(.bold)).foregroundColor(.black),
                  at: center2)
 
-        // 접촉부 빨간 화살표 (열 흐름).
-        if abs(t1Cur - t2Cur) > 0.5 {
-            let from = t1Cur > t2Cur ? r1.maxX : r2.minX
-            let to   = t1Cur > t2Cur ? r2.minX : r1.maxX
+        // 접촉부 화살표.
+        if abs(T1Now - T2Now) > 0.5 {
+            let from = T1Now > T2Now ? r1.maxX : r2.minX
+            let to   = T1Now > T2Now ? r2.minX : r1.maxX
             var arrow = Path()
             arrow.move(to: CGPoint(x: from, y: r.midY))
             arrow.addLine(to: CGPoint(x: to, y: r.midY))
             ctx.stroke(arrow, with: .color(.red), lineWidth: 3)
-            // 화살촉.
             let dx: CGFloat = to > from ? -8 : 8
             var head = Path()
             head.move(to: CGPoint(x: to + dx, y: r.midY - 6))
@@ -153,20 +137,20 @@ struct HeatTransferScene: View {
         }
     }
 
-    private func drawGraph(ctx: GraphicsContext, in r: CGRect) {
-        ctx.draw(Text("온도–시간").font(.caption.weight(.semibold)).foregroundStyle(.secondary),
-                 at: CGPoint(x: r.minX + 40, y: r.minY + 12))
+    private func drawGraph(ctx: GraphicsContext, in r: CGRect, tNow: Double) {
+        ctx.draw(Text("온도–시간 (분석해)").font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary),
+                 at: CGPoint(x: r.minX + 70, y: r.minY + 12))
         let inner = r.insetBy(dx: 12, dy: 24)
         ctx.stroke(Path(roundedRect: inner, cornerRadius: 8),
                    with: .color(.white.opacity(0.18)), lineWidth: 1)
-        guard !trace1.isEmpty else { return }
-        let lo = min(0.0, trace1.min() ?? 0, trace2.min() ?? 0)
-        let hi = max(100.0, trace1.max() ?? 100, trace2.max() ?? 100)
-        let n = trace1.count
-        let stepX = inner.width / CGFloat(max(1, traceLen - 1))
 
-        // 평형 온도 점선.
-        let Teq = (T1 + capRatio * T2) / (1 + capRatio)
+        // 시간 범위: τ 의 약 6배 정도가 보이게.
+        let tEnd = max(2 * tau, tNow * 1.1, 0.5)
+        let lo = min(0.0, T1, T2)
+        let hi = max(100.0, T1, T2)
+
+        // 평형 점선.
         let yEq = inner.maxY - 6 - CGFloat((Teq - lo) / (hi - lo)) * (inner.height - 12)
         var eqLine = Path()
         eqLine.move(to: CGPoint(x: inner.minX + 4, y: yEq))
@@ -174,21 +158,35 @@ struct HeatTransferScene: View {
         ctx.stroke(eqLine, with: .color(.white.opacity(0.4)),
                    style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
 
+        // T₁(t), T₂(t) 곡선 — 분석해를 직접 점 샘플링.
         var p1 = Path(), p2 = Path()
-        for i in 0..<n {
-            let f = CGFloat(i) * stepX
-            let x = inner.minX + 6 + f
-            let y1 = inner.maxY - 6 - CGFloat((trace1[i] - lo) / (hi - lo)) * (inner.height - 12)
-            let y2 = inner.maxY - 6 - CGFloat((trace2[i] - lo) / (hi - lo)) * (inner.height - 12)
-            if i == 0 { p1.move(to: CGPoint(x: x, y: y1)); p2.move(to: CGPoint(x: x, y: y2)) }
-            else { p1.addLine(to: CGPoint(x: x, y: y1)); p2.addLine(to: CGPoint(x: x, y: y2)) }
+        let n = 200
+        for i in 0...n {
+            let f = Double(i) / Double(n)
+            let t = f * tEnd
+            let s = state(at: t)
+            let px = inner.minX + 4 + CGFloat(f) * (inner.width - 8)
+            let py1 = inner.maxY - 6 - CGFloat((s.T1 - lo) / (hi - lo)) * (inner.height - 12)
+            let py2 = inner.maxY - 6 - CGFloat((s.T2 - lo) / (hi - lo)) * (inner.height - 12)
+            if i == 0 {
+                p1.move(to: CGPoint(x: px, y: py1)); p2.move(to: CGPoint(x: px, y: py2))
+            } else {
+                p1.addLine(to: CGPoint(x: px, y: py1)); p2.addLine(to: CGPoint(x: px, y: py2))
+            }
         }
-        ctx.stroke(p1, with: .color(.red), lineWidth: 1.6)
+        ctx.stroke(p1, with: .color(.red),  lineWidth: 1.6)
         ctx.stroke(p2, with: .color(.cyan), lineWidth: 1.6)
+
+        // 현재 시각 마커.
+        let f = CGFloat(min(tNow, tEnd) / tEnd)
+        let xNow = inner.minX + 4 + f * (inner.width - 8)
+        var line = Path()
+        line.move(to: CGPoint(x: xNow, y: inner.minY + 4))
+        line.addLine(to: CGPoint(x: xNow, y: inner.maxY - 4))
+        ctx.stroke(line, with: .color(Theme.glow.opacity(0.7)), lineWidth: 1)
     }
 
     private func tempColor(_ T: Double) -> Color {
-        // 0..100 °C → 파랑..빨강 색상보간.
         let t = max(0, min(1, T / 100))
         return Color(hue: (1 - t) * 0.6, saturation: 0.85, brightness: 1)
     }

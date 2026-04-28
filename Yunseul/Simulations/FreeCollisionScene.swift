@@ -60,7 +60,7 @@ struct FreeCollisionScene: View {
 
     var body: some View {
         SimChrome(
-            blurb: "박스 안에서 재질과 질량이 다른 입자를 동시에 충돌시켜 본다. 박스 안 어디든 탭하면 그 자리에 새 입자가 생긴다. 운동량은 항상 보존되고, 운동에너지는 모든 입자가 e=1 인 강철일 때만 보존된다.",
+            blurb: "박스 안 어디든 탭하면 새 입자가 생긴다. 각 충돌은 닫힌 해 임펄스 J = (1+e)μ·v_rel·n̂ 으로 처리되고, 사이에는 등속 운동(닫힌 해) — 구간별 닫힌 해. 운동량 항상 보존, 운동에너지는 e=1 강철일 때만 보존.",
             canvas: { canvas },
             controls: { controls })
             .onAppear { if particles.isEmpty { loadPreset() } }

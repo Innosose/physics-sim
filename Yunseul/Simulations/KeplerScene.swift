@@ -1,36 +1,44 @@
 import SwiftUI
 
-/// 케플러 궤도 — 고정된 중심 질량 주위의 시험질점.
+/// 케플러 궤도 — **닫힌 해 (analytical)** via Kepler 방정식.
 ///
-/// F = -GM·r̂ / r²  (m=1).
-/// 시ymplectic Euler 로 적분 → 에너지가 장기간 안정.
+/// 초기 조건: r(0) = (r₀, 0),  v(0) = (0, v₀)  (접선 방향).
+///
+/// 보존량으로부터 궤도 매개변수를 구하고:
+///   E   = ½v₀² − GM/r₀                                (단위질량 에너지)
+///   L   = r₀ · v₀                                     (단위질량 각운동량 z성분)
+///   a   = −GM / (2E)                                  (반장축)
+///   e   = √(1 + 2E·L² / GM²)                          (이심률)
+///
+/// 시간 진행은 Kepler 방정식 M = E − e·sin(E) 의 Newton 풀이 (10번 이내 수렴).
+///
+///  • r₀ < a : 시작점이 근일점 (E_init = 0). 근일점이 +x 축에 위치.
+///  • r₀ > a : 시작점이 원일점 (E_init = π). 근일점이 −x 축에 위치 (180° 회전).
+///
+/// 적분 없음 — 시각 t 가 주어지면 위 식으로 직접 계산.
 struct KeplerScene: View {
-    @State private var GM: Double = 200.0          // 임의 단위
+    @State private var GM: Double = 200.0
     @State private var r0: Double = 5.0
-    @State private var v0: Double = 6.0            // 접선 방향
+    @State private var v0: Double = 6.0
+    @State private var startTime = Date()
     @State private var running = true
-
-    @State private var pos = Vec2(x: 5, y: 0)
-    @State private var vel = Vec2(x: 0, y: 6)
-    @State private var trail: [Vec2] = []
-    private let trailMax = 600
-    @State private var lastTime: TimeInterval? = nil
 
     var body: some View {
         SimChrome(
-                  blurb: "v₀ 가 작으면 타원, 원궤도 속도(√(GM/r))이면 원, 더 크면 더 길쭉한 타원/포물선/쌍곡선.",
-                  canvas: { canvas },
-                  controls: { controls })
-            .onAppear { reset() }
+            blurb: "v₀ 가 작으면 길쭉한 타원, 원궤도 속도 √(GM/r) 이면 원, 더 크면 길쭉한 타원. 탈출속력을 넘으면 쌍곡선 (이 시뮬은 닫힌 궤도만 그림).",
+            canvas: { canvas },
+            controls: { controls })
     }
 
-    private func onSliderEnd(_ editing: Bool) { if !editing { reset() } }
+    private func onSliderEnd(_ editing: Bool) {
+        if !editing { startTime = Date() }
+    }
 
     private var canvas: some View {
         TimelineView(.animation(paused: !running)) { tl in
             Canvas { ctx, size in
-                advance(to: tl.date.timeIntervalSinceReferenceDate)
-                draw(ctx: ctx, size: size)
+                let t = max(0, tl.date.timeIntervalSince(startTime))
+                draw(ctx: ctx, size: size, t: t)
             }
         }
     }
@@ -43,89 +51,109 @@ struct KeplerScene: View {
                           format: "%.2f", onEditingChanged: onSliderEnd)
             LabeledSlider(title: "초기 접선속력 v₀", value: $v0, range: 1...12,
                           format: "%.2f", onEditingChanged: onSliderEnd)
-            PlayResetBar(running: $running, onReset: reset)
+            PlayResetBar(running: $running,
+                         onReset: { startTime = Date() },
+                         resetLabel: "처음부터")
             Divider()
-            let r = pos.length
-            let speed = vel.length
             let circ = sqrt(GM / r0)
             let esc  = sqrt(2 * GM / r0)
-            let energy = 0.5 * speed * speed - GM / r
-            let L = pos.x * vel.y - pos.y * vel.x
             Readout(label: "원궤도 속력",   value: String(format: "%.2f", circ))
             Readout(label: "탈출속력",     value: String(format: "%.2f", esc))
-            Readout(label: "현재 r",       value: String(format: "%.2f", r))
-            Readout(label: "현재 |v|",     value: String(format: "%.2f", speed))
-            Readout(label: "역학적 에너지", value: String(format: "%.3f", energy))
-            Readout(label: "각운동량 L",   value: String(format: "%.3f", L))
+            if let p = orbitParams {
+                Readout(label: "반장축 a", value: String(format: "%.2f", p.a))
+                Readout(label: "이심률 e", value: String(format: "%.3f", p.e))
+                let T = 2 * .pi * sqrt(p.a * p.a * p.a / GM)
+                Readout(label: "주기 T",   value: String(format: "%.2f", T))
+                let pos = position(at: max(0, Date().timeIntervalSince(startTime)))
+                Readout(label: "현재 r",   value: String(format: "%.2f", pos.length))
+            } else {
+                Text("탈출 궤도 — v₀ ≥ 탈출속력")
+                    .font(.caption).foregroundStyle(.orange)
+            }
         }
     }
 
-    // MARK: - 동역학
+    // MARK: - 닫힌 해
 
-    private func reset() {
-        pos = Vec2(x: r0, y: 0)
-        vel = Vec2(x: 0, y: v0)
-        trail.removeAll()
-        lastTime = nil
+    /// 닫힌 궤도의 a, e (속도가 탈출속력 미만일 때만).
+    private var orbitParams: (a: Double, e: Double, signFlip: Double, E_init: Double)? {
+        let E_orbit = 0.5 * v0 * v0 - GM / r0
+        guard E_orbit < -1e-6 else { return nil }    // 결합 궤도 아님 (포물선/쌍곡선)
+        let L = r0 * v0
+        let a = -GM / (2 * E_orbit)
+        let e = sqrt(max(0, 1 + 2 * E_orbit * L * L / (GM * GM)))
+        let flip: Double = (r0 > a) ? -1 : 1         // 시작이 원일점이면 궤도 180° 뒤집음
+        let Einit: Double = (r0 > a) ? .pi : 0
+        return (a: a, e: e, signFlip: flip, E_init: Einit)
     }
 
-    private func advance(to now: TimeInterval) {
-        guard let last = lastTime else { lastTime = now; return }
-        guard running else { lastTime = now; return }
-        var dt = now - last
-        if dt > 0.05 { dt = 0.05 }
-        let sub = 200
-        let h = dt / Double(sub)
-        for _ in 0..<sub {
-            let r2 = pos.lengthSquared
-            if r2 < 1e-4 { break }
-            let r = sqrt(r2)
-            let acc = pos * (-GM / (r2 * r))
-            vel += acc * h
-            pos += vel * h
+    /// 시각 t 에서의 위치 (focus 가 원점). 탈출 궤도는 nil.
+    private func position(at t: Double) -> Vec2 {
+        guard let p = orbitParams else { return Vec2(x: r0, y: 0) }
+        let n = sqrt(GM / (p.a * p.a * p.a))
+        let M = p.E_init + n * t
+        let E = solveKepler(M: M, e: p.e)
+        let x = p.signFlip * p.a * (cos(E) - p.e)
+        let y = p.signFlip * p.a * sqrt(1 - p.e * p.e) * sin(E)
+        return Vec2(x: x, y: y)
+    }
+
+    /// Newton 반복으로 Kepler 방정식 E − e·sin E = M 풀기.
+    private func solveKepler(M: Double, e: Double) -> Double {
+        var E = M     // 초기 추정 (e 작을 때 양호)
+        for _ in 0..<10 {
+            let f  = E - e * sin(E) - M
+            let fp = 1 - e * cos(E)
+            guard abs(fp) > 1e-12 else { break }
+            let dE = f / fp
+            E -= dE
+            if abs(dE) < 1e-12 { break }
         }
-        // 탈출 궤도 (너무 멀리 가면) 더 이상 적분 X — 자동 reset 은 SwiftUI 의
-        // "render 중 상태 변경" 경고를 일으키므로, 사용자가 [초기화] 누를 때까지
-        // 그대로 둔다.
-        if pos.length > 60 { lastTime = now; return }
-        trail.append(pos)
-        if trail.count > trailMax { trail.removeFirst(trail.count - trailMax) }
-        lastTime = now
+        return E
     }
 
     // MARK: - 그리기
 
-    private func draw(ctx: GraphicsContext, size: CGSize) {
-        let extent = max(8.0, max(abs(pos.x), abs(pos.y)) * 1.4 + 2)
-        let world = CGRect(x: -extent, y: -extent, width: 2 * extent, height: 2 * extent)
-        let map = CanvasMap(view: size, world: world, padding: 16)
-
-        // 자취.
-        var trailPath = Path()
-        for (i, p) in trail.enumerated() {
-            let pt = map.point(p)
-            if i == 0 { trailPath.move(to: pt) } else { trailPath.addLine(to: pt) }
+    private func draw(ctx: GraphicsContext, size: CGSize, t: Double) {
+        // 화면 범위는 a·(1+e) 보다 살짝 크게.
+        let halfWidth: Double
+        if let p = orbitParams {
+            halfWidth = p.a * (1 + p.e) + 2
+        } else {
+            halfWidth = max(8, abs(position(at: t).x) * 1.4 + 2)
         }
-        ctx.stroke(trailPath, with: .color(.cyan.opacity(0.7)), lineWidth: 1.4)
+        let world = CGRect(x: -halfWidth, y: -halfWidth,
+                           width: 2 * halfWidth, height: 2 * halfWidth)
+        let map = CanvasMap(view: size, world: world, padding: 12)
 
-        // 중심 질량.
+        // 1. 전체 궤도 (분석해의 정적 곡선).
+        if let p = orbitParams {
+            var orbit = Path()
+            let n = 240
+            for i in 0...n {
+                let E = 2 * .pi * Double(i) / Double(n)
+                let x = p.signFlip * p.a * (cos(E) - p.e)
+                let y = p.signFlip * p.a * sqrt(1 - p.e * p.e) * sin(E)
+                let pt = map.point(x: x, y: y)
+                if i == 0 { orbit.move(to: pt) } else { orbit.addLine(to: pt) }
+            }
+            ctx.stroke(orbit, with: .color(.cyan.opacity(0.4)),
+                       style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
+        }
+
+        // 2. 중심 질량.
         let c = map.point(.zero)
         let cr: CGFloat = 10
         ctx.fill(Path(ellipseIn: CGRect(x: c.x - cr, y: c.y - cr,
                                         width: cr * 2, height: cr * 2)),
                  with: .color(.orange))
 
-        // 궤도 입자.
+        // 3. 현재 행성 위치.
+        let pos = position(at: t)
         let pp = map.point(pos)
         let pr: CGFloat = 6
         ctx.fill(Path(ellipseIn: CGRect(x: pp.x - pr, y: pp.y - pr,
                                         width: pr * 2, height: pr * 2)),
                  with: .color(.yellow))
-
-        // 속도 화살표.
-        let vEnd = map.point(pos + vel * 0.3)
-        var v = Path()
-        v.move(to: pp); v.addLine(to: vEnd)
-        ctx.stroke(v, with: .color(.green), lineWidth: 1.2)
     }
 }

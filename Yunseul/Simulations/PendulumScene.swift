@@ -19,7 +19,7 @@ struct PendulumScene: View {
 
     var body: some View {
         SimChrome(
-            blurb: "노란색은 정확한 비선형 해, 회색은 작은-각 근사. 진폭이 커질수록 둘은 점점 어긋난다.",
+            blurb: "노란색은 정확한 비선형 해 (RK4 수치적분 — 비선형 진자는 일반적으로 초등 함수로 표현 불가, 타원적분 sn 필요). 회색은 작은-각 근사 (닫힌 해). 진폭이 커질수록 둘은 점점 어긋난다.",
             canvas: { canvas },
             controls: { controls })
             .onAppear { reset() }

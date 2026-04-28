@@ -1,41 +1,47 @@
 import SwiftUI
 
-/// 감쇠·구동 단진동.
+/// 감쇠·구동 단진동 — **닫힌 해 (analytical)**.
 ///
 ///  m·ẍ + c·ẋ + k·x = F₀·cos(ω_d t)
 ///
-/// 우측 패널에 정상상태 진폭 |X(ω)| 의 공명 곡선과 현재 ω_d 위치를 표시.
+/// 해는 정상상태(특수해) + 과도상태(동차해) 의 합:
+///
+///  • 정상상태: x_p(t) = X·cos(ω_d t − φ),
+///       X = F₀ / √((k − mω_d²)² + (cω_d)²),
+///       φ = atan2(cω_d, k − mω_d²)
+///
+///  • 과도상태: 감쇠비 ζ = c / (2√(km)) 에 따라 분기.
+///     - ζ < 1 (소감쇠):  x_h = e^{-ζω₀t}(A cos ω_n t + B sin ω_n t),  ω_n = ω₀√(1−ζ²)
+///     - ζ = 1 (임계감쇠): x_h = e^{-ω₀t}(A + B t)
+///     - ζ > 1 (과감쇠):   x_h = A·e^{λ₁t} + B·e^{λ₂t},  λ₁,₂ = -ω₀(ζ ∓ √(ζ²−1))
+///
+/// 초기조건 x(0)=0, ẋ(0)=0 으로 A, B 를 닫힌 형태로 결정.
+/// **적분 없음** — 시각 t 가 주어지면 위 식으로 직접 계산.
 struct SpringScene: View {
-    @State private var mass: Double = 1.0          // kg
-    @State private var stiffness: Double = 25.0    // N/m
-    @State private var damping: Double = 0.6       // N·s/m
-    @State private var driveAmp: Double = 5.0      // N
-    @State private var driveOmega: Double = 5.0    // rad/s
+    @State private var mass: Double = 1.0
+    @State private var stiffness: Double = 25.0
+    @State private var damping: Double = 0.6
+    @State private var driveAmp: Double = 5.0
+    @State private var driveOmega: Double = 5.0
+    @State private var startTime = Date()
     @State private var running = true
-
-    @State private var x: Double = 0.0
-    @State private var v: Double = 0.0
-    @State private var t: Double = 0.0
-    @State private var lastTime: TimeInterval? = nil
-
-    /// 위치 시계열 (그래프용). 최근 N 점.
-    @State private var trace: [Double] = []
-    private let traceLen = 360
 
     var body: some View {
         SimChrome(
-                  blurb: "감쇠 진동의 시간 응답과 공명 곡선. 구동 진동수 ω_d 를 고유진동수 √(k/m) 근처로 맞추면 진폭이 최대가 된다.",
-                  canvas: { canvas },
-                  controls: { controls })
+            blurb: "감쇠 진동의 닫힌 해. 구동 진동수 ω_d 를 고유진동수 √(k/m) 근처로 맞추면 정상상태 진폭 X 가 최대 — 공명.",
+            canvas: { canvas },
+            controls: { controls })
     }
 
-    private func onSliderEnd(_ editing: Bool) { if !editing { restart() } }
+    private func onSliderEnd(_ editing: Bool) {
+        if !editing { startTime = Date() }
+    }
 
     private var canvas: some View {
         TimelineView(.animation(paused: !running)) { tl in
             Canvas { ctx, size in
-                advance(to: tl.date.timeIntervalSinceReferenceDate)
-                draw(ctx: ctx, size: size)
+                let t = max(0, tl.date.timeIntervalSince(startTime))
+                draw(ctx: ctx, size: size, t: t)
             }
         }
     }
@@ -49,71 +55,114 @@ struct SpringScene: View {
                           format: "%.1f", unit: "N/m",
                           onEditingChanged: onSliderEnd)
             LabeledSlider(title: "감쇠 c", value: $damping, range: 0...4,
-                          format: "%.2f", unit: "N·s/m")
+                          format: "%.2f", unit: "N·s/m",
+                          onEditingChanged: onSliderEnd)
             LabeledSlider(title: "외력 진폭 F₀", value: $driveAmp, range: 0...20,
-                          format: "%.1f", unit: "N")
+                          format: "%.1f", unit: "N",
+                          onEditingChanged: onSliderEnd)
             LabeledSlider(title: "구동 ω_d", value: $driveOmega, range: 0.1...15,
-                          format: "%.2f", unit: "rad/s")
-            PlayResetBar(running: $running, onReset: restart)
+                          format: "%.2f", unit: "rad/s",
+                          onEditingChanged: onSliderEnd)
+            PlayResetBar(running: $running,
+                         onReset: { startTime = Date() },
+                         resetLabel: "처음부터")
             Divider()
-            let omega0 = sqrt(stiffness / mass)
-            let zeta = damping / (2 * sqrt(stiffness * mass))
-            Readout(label: "고유진동수 ω₀", value: String(format: "%.2f rad/s", omega0))
-            Readout(label: "감쇠비 ζ",       value: String(format: "%.3f", zeta))
-            Readout(label: "위치 x",        value: String(format: "%.3f m", x))
+            Readout(label: "고유진동수 ω₀",
+                    value: String(format: "%.2f rad/s", omega0))
+            Readout(label: "감쇠비 ζ",
+                    value: String(format: "%.3f  (%@)", zeta, dampingRegimeLabel))
+            Readout(label: "정상상태 진폭 X",
+                    value: String(format: "%.3f m", steadyAmplitude))
+            Readout(label: "현재 위치 x(t)",
+                    value: String(format: "%+.3f m", state(at: max(0, Date().timeIntervalSince(startTime)))))
         }
     }
 
-    // MARK: - ODE
+    // MARK: - 닫힌 해 매개변수
 
-    private func restart() {
-        x = 0; v = 0; t = 0; trace.removeAll(); lastTime = nil
+    private var omega0: Double { sqrt(stiffness / mass) }
+    private var zeta: Double  { damping / (2 * sqrt(stiffness * mass)) }
+
+    private var steadyAmplitude: Double {
+        let denom = sqrt(pow(stiffness - mass * driveOmega * driveOmega, 2)
+                         + pow(damping * driveOmega, 2))
+        return denom > 1e-9 ? driveAmp / denom : 0
     }
 
-    private func advance(to now: TimeInterval) {
-        guard let last = lastTime else { lastTime = now; return }
-        guard running else { lastTime = now; return }
-        var dt = now - last
-        if dt > 0.1 { dt = 0.1 }
-        let sub = max(1, Int((dt / 0.001).rounded()))
-        let h = dt / Double(sub)
-        for _ in 0..<sub {
-            // 반-내포 Euler (symplectic).
-            let force = driveAmp * cos(driveOmega * t) - stiffness * x - damping * v
-            v += force / mass * h
-            x += v * h
-            t += h
+    private var steadyPhase: Double {
+        atan2(damping * driveOmega, stiffness - mass * driveOmega * driveOmega)
+    }
+
+    private var dampingRegimeLabel: String {
+        if zeta < 1 - 1e-6 { return "소감쇠" }
+        if zeta > 1 + 1e-6 { return "과감쇠" }
+        return "임계감쇠"
+    }
+
+    /// x(t) — 정상상태 + 과도상태의 닫힌 해.
+    private func state(at t: Double) -> Double {
+        let X = steadyAmplitude
+        let φ = steadyPhase
+        let ω = driveOmega
+
+        // 정상상태.
+        let xp = X * cos(ω * t - φ)
+
+        // 초기조건 x(0)=0, ẋ(0)=0 을 위한 동차해 계수.
+        let xp0 = X * cos(φ)
+        let vp0 = X * ω * sin(φ)
+
+        let xh: Double
+        if zeta < 1 - 1e-6 {
+            // 소감쇠.
+            let ωn = omega0 * sqrt(1 - zeta * zeta)
+            let A = -xp0
+            let B = -(zeta * omega0 * xp0 + vp0) / ωn
+            xh = exp(-zeta * omega0 * t) * (A * cos(ωn * t) + B * sin(ωn * t))
+        } else if abs(zeta - 1) <= 1e-6 {
+            // 임계감쇠.
+            let A = -xp0
+            let B = omega0 * A - vp0
+            xh = exp(-omega0 * t) * (A + B * t)
+        } else {
+            // 과감쇠.
+            // x_h(0) = A + B = −xp0,  ẋ_h(0) = λ₁A + λ₂B = −vp0
+            //   B = −xp0 − A,  대입:  (λ₁ − λ₂)A = −vp0 + λ₂·xp0
+            //   →  A = (λ₂·xp0 − vp0) / (λ₁ − λ₂)
+            let s = sqrt(zeta * zeta - 1)
+            let λ1 = -omega0 * (zeta - s)
+            let λ2 = -omega0 * (zeta + s)
+            let A = (λ2 * xp0 - vp0) / (λ1 - λ2)
+            let B = -xp0 - A
+            xh = A * exp(λ1 * t) + B * exp(λ2 * t)
         }
-        trace.append(x)
-        if trace.count > traceLen { trace.removeFirst(trace.count - traceLen) }
-        lastTime = now
+        return xh + xp
     }
 
     // MARK: - 그리기
 
-    private func draw(ctx: GraphicsContext, size: CGSize) {
-        // 위쪽 절반: 용수철 + 질량. 아래쪽 절반: 변위 시계열 + 공명 곡선.
+    private func draw(ctx: GraphicsContext, size: CGSize, t: Double) {
         let topRect = CGRect(x: 0, y: 0, width: size.width, height: size.height * 0.45)
-        let midRect = CGRect(x: 0, y: topRect.maxY, width: size.width, height: size.height * 0.30)
-        let botRect = CGRect(x: 0, y: midRect.maxY, width: size.width, height: size.height - midRect.maxY)
-
-        drawSpringMass(ctx: ctx, in: topRect)
-        drawTrace(ctx: ctx, in: midRect)
+        let midRect = CGRect(x: 0, y: topRect.maxY, width: size.width,
+                             height: size.height * 0.30)
+        let botRect = CGRect(x: 0, y: midRect.maxY, width: size.width,
+                             height: size.height - midRect.maxY)
+        let xNow = state(at: t)
+        drawSpringMass(ctx: ctx, in: topRect, x: xNow)
+        drawTrace(ctx: ctx, in: midRect, tNow: t)
         drawResonance(ctx: ctx, in: botRect)
     }
 
-    private func drawSpringMass(ctx: GraphicsContext, in r: CGRect) {
+    private func drawSpringMass(ctx: GraphicsContext, in r: CGRect, x: Double) {
         let cy = r.midY
         let wallX = r.minX + 30
         let restLen: CGFloat = 220
-        let scale: CGFloat = 60   // 픽셀 / 미터
+        let scale: CGFloat = 60
         let endX = wallX + restLen + CGFloat(x) * scale
-        // 벽.
         var wall = Path()
         wall.move(to: CGPoint(x: wallX, y: cy - 40))
         wall.addLine(to: CGPoint(x: wallX, y: cy + 40))
         ctx.stroke(wall, with: .color(.white.opacity(0.5)), lineWidth: 2)
-        // 용수철 (지그재그).
         var spring = Path()
         let coils = 14
         spring.move(to: CGPoint(x: wallX, y: cy))
@@ -125,11 +174,9 @@ struct SpringScene: View {
         }
         spring.addLine(to: CGPoint(x: endX, y: cy))
         ctx.stroke(spring, with: .color(.cyan), lineWidth: 1.5)
-        // 질량.
         let box = CGRect(x: endX, y: cy - 20, width: 40, height: 40)
         ctx.fill(Path(box), with: .color(.yellow))
         ctx.stroke(Path(box), with: .color(.white.opacity(0.4)), lineWidth: 1)
-        // 평형 표시.
         var eq = Path()
         eq.move(to: CGPoint(x: wallX + restLen, y: cy + 50))
         eq.addLine(to: CGPoint(x: wallX + restLen, y: cy + 64))
@@ -137,30 +184,37 @@ struct SpringScene: View {
                    style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
     }
 
-    private func drawTrace(ctx: GraphicsContext, in r: CGRect) {
-        // 0 축.
+    private func drawTrace(ctx: GraphicsContext, in r: CGRect, tNow: Double) {
         var axis = Path()
         axis.move(to: CGPoint(x: r.minX, y: r.midY))
         axis.addLine(to: CGPoint(x: r.maxX, y: r.midY))
         ctx.stroke(axis, with: .color(.white.opacity(0.25)), lineWidth: 1)
-        guard !trace.isEmpty else { return }
-        let maxAbs = max(0.5, trace.map(abs).max() ?? 1)
+
+        // 시간 윈도우: 최근 10·(2π/ω₀) 정도. 분석해를 직접 샘플.
+        let window = max(8 * .pi / max(0.5, omega0), 6.0)
+        let tStart = max(0, tNow - window)
+        let n = 240
+        var samples: [(t: Double, x: Double)] = []
+        for i in 0...n {
+            let f = Double(i) / Double(n)
+            let tt = tStart + f * (tNow - tStart)
+            samples.append((tt, state(at: tt)))
+        }
+        let absMax = max(0.5, samples.map { abs($0.x) }.max() ?? 0.5)
         var path = Path()
-        for (i, val) in trace.enumerated() {
-            let f = CGFloat(i) / CGFloat(traceLen - 1)
+        for (i, s) in samples.enumerated() {
+            let f = CGFloat(i) / CGFloat(n)
             let px = r.minX + f * r.width
-            let py = r.midY - CGFloat(val / maxAbs) * (r.height * 0.45)
+            let py = r.midY - CGFloat(s.x / absMax) * (r.height * 0.45)
             if i == 0 { path.move(to: CGPoint(x: px, y: py)) }
             else { path.addLine(to: CGPoint(x: px, y: py)) }
         }
         ctx.stroke(path, with: .color(.green), lineWidth: 1.6)
-        ctx.draw(Text("x(t)").font(.caption).foregroundStyle(.secondary),
-                 at: CGPoint(x: r.minX + 18, y: r.minY + 12))
+        ctx.draw(Text("x(t) — 분석해").font(.caption).foregroundStyle(.secondary),
+                 at: CGPoint(x: r.minX + 70, y: r.minY + 12))
     }
 
     private func drawResonance(ctx: GraphicsContext, in r: CGRect) {
-        // |X(ω)| = F₀ / sqrt((k - mω²)² + (cω)²).
-        let omega0 = sqrt(stiffness / mass)
         let omegaMax: Double = max(omega0 * 2.5, 12)
         var path = Path()
         let n = 220
@@ -171,8 +225,7 @@ struct SpringScene: View {
             let denom = sqrt(pow(stiffness - mass * omega * omega, 2)
                              + pow(damping * omega, 2))
             let A = denom > 1e-9 ? driveAmp / denom : driveAmp / 1e-9
-            amps.append(A)
-            maxAmp = max(maxAmp, A)
+            amps.append(A); maxAmp = max(maxAmp, A)
         }
         let yScale = (r.height - 24) / max(0.001, maxAmp)
         for (i, A) in amps.enumerated() {
@@ -183,14 +236,12 @@ struct SpringScene: View {
             else { path.addLine(to: CGPoint(x: px, y: py)) }
         }
         ctx.stroke(path, with: .color(.orange), lineWidth: 1.6)
-        // ω₀ 표시.
         let xω0 = r.minX + CGFloat(omega0 / omegaMax) * r.width
         var natLine = Path()
         natLine.move(to: CGPoint(x: xω0, y: r.minY))
         natLine.addLine(to: CGPoint(x: xω0, y: r.maxY))
         ctx.stroke(natLine, with: .color(.white.opacity(0.3)),
                    style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
-        // 현재 ω_d 마커.
         let xωd = r.minX + CGFloat(min(driveOmega, omegaMax) / omegaMax) * r.width
         var nowLine = Path()
         nowLine.move(to: CGPoint(x: xωd, y: r.minY))

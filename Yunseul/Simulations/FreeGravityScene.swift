@@ -27,7 +27,7 @@ struct FreeGravityScene: View {
 
     var body: some View {
         SimChrome(
-            blurb: "중력은 거리의 제곱에 반비례. 닫힌 계의 총 운동량·총 각운동량·총 에너지는 보존된다 (수치오차 範위 내).",
+            blurb: "N≥3 다체 문제는 일반적으로 닫힌 해 없음 — Velocity-Verlet 수치 적분 사용 (총 운동량·각운동량·에너지는 수치오차 내 보존). 닫힌 해 1체 궤도는 \"케플러 궤도\" 시뮬 참조.",
             canvas: { canvas },
             controls: { controls })
             .onAppear { applyPreset() }

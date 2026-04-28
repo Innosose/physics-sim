@@ -22,7 +22,7 @@ struct KineticGasScene: View {
 
     var body: some View {
         SimChrome(
-                  blurb: "초기에 모두 같은 속력이라도, 입자 간 충돌만으로 속력 분포는 맥스웰–볼츠만 모양으로 가까워진다.",
+                  blurb: "초기에 모두 같은 속력이라도, 충돌만으로 속력 분포는 맥스웰–볼츠만 모양으로 수렴. 각 충돌은 닫힌 해 임펄스, 사이는 등속 — 구간별 닫힌 해. 평형 분포 자체는 통계역학의 닫힌 해.",
                   canvas: { canvas },
                   controls: { controls })
             .onAppear { reset() }
