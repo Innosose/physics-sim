@@ -239,6 +239,28 @@ enum SimulationCatalog {
     }
 }
 
+// MARK: - 시뮬 ↔ 계산기 매핑
+
+extension SimulationItem {
+    /// 이 시뮬과 짝이 되는 계산기 토픽이 있으면 반환. 시뮬 우상단의
+    /// "계산기 열기" 버튼이 가리키는 대상.
+    var calculatorTopic: CalculatorTopic? {
+        switch id {
+        case "freefall":    return .freefall
+        case "projectile":  return .projectile
+        case "pendulum":    return .pendulum
+        case "collision1d": return .collision
+        case "kepler":      return .kepler
+        case "doppler":     return .doppler
+        case "reflection":  return .refraction
+        case "lens":        return .lens
+        case "doubleslit":  return .slit
+        case "circuit":     return .ohm
+        default:            return nil
+        }
+    }
+}
+
 // MARK: - Environment
 
 /// 시뮬 화면이 자기 자신의 메타데이터를 알 수 있도록 환경 값으로 흘림.
@@ -250,5 +272,28 @@ extension EnvironmentValues {
     var simulationItem: SimulationItem? {
         get { self[CurrentSimulationKey.self] }
         set { self[CurrentSimulationKey.self] = newValue }
+    }
+}
+
+// MARK: - 계산기 열기 액션
+
+/// 시뮬에서 짝이 되는 계산기로 점프할 때 호출하는 환경 액션.
+/// `SwiftUI.OpenURLAction` 패턴을 따름 — `callAsFunction(_:)` 으로 호출.
+struct OpenCalculatorAction {
+    let action: ((CalculatorTopic) -> Void)?
+
+    func callAsFunction(_ topic: CalculatorTopic) {
+        action?(topic)
+    }
+}
+
+private struct OpenCalculatorKey: EnvironmentKey {
+    static let defaultValue = OpenCalculatorAction(action: nil)
+}
+
+extension EnvironmentValues {
+    var openCalculator: OpenCalculatorAction {
+        get { self[OpenCalculatorKey.self] }
+        set { self[OpenCalculatorKey.self] = newValue }
     }
 }

@@ -34,8 +34,9 @@ struct RootSplitView: View {
         }
         .navigationSplitViewStyle(.balanced)
         .sheet(isPresented: $showSettings) { SettingsView() }
-        // 사이드바 선택이 바뀌면 detail 도 초기화 (이전 학년 시뮬이 남아 있으면 어색).
-        .onChange(of: sidebarSelection) { _, _ in detailSelection = nil }
+        // sidebar 가 바뀌어도 detail 은 그대로 둔다 (HIG 의 표준 split-view 동작).
+        // 사용자가 새 content 행을 탭하면 detail 이 갱신됨. 시뮬 → 계산기 점프
+        // 처럼 명시적 액션도 detail 을 곧장 업데이트할 수 있게 됨.
     }
 
     // MARK: - 컬럼
@@ -61,6 +62,11 @@ struct RootSplitView: View {
         case .simulation(let item):
             SimulationCatalog.view(for: item.id)
                 .environment(\.simulationItem, item)
+                .environment(\.openCalculator, OpenCalculatorAction { topic in
+                    // 계산기로 점프 — sidebar 도 [도구] 로 옮겨주는 게 일관됨.
+                    sidebarSelection = .calculator
+                    detailSelection = .calculator(topic)
+                })
                 .navigationTitle(item.title)
                 .navigationBarTitleDisplayMode(.inline)
         case .calculator(let topic):

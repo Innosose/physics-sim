@@ -12,6 +12,7 @@ struct SimChrome<Canvas: View, Controls: View>: View {
     @ViewBuilder var controls: () -> Controls
 
     @Environment(\.simulationItem) private var item
+    @Environment(\.openCalculator) private var openCalculator
 
     var body: some View {
         GeometryReader { geo in
@@ -33,6 +34,19 @@ struct SimChrome<Canvas: View, Controls: View>: View {
                     }
                     .padding(.horizontal, 10)
                     .padding(.vertical, 10)
+                }
+            }
+        }
+        .toolbar {
+            // 짝이 되는 계산기가 있으면 우상단에 점프 버튼.
+            ToolbarItem(placement: .topBarTrailing) {
+                if let topic = item?.calculatorTopic {
+                    Button {
+                        openCalculator(topic)
+                    } label: {
+                        Label("계산기", systemImage: "function")
+                    }
+                    .accessibilityLabel("이 시뮬의 계산기 열기")
                 }
             }
         }
