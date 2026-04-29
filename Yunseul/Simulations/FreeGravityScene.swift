@@ -85,16 +85,20 @@ struct FreeGravityScene: View {
     ]
 
     private func applyPreset() {
-        trails.removeAll()
+        // 순서: bodies 먼저, accels 그다음, trails·lastTime 마지막.
+        // 이렇게 해야 advance() 와 겹쳐도 인덱스 mismatch 안 남.
+        let newBodies: [Star]
         switch preset {
-        case 0: bodies = solarSystem3()
-        case 1: bodies = binary()
-        case 2: bodies = figureEight()
-        case 3: bodies = cluster4()
-        case 4: bodies = randomEight()
-        default: bodies = []
+        case 0: newBodies = solarSystem3()
+        case 1: newBodies = binary()
+        case 2: newBodies = figureEight()
+        case 3: newBodies = cluster4()
+        case 4: newBodies = randomEight()
+        default: newBodies = []
         }
+        bodies = newBodies
         accels = computeAccelerations()
+        trails.removeAll()
         lastTime = nil
     }
 
@@ -186,18 +190,31 @@ struct FreeGravityScene: View {
     private func advance(to now: TimeInterval) {
         guard let last = lastTime else { lastTime = now; return }
         guard running else { lastTime = now; return }
+        guard !bodies.isEmpty else { lastTime = now; return }
         var dt = now - last
         if dt > 0.05 { dt = 0.05 }
         lastTime = now
-        let sub = 60                       // 작은 dt 로 다체 안정성 확보
+        let sub = 30                       // 작은 dt 로 다체 안정성 확보
         let h = dt / Double(sub)
         for _ in 0..<sub { verletStep(h: h) }
+
+        // 발산 감지 — 어떤 별이라도 위치/속도가 NaN·Inf 가 되면 프리셋 재적용.
+        if bodies.contains(where: {
+            !$0.pos.x.isFinite || !$0.pos.y.isFinite
+                || !$0.vel.x.isFinite || !$0.vel.y.isFinite
+        }) {
+            applyPreset()
+            return
+        }
+
+        // 트레일 추가 — force unwrap 없이 안전하게.
         for b in bodies {
-            trails[b.id, default: []].append(b.pos)
-            if trails[b.id]!.count > trailMax {
-                let cnt = trails[b.id]!.count
-                trails[b.id]!.removeFirst(cnt - trailMax)
+            var arr = trails[b.id] ?? []
+            arr.append(b.pos)
+            if arr.count > trailMax {
+                arr.removeFirst(arr.count - trailMax)
             }
+            trails[b.id] = arr
         }
     }
 
@@ -255,8 +272,15 @@ struct FreeGravityScene: View {
         // 1) 순수 검정 배경 — 시뮬 viewport 의 deep 보다 더 어둡게.
         ctx.fill(Path(CGRect(origin: .zero, size: size)),
                  with: .color(.black))
+        guard !bodies.isEmpty else { return }
 
-        let extent = max(6.0, bodies.map { max(abs($0.pos.x), abs($0.pos.y)) }.max() ?? 6) * 1.4
+        // NaN/Inf 안전 — 유효 위치만 모아 max 계산.
+        let coords = bodies.flatMap { b -> [Double] in
+            (b.pos.x.isFinite ? [abs(b.pos.x)] : []) +
+            (b.pos.y.isFinite ? [abs(b.pos.y)] : [])
+        }
+        let maxAbs = coords.max() ?? 6
+        let extent = min(60.0, max(6.0, maxAbs * 1.4))
         let world = CGRect(x: -extent, y: -extent,
                            width: 2 * extent, height: 2 * extent)
         let map = CanvasMap(view: size, world: world, padding: 16)
