@@ -46,9 +46,11 @@ struct LensScene: View {
             Readout(label: "초점거리 f (부호 포함)",
                     value: String(format: "%+.2f m", f))
             Readout(label: "상거리 q",
-                    value: q.isFinite ? String(format: "%+.2f m", q) : "∞")
+                    value: q.isFinite ? String(format: "%+.2f m", q)
+                                       : (q > 0 ? "+∞" : "−∞"))
             Readout(label: "배율 m = -q/p",
-                    value: q.isFinite ? String(format: "%+.2f", -q / objectDist) : "−∞")
+                    value: q.isFinite ? String(format: "%+.2f", -q / objectDist)
+                                       : (q > 0 ? "−∞" : "+∞"))
             Readout(label: "상 높이 h_i",
                     value: imageHeight.isFinite ? String(format: "%+.2f m", imageHeight) : "−")
             Text(q.isFinite ? (q > 0 ? "실상 (뒤집힘)" : "허상 (똑바로 섬)") : "초점에 위치 — 평행광")

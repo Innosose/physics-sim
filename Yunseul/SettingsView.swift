@@ -42,10 +42,19 @@ struct SettingsView: View {
                 }
 
                 Section {
-                    Text("모든 시뮬레이션은 닫힌 해(analytical) 가능한 수식으로 계산됩니다.")
+                    Text("각 시뮬은 세 가지 방식으로 계산됩니다 — ConceptCard 우상단 뱃지로 표시.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
-                    Text("실험은 직접 매개변수를 조절하며 관찰할 수 있고, 일부 실험은 3D 로 보여집니다 (준비 중).")
+                    Text("· 닫힌 해 — 시각 t 의 수식을 직접 풀어 정확한 값 (예: 진자·케플러).")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                    Text("· 이벤트 기반 — 사이는 등속·임펄스만 닫힌 해 (예: 충돌·기체).")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                    Text("· 수치 — 닫힌 해가 없는 다체 문제는 Velocity-Verlet 적분 (N체 중력).")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                    Text("포물선 운동 시뮬은 2D / 3D 토글로 시점을 회전·줌 할 수 있습니다.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 } header: {
