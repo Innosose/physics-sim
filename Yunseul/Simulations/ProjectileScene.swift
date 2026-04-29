@@ -262,18 +262,3 @@ private struct Projectile3DView: View {
     }
 }
 
-// MARK: - 그리드 보조 함수
-
-/// 그리드 간격을 1/2/5·10ⁿ 으로 반올림. ProjectileScene·FreeFallScene 공용.
-func niceStep(_ raw: Double) -> Double {
-    guard raw > 0 else { return 1 }
-    let exp = floor(log10(raw))
-    let base = pow(10, exp)
-    let f = raw / base
-    let nice: Double
-    if f < 1.5 { nice = 1 }
-    else if f < 3.5 { nice = 2 }
-    else if f < 7.5 { nice = 5 }
-    else { nice = 10 }
-    return nice * base
-}

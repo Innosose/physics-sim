@@ -48,15 +48,13 @@ struct ElectricFieldScene: View {
 
             Divider()
             ForEach(charges.indices, id: \.self) { i in
-                HStack {
-                    Text("q\(i + 1)")
-                    Slider(value: Binding(
+                LabeledSlider(
+                    title: "전하 q\(i + 1)",
+                    value: Binding(
                         get: { charges[i].q },
-                        set: { charges[i].q = $0 }), in: -2...2)
-                    Text(String(format: "%+.2f", charges[i].q))
-                        .font(.caption.monospacedDigit())
-                        .frame(width: 40, alignment: .trailing)
-                }
+                        set: { charges[i].q = $0 }),
+                    range: -2...2,
+                    format: "%+.2f")
             }
         }
     }

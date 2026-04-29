@@ -10,13 +10,23 @@ struct KineticGasScene: View {
     @State private var heaterOn: Bool = false           // 왼쪽 벽이 뜨거우면 가속 (rough thermostat)
     @State private var running = true
 
-    @State private var particles: [Particle] = []
-    @State private var lastTime: TimeInterval? = nil
+    /// 물리 상태는 reference type 에 보관 — N체와 같은 패턴.
+    /// `@State` 로 두면 입자·히스토그램이 매 advance 마다 SwiftUI diff 를 트리거
+    /// → 입자 수·bin 수가 늘면 부하 폭증. Canvas 는 TimelineView tick 으로 재실행되므로
+    /// 관찰 불필요.
+    private final class World {
+        var particles: [Particle] = []
+        var histAcc: [Double] = []
+        var lastTime: TimeInterval? = nil
+        var baselineKE: Double = 0
+    }
+
+    @State private var world = World()
+    @State private var redrawTick: Int = 0
 
     private let radius = 0.012
     private let mass = 1.0
     private let histBins = 30
-    @State private var histAcc = [Double](repeating: 0, count: 30)
 
     struct Particle { var pos: Vec2; var vel: Vec2 }
 
@@ -39,6 +49,7 @@ struct KineticGasScene: View {
                 advance(to: newDate.timeIntervalSinceReferenceDate)
             }
         }
+        .id(redrawTick)
     }
 
     private var controls: some View {
@@ -50,11 +61,18 @@ struct KineticGasScene: View {
             Toggle("왼쪽 벽 가열 (열 흐름 관찰)", isOn: $heaterOn)
             PlayResetBar(running: $running, onReset: reset)
             Divider()
-            let speeds = particles.map { $0.vel.length }
+            let speeds = world.particles.map { $0.vel.length }
             let mean = speeds.isEmpty ? 0 : speeds.reduce(0, +) / Double(speeds.count)
-            let ke = particles.reduce(0) { $0 + 0.5 * mass * $1.vel.lengthSquared }
+            let ke = world.particles.reduce(0) { $0 + 0.5 * mass * $1.vel.lengthSquared }
             Readout(label: "평균 속력 ⟨|v|⟩", value: String(format: "%.2f", mean))
             Readout(label: "총 운동에너지", value: String(format: "%.2f", ke))
+            // 보존량 검증 — 벽은 탄성 (heaterOn 제외) 이라 ΔE/E₀ ≈ 0 이어야 정상.
+            // heaterOn 일 때는 왼쪽 벽이 매 충돌 ×1.02 → KE 가 단조 증가해야 함.
+            if world.baselineKE > 1e-6 {
+                let dke = (ke - world.baselineKE) / world.baselineKE * 100
+                Readout(label: heaterOn ? "에너지 증가 (가열)" : "에너지 변화 ΔE/E₀",
+                        value: String(format: "%+.2f %%", dke))
+            }
         }
     }
 
@@ -83,17 +101,19 @@ struct KineticGasScene: View {
                 i += 1
             }
         }
-        particles = arr
-        histAcc = [Double](repeating: 0, count: histBins)
-        lastTime = nil
+        world.particles = arr
+        world.histAcc = [Double](repeating: 0, count: histBins)
+        world.lastTime = nil
+        world.baselineKE = arr.reduce(0) { $0 + 0.5 * mass * $1.vel.lengthSquared }
+        redrawTick &+= 1
     }
 
     private func advance(to now: TimeInterval) {
-        guard let last = lastTime else { lastTime = now; return }
-        guard running else { lastTime = now; return }
+        guard let last = world.lastTime else { world.lastTime = now; return }
+        guard running else { world.lastTime = now; return }
         var dt = now - last
         if dt > 0.05 { dt = 0.05 }
-        lastTime = now
+        world.lastTime = now
 
         let sub = 4
         let h = dt / Double(sub)
@@ -103,57 +123,59 @@ struct KineticGasScene: View {
 
         // 히스토그램 누적.
         let maxV = 1.5
-        for p in particles {
+        for p in world.particles {
             let bin = min(histBins - 1, Int(p.vel.length / maxV * Double(histBins)))
-            histAcc[bin] += 1
+            world.histAcc[bin] += 1
         }
     }
 
     private func stepOnce(h: Double) {
         // 위치 업데이트.
-        for i in particles.indices {
-            particles[i].pos += particles[i].vel * h
+        for i in world.particles.indices {
+            world.particles[i].pos += world.particles[i].vel * h
         }
         // 박스 벽 충돌.
-        for i in particles.indices {
-            if particles[i].pos.x < radius {
-                particles[i].pos.x = radius
-                particles[i].vel.x = abs(particles[i].vel.x)
-                if heaterOn { particles[i].vel = particles[i].vel * 1.02 }   // 가열
+        for i in world.particles.indices {
+            if world.particles[i].pos.x < radius {
+                world.particles[i].pos.x = radius
+                world.particles[i].vel.x = abs(world.particles[i].vel.x)
+                if heaterOn { world.particles[i].vel = world.particles[i].vel * 1.02 }
             }
-            if particles[i].pos.x > 1 - radius {
-                particles[i].pos.x = 1 - radius; particles[i].vel.x = -abs(particles[i].vel.x)
+            if world.particles[i].pos.x > 1 - radius {
+                world.particles[i].pos.x = 1 - radius
+                world.particles[i].vel.x = -abs(world.particles[i].vel.x)
             }
-            if particles[i].pos.y < radius {
-                particles[i].pos.y = radius; particles[i].vel.y = abs(particles[i].vel.y)
+            if world.particles[i].pos.y < radius {
+                world.particles[i].pos.y = radius
+                world.particles[i].vel.y = abs(world.particles[i].vel.y)
             }
-            if particles[i].pos.y > 1 - radius {
-                particles[i].pos.y = 1 - radius; particles[i].vel.y = -abs(particles[i].vel.y)
+            if world.particles[i].pos.y > 1 - radius {
+                world.particles[i].pos.y = 1 - radius
+                world.particles[i].vel.y = -abs(world.particles[i].vel.y)
             }
         }
         // O(N²) 페어 충돌. N≤300 이면 충분.
-        let n = particles.count
+        let n = world.particles.count
         for i in 0..<n {
             for j in (i + 1)..<n {
-                let d = particles[j].pos - particles[i].pos
+                let d = world.particles[j].pos - world.particles[i].pos
                 let dist2 = d.lengthSquared
                 let r2 = (2 * radius) * (2 * radius)
                 if dist2 < r2 && dist2 > 1e-12 {
                     let dist = sqrt(dist2)
                     let n̂ = d / dist
-                    // 접근중인지.
-                    let rv = particles[j].vel - particles[i].vel
+                    let rv = world.particles[j].vel - world.particles[i].vel
                     let vn = Vec2.dot(rv, n̂)
                     if vn < 0 {
                         // 동일 질량 탄성: 법선 성분만 교환.
-                        let imp = vn   // 동일 질량 m=1
-                        particles[i].vel = particles[i].vel + n̂ * imp
-                        particles[j].vel = particles[j].vel - n̂ * imp
+                        let imp = vn
+                        world.particles[i].vel = world.particles[i].vel + n̂ * imp
+                        world.particles[j].vel = world.particles[j].vel - n̂ * imp
                     }
                     // 침투 보정.
                     let pen = 2 * radius - dist
-                    particles[i].pos -= n̂ * (pen / 2)
-                    particles[j].pos += n̂ * (pen / 2)
+                    world.particles[i].pos -= n̂ * (pen / 2)
+                    world.particles[j].pos += n̂ * (pen / 2)
                 }
             }
         }
@@ -189,7 +211,7 @@ struct KineticGasScene: View {
         ctx.stroke(Path(frame), with: .color(.white.opacity(0.5)), lineWidth: 1.5)
 
         let pr = CGFloat(radius) * s
-        for p in particles {
+        for p in world.particles {
             let cx = bx + CGFloat(p.pos.x) * s
             let cy = by + CGFloat(p.pos.y) * s
             let speed = p.vel.length
@@ -209,8 +231,8 @@ struct KineticGasScene: View {
         ctx.stroke(axis, with: .color(.white.opacity(0.3)), lineWidth: 1)
 
         let bw = (r.width - 8) / CGFloat(histBins)
-        let maxBin = max(0.001, histAcc.max() ?? 0.001)
-        for (i, v) in histAcc.enumerated() {
+        let maxBin = max(0.001, world.histAcc.max() ?? 0.001)
+        for (i, v) in world.histAcc.enumerated() {
             let h = CGFloat(v / maxBin) * (r.height - 40)
             let x = r.minX + 4 + CGFloat(i) * bw
             let bar = CGRect(x: x + 1, y: r.maxY - 14 - h,
@@ -218,7 +240,7 @@ struct KineticGasScene: View {
             ctx.fill(Path(bar), with: .color(.green.opacity(0.7)))
         }
         // 맥스웰–볼츠만 (2D) 이론 곡선: f(v) ∝ v · exp(-v²/(2σ²)).
-        let speeds = particles.map { $0.vel.length }
+        let speeds = world.particles.map { $0.vel.length }
         guard !speeds.isEmpty else { return }
         let mean2 = speeds.reduce(0) { $0 + $1 * $1 } / Double(speeds.count)
         let sigma2 = mean2 / 2

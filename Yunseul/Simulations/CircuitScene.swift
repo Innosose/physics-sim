@@ -96,8 +96,7 @@ struct CircuitScene: View {
         let r1Center = CGPoint(x: r.midX - 60, y: lt.y)
         drawWire(ctx: ctx, from: CGPoint(x: lt.x, y: lt.y),
                  to: r1Center.offsetBy(dx: -40))
-        drawResistor(ctx: ctx, at: r1Center, vertical: false,
-                     label: "R₁ = \(short(R1)) Ω")
+        drawResistor(ctx: ctx, at: r1Center, label: "R₁ = \(short(R1)) Ω")
         drawWire(ctx: ctx, from: r1Center.offsetBy(dx: 40), to: rt)
 
         // 우측 변 → 우하.
@@ -105,8 +104,7 @@ struct CircuitScene: View {
         // 아랫변 = 저항 R2.
         let r2Center = CGPoint(x: r.midX, y: rb.y)
         drawWire(ctx: ctx, from: rb, to: r2Center.offsetBy(dx: 40))
-        drawResistor(ctx: ctx, at: r2Center, vertical: false,
-                     label: "R₂ = \(short(R2)) Ω")
+        drawResistor(ctx: ctx, at: r2Center, label: "R₂ = \(short(R2)) Ω")
         drawWire(ctx: ctx, from: r2Center.offsetBy(dx: -40), to: lb)
         // 좌측 변 (배터리 아래쪽).
         drawWire(ctx: ctx, from: lb, to: CGPoint(x: lt.x, y: r.midY + 30))
@@ -144,10 +142,8 @@ struct CircuitScene: View {
 
         // R1 위 가지, R2 아래 가지.
         drawResistor(ctx: ctx, at: CGPoint(x: (nodeL.x + nodeR.x) / 2, y: lt.y),
-                     vertical: false,
                      label: "R₁ = \(short(R1))Ω,  I₁=\(short(result.q1))A")
         drawResistor(ctx: ctx, at: CGPoint(x: (nodeL.x + nodeR.x) / 2, y: lb.y),
-                     vertical: false,
                      label: "R₂ = \(short(R2))Ω,  I₂=\(short(result.q2))A")
 
         drawCurrentLabel(ctx: ctx,
@@ -162,15 +158,13 @@ struct CircuitScene: View {
         ctx.stroke(p, with: .color(.white.opacity(0.85)), lineWidth: 2)
     }
 
-    private func drawResistor(ctx: GraphicsContext, at c: CGPoint,
-                              vertical: Bool, label: String) {
+    private func drawResistor(ctx: GraphicsContext, at c: CGPoint, label: String) {
         let w: CGFloat = 80, h: CGFloat = 26
         let rect = CGRect(x: c.x - w / 2, y: c.y - h / 2, width: w, height: h)
         ctx.fill(Path(roundedRect: rect, cornerRadius: 6),
                  with: .color(.orange.opacity(0.85)))
         ctx.stroke(Path(roundedRect: rect, cornerRadius: 6),
                    with: .color(.white.opacity(0.5)), lineWidth: 1)
-        _ = vertical
         ctx.draw(Text(label).font(.caption.weight(.semibold)).foregroundColor(.white),
                  at: CGPoint(x: c.x, y: c.y + h / 2 + 12))
     }
