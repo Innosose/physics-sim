@@ -19,10 +19,17 @@ struct KineticGasScene: View {
         var histAcc: [Double] = []
         var lastTime: TimeInterval? = nil
         var baselineKE: Double = 0
+        /// readout 갱신 throttle 용 카운터.
+        var framesSinceDisplayBump: Int = 0
     }
 
     @State private var world = World()
+    /// reset/preset 로 Canvas 를 강제 재생성할 때 .id() 에 묶음 — 애니메이션 중엔 변하지 않음.
     @State private var redrawTick: Int = 0
+    /// controls 패널의 readout(평균 속력·KE·ΔE) 을 ~10 Hz 로 갱신하기 위한 tick.
+    /// world 가 class 라 내부 mutation 만으로는 SwiftUI 재렌더가 안 일어남 — 이 값을
+    /// throttled 로 bump 해 body 재계산을 유도.
+    @State private var displayTick: Int = 0
 
     private let radius = 0.012
     private let mass = 1.0
@@ -31,7 +38,10 @@ struct KineticGasScene: View {
     struct Particle { var pos: Vec2; var vel: Vec2 }
 
     var body: some View {
-        SimChrome(
+        // displayTick 을 명시적으로 read — SwiftUI 가 이 @State 의 변경을 의존성으로
+        // 잡아 controls 패널의 readout 을 ~10 Hz 로 갱신하도록 보장.
+        let _ = displayTick
+        return SimChrome(
                   blurb: "초기에 모두 같은 속력이라도, 충돌만으로 속력 분포는 맥스웰–볼츠만 모양으로 수렴. 각 충돌은 닫힌 해 임펄스, 사이는 등속 — 구간별 닫힌 해. 평형 분포 자체는 통계역학의 닫힌 해.",
                   canvas: { canvas },
                   controls: { controls })
@@ -126,6 +136,14 @@ struct KineticGasScene: View {
         for p in world.particles {
             let bin = min(histBins - 1, Int(p.vel.length / maxV * Double(histBins)))
             world.histAcc[bin] += 1
+        }
+
+        // readout 갱신 — 6 프레임마다 (≈ 10 Hz). 매 프레임 bump 하면 reference type
+        // 으로 옮긴 의미가 사라지고, 안 bump 하면 controls 패널이 얼어붙음.
+        world.framesSinceDisplayBump += 1
+        if world.framesSinceDisplayBump >= 6 {
+            world.framesSinceDisplayBump = 0
+            displayTick &+= 1
         }
     }
 
