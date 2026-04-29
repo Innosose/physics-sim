@@ -103,7 +103,6 @@ struct CalcInputField: View {
     let title: String
     @Binding var value: Double
     var unit: String = ""
-    var range: ClosedRange<Double>? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -111,7 +110,8 @@ struct CalcInputField: View {
                 .font(.themeLabel)
                 .foregroundStyle(Theme.ink)
             HStack(spacing: 8) {
-                TextField("값", value: $value, format: .number.precision(.fractionLength(0...4)))
+                TextField("", value: $value,
+                          format: .number.precision(.fractionLength(0...4)))
                     .keyboardType(.decimalPad)
                     .textFieldStyle(.roundedBorder)
                     .font(.themeMono)
@@ -221,8 +221,7 @@ struct ProjectileCalculator: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             CalcSection(title: "입력값") {
-                CalcInputField(title: "발사각 θ", value: $angleDeg, unit: "°",
-                               range: 0...90)
+                CalcInputField(title: "발사각 θ", value: $angleDeg, unit: "°")
                 CalcInputField(title: "초속력 v₀", value: $speed, unit: "m/s")
                 CalcInputField(title: "발사 높이 h₀", value: $h0, unit: "m")
                 CalcInputField(title: "중력가속도 g", value: $g, unit: "m/s²")
@@ -241,7 +240,9 @@ struct ProjectileCalculator: View {
                     let T = (v0y + sqrt(disc)) / g
                     let R = v0x * T
                     let H = h0 + v0y * v0y / (2 * g)
-                    let vImpact = sqrt(v0x * v0x + (v0y - g * T) * (v0y - g * T))
+                    let vyImpact = v0y - g * T          // 음수 — 아래로 향함
+                    let vImpact = sqrt(v0x * v0x + vyImpact * vyImpact)
+                    let impactAngle = atan2(-vyImpact, v0x) * 180 / .pi
                     CalcOutput(label: "비행시간 T",
                                value: String(format: "%.2f s", T), emphasis: true)
                     CalcOutput(label: "사거리 R = v₀ cosθ · T",
@@ -250,8 +251,14 @@ struct ProjectileCalculator: View {
                                value: String(format: "%.2f m", H))
                     CalcOutput(label: "최고점 시각 t_apex = v₀ sinθ / g",
                                value: String(format: "%.2f s", v0y / g))
-                    CalcOutput(label: "충격 속도",
+                    CalcOutput(label: "충격 속도 |v|",
                                value: String(format: "%.2f m/s", vImpact))
+                    CalcOutput(label: "  · 수평 v_x (= v₀ cosθ)",
+                               value: String(format: "%+.2f m/s", v0x))
+                    CalcOutput(label: "  · 수직 v_y (= v₀ sinθ − gT)",
+                               value: String(format: "%+.2f m/s", vyImpact))
+                    CalcOutput(label: "  · 입사각 (수평 기준 아래쪽)",
+                               value: String(format: "%.2f°", impactAngle))
                 }
             }
         }
@@ -329,8 +336,7 @@ struct RefractionCalculator: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             CalcSection(title: "입력값") {
-                CalcInputField(title: "입사각 θ₁", value: $theta1Deg, unit: "°",
-                               range: 0...89.9)
+                CalcInputField(title: "입사각 θ₁", value: $theta1Deg, unit: "°")
                 CalcInputField(title: "n₁ (입사 매질)", value: $n1)
                 CalcInputField(title: "n₂ (굴절 매질)", value: $n2)
             }
@@ -421,8 +427,7 @@ struct PendulumCalculator: View {
             CalcSection(title: "입력값") {
                 CalcInputField(title: "줄 길이 L", value: $L, unit: "m")
                 CalcInputField(title: "중력가속도 g", value: $g, unit: "m/s²")
-                CalcInputField(title: "최대 각도 θ_max", value: $thetaDeg, unit: "°",
-                               range: 0...170)
+                CalcInputField(title: "최대 각도 θ_max", value: $thetaDeg, unit: "°")
             }
             PropertyDivider()
             CalcSection(title: "결과") {
@@ -470,7 +475,7 @@ struct CollisionCalculator: View {
                 CalcInputField(title: "초속 v₁", value: $v1, unit: "m/s")
                 CalcInputField(title: "질량 m₂", value: $m2, unit: "kg")
                 CalcInputField(title: "초속 v₂", value: $v2, unit: "m/s")
-                CalcInputField(title: "반발계수 e (0..1)", value: $e, range: 0...1)
+                CalcInputField(title: "반발계수 e (0..1)", value: $e)
             }
             PropertyDivider()
             CalcSection(title: "결과 — 충돌 후") {
@@ -482,13 +487,13 @@ struct CollisionCalculator: View {
                 CalcOutput(label: "v₂′",
                            value: String(format: "%+.2f m/s", v2p), emphasis: true)
                 CalcOutput(label: "운동량 p (전·후)",
-                           value: String(format: "%.2f → %.3f", m1*v1+m2*v2, m1*v1p+m2*v2p))
+                           value: String(format: "%.2f → %.2f", m1*v1+m2*v2, m1*v1p+m2*v2p))
                 let KE  = 0.5 * (m1*v1*v1 + m2*v2*v2)
                 let KE2 = 0.5 * (m1*v1p*v1p + m2*v2p*v2p)
                 CalcOutput(label: "운동에너지 KE (전 → 후)",
-                           value: String(format: "%.2f → %.3f J", KE, KE2))
+                           value: String(format: "%.2f → %.2f J", KE, KE2))
                 CalcOutput(label: "ΔKE",
-                           value: String(format: "%+.2f J  (%+.1f %%)",
+                           value: String(format: "%+.2f J  (%+.2f %%)",
                                           KE2 - KE,
                                           KE > 1e-9 ? (KE2 - KE) / KE * 100 : 0))
                 let label: String =
@@ -507,6 +512,8 @@ struct KeplerCalculator: View {
     @State private var GM: Double = 3.986e14   // 지구 GM (m³/s²)
     @State private var r: Double  = 6.78e6     // 저궤도 (m)
     @State private var v: Double  = 7700       // m/s
+    /// v 와 r (반경방향) 사이 각도. 90° = 순수 접선속력 (근/원일점), 0° = 순수 반경 = 자유낙하.
+    @State private var gammaDeg: Double = 90
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -514,6 +521,8 @@ struct KeplerCalculator: View {
                 CalcInputField(title: "GM (중심체)", value: $GM, unit: "m³/s²")
                 CalcInputField(title: "현재 거리 r", value: $r, unit: "m")
                 CalcInputField(title: "현재 속력 v", value: $v, unit: "m/s")
+                CalcInputField(title: "v 와 r 사이 각도 γ (90° = 접선)",
+                               value: $gammaDeg, unit: "°")
             }
             PropertyDivider()
             CalcSection(title: "결과") {
@@ -521,8 +530,15 @@ struct KeplerCalculator: View {
                     Text("입력값 오류 — r, GM 은 양수")
                         .font(.footnote).foregroundStyle(.orange)
                 } else {
+                    let γ = gammaDeg * .pi / 180
+                    let vTangential = v * sin(γ)
+                    let vRadial     = v * cos(γ)
                     let E = 0.5 * v * v - GM / r        // 비-에너지 (단위질량당)
                     let escape = sqrt(2 * GM / r)
+                    CalcOutput(label: "접선 v_t = v sinγ",
+                               value: String(format: "%.2f m/s", vTangential))
+                    CalcOutput(label: "반경 v_r = v cosγ",
+                               value: String(format: "%.2f m/s", vRadial))
                     CalcOutput(label: "탈출속력 v_esc = √(2GM/r)",
                                value: String(format: "%.2f m/s", escape))
                     CalcOutput(label: "비-에너지 ε = ½v² − GM/r",
@@ -532,8 +548,8 @@ struct KeplerCalculator: View {
                                    emphasis: true)
                     } else {
                         let a = -GM / (2 * E)
-                        // 학습용 접선속력 가정 — e 단순 추정.
-                        let L = r * v
+                        // 일반 궤도의 각운동량은 접선속력에서만 — L = r · v_t.
+                        let L = r * vTangential
                         let term = max(0, 1 + 2 * E * L * L / (GM * GM))
                         let ecc = sqrt(term)
                         let T = 2 * .pi * sqrt(pow(a, 3) / GM)
@@ -541,7 +557,7 @@ struct KeplerCalculator: View {
                         let rApo  = a * (1 + ecc)
                         CalcOutput(label: "장반경 a = −GM / (2ε)",
                                    value: String(format: "%.2e m", a), emphasis: true)
-                        CalcOutput(label: "이심률 e (접선속력 가정)",
+                        CalcOutput(label: "이심률 e (γ 반영)",
                                    value: String(format: "%.2f", ecc))
                         CalcOutput(label: "공전주기 T = 2π √(a³/GM)",
                                    value: String(format: "%.2f s  (%.2f h)", T, T / 3600),
@@ -553,7 +569,7 @@ struct KeplerCalculator: View {
                     }
                 }
             }
-            Text("e 계산은 v 가 r 에 직각인 접선속력이라고 가정 — 일반 궤도에선 v 의 방향 정보가 추가로 필요.")
+            Text("γ = 90° 이면 현재 위치가 근일점 또는 원일점. 다른 각도는 일반 궤도 위.")
                 .font(.caption).foregroundStyle(.secondary).padding(.top, 4)
         }
     }
@@ -562,31 +578,52 @@ struct KeplerCalculator: View {
 // MARK: - 도플러 효과
 
 struct DopplerCalculator: View {
+    enum Mode: String, CaseIterable, Identifiable {
+        case sourceOnly = "음원만", observerOnly = "관측자만", both = "둘 다"
+        var id: String { rawValue }
+    }
+    @State private var mode: Mode = .both
     @State private var f0: Double = 440        // Hz
     @State private var c: Double  = 343        // m/s (공기, 20°C)
     @State private var vs: Double = 0          // 음원 속력 (관측자에게 다가가면 +)
     @State private var vo: Double = 0          // 관측자 속력 (음원에게 다가가면 +)
 
+    /// 선택된 모드에 따라 사용할 효과 속도. 토글된 쪽은 0 으로 강제.
+    private var effectiveVs: Double { mode == .observerOnly ? 0 : vs }
+    private var effectiveVo: Double { mode == .sourceOnly ? 0 : vo }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
+            CalcSection(title: "운동 주체") {
+                Picker("운동 주체", selection: $mode) {
+                    ForEach(Mode.allCases) { Text($0.rawValue).tag($0) }
+                }
+                .pickerStyle(.segmented)
+            }
             CalcSection(title: "입력값") {
                 CalcInputField(title: "원래 진동수 f", value: $f0, unit: "Hz")
                 CalcInputField(title: "음속 c", value: $c, unit: "m/s")
-                CalcInputField(title: "음원 속력 v_s (관측자 향함 +)",
-                               value: $vs, unit: "m/s")
-                CalcInputField(title: "관측자 속력 v_o (음원 향함 +)",
-                               value: $vo, unit: "m/s")
+                if mode != .observerOnly {
+                    CalcInputField(title: "음원 속력 v_s (관측자 향함 +)",
+                                   value: $vs, unit: "m/s")
+                }
+                if mode != .sourceOnly {
+                    CalcInputField(title: "관측자 속력 v_o (음원 향함 +)",
+                                   value: $vo, unit: "m/s")
+                }
             }
             PropertyDivider()
             CalcSection(title: "결과") {
-                if c - vs <= 1e-9 {
+                let evs = effectiveVs
+                let evo = effectiveVo
+                if c - evs <= 1e-9 {
                     CalcOutput(label: "f′",
                                value: "정의되지 않음 — 음원이 음속 이상",
                                emphasis: true)
                     Text("v_s ≥ c — 충격파(마하 콘) 발생 영역.")
                         .font(.caption).foregroundStyle(.orange)
                 } else {
-                    let fp = f0 * (c + vo) / (c - vs)
+                    let fp = f0 * (c + evo) / (c - evs)
                     CalcOutput(label: "관측 진동수 f′ = f · (c + v_o)/(c − v_s)",
                                value: String(format: "%.2f Hz", fp), emphasis: true)
                     CalcOutput(label: "주기 T′ = 1 / f′",
@@ -597,7 +634,7 @@ struct DopplerCalculator: View {
                                value: String(format: "%+.2f cents",
                                               1200 * log2(fp / f0)))
                     CalcOutput(label: "마하 수 v_s / c",
-                               value: String(format: "%.2f", vs / c))
+                               value: String(format: "%.2f", evs / c))
                 }
             }
             Text("부호 규약: 다가가는 방향이 +. 멀어지면 −. 빛(상대론) 도플러는 별도 공식.")
@@ -638,8 +675,9 @@ struct DoubleSlitCalculator: View {
                                emphasis: true)
                     CalcOutput(label: "회절 첫 영점 위치 y_a = λ·D / a",
                                value: String(format: "%.2f mm", ya * 1000))
+                    // 봉투 안에 들어가는 보강무늬의 대략적 개수 — 정수가 자연스러움.
                     CalcOutput(label: "봉투 안의 보강 무늬 수 (대략 2·d/a)",
-                               value: String(format: "%.2f 개", 2 * d / a))
+                               value: "\(Int((2 * d / a).rounded())) 개")
                     let θ1 = asin(min(1, λ / d))
                     CalcOutput(label: "첫 보강 회절각 θ₁ = arcsin(λ/d)",
                                value: String(format: "%.2f° (%.2f rad)",

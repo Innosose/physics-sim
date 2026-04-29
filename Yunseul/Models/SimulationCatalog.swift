@@ -251,20 +251,9 @@ enum SimulationCatalog {
 
 extension SimulationItem {
     /// 이 시뮬과 짝이 되는 계산기 토픽이 있으면 반환.
+    /// 매핑의 단일 소스는 `CalculatorTopic.simulationId` — 여기서는 역방향 조회.
     var calculatorTopic: CalculatorTopic? {
-        switch id {
-        case "freefall":    return .freefall
-        case "projectile":  return .projectile
-        case "pendulum":    return .pendulum
-        case "collision1d": return .collision
-        case "kepler":      return .kepler
-        case "doppler":     return .doppler
-        case "reflection":  return .refraction
-        case "lens":        return .lens
-        case "doubleslit":  return .slit
-        case "circuit":     return .ohm
-        default:            return nil
-        }
+        CalculatorTopic.allCases.first { $0.simulationId == id }
     }
 
     /// 시뮬의 계산 종류 — 닫힌 해 / 이벤트 기반 / 수치.
