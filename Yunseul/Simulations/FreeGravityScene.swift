@@ -23,7 +23,7 @@ struct FreeGravityScene: View {
     @State private var G: Double = 1.0
     @State private var bodies: [Star] = []
     @State private var trails: [UUID: [Vec2]] = [:]
-    private let trailMax = 800           // 더 길게 — 이미지처럼 긴 자취
+    private let trailMax = 400           // 시뮬레이터 GPU 부하 줄임 (800→400)
 
     @State private var running = true
     @State private var lastTime: TimeInterval? = nil
@@ -194,7 +194,7 @@ struct FreeGravityScene: View {
         var dt = now - last
         if dt > 0.05 { dt = 0.05 }
         lastTime = now
-        let sub = 30                       // 작은 dt 로 다체 안정성 확보
+        let sub = 20                       // 다체 안정 + 시뮬레이터 부하 여유
         let h = dt / Double(sub)
         for _ in 0..<sub { verletStep(h: h) }
 
@@ -285,7 +285,7 @@ struct FreeGravityScene: View {
                            width: 2 * extent, height: 2 * extent)
         let map = CanvasMap(view: size, world: world, padding: 16)
 
-        // 2) 트레일 — 외광 + 코어 두 번 stroke.
+        // 2) 트레일 — glow 외광 + 코어 두 stroke 패스 (3→2 로 줄임).
         for b in bodies {
             guard let trail = trails[b.id], trail.count > 1 else { continue }
             var path = Path()
@@ -293,12 +293,10 @@ struct FreeGravityScene: View {
                 let pt = map.point(p)
                 if i == 0 { path.move(to: pt) } else { path.addLine(to: pt) }
             }
-            // 외광 — 굵고 흐리게.
-            ctx.stroke(path, with: .color(b.color.opacity(0.18)),
-                       style: StrokeStyle(lineWidth: 6, lineCap: .round, lineJoin: .round))
-            ctx.stroke(path, with: .color(b.color.opacity(0.40)),
-                       style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
-            // 코어 — 얇고 진하게.
+            // 외광.
+            ctx.stroke(path, with: .color(b.color.opacity(0.30)),
+                       style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round))
+            // 코어.
             ctx.stroke(path, with: .color(b.color.opacity(0.95)),
                        style: StrokeStyle(lineWidth: 1.0, lineCap: .round, lineJoin: .round))
         }
