@@ -86,4 +86,21 @@ enum CalculatorTopic: String, CaseIterable, Identifiable, Hashable {
             return "파동·광학"
         }
     }
+
+    /// 이 계산기와 짝이 되는 시뮬레이션 ID. `SimulationCatalog.allItems` 의 id.
+    /// 계산기 화면 상단에 "이 시뮬로 보기" 버튼을 노출할 때 사용.
+    var simulationId: String? {
+        switch self {
+        case .freefall:   return "freefall"
+        case .projectile: return "projectile"
+        case .pendulum:   return "pendulum"
+        case .collision:  return "collision1d"
+        case .kepler:     return "kepler"
+        case .ohm:        return "circuit"
+        case .doppler:    return "doppler"
+        case .refraction: return "reflection"
+        case .lens:       return "lens"
+        case .slit:       return "doubleslit"
+        }
+    }
 }

@@ -174,6 +174,14 @@ enum SimulationCatalog {
         allItems.first { $0.id == id }!
     }
 
+    /// 시뮬이 속한 커리큘럼 — sidebar 선택을 동기화할 때 사용.
+    static func curriculum(of item: SimulationItem) -> Curriculum? {
+        for c in Curriculum.allCases where items(for: c).contains(where: { $0.id == item.id }) {
+            return c
+        }
+        return nil
+    }
+
     // MARK: - 커리큘럼별 목록
 
     static func items(for c: Curriculum) -> [SimulationItem] {
@@ -334,5 +342,28 @@ extension EnvironmentValues {
     var openCalculator: OpenCalculatorAction {
         get { self[OpenCalculatorKey.self] }
         set { self[OpenCalculatorKey.self] = newValue }
+    }
+}
+
+// MARK: - 시뮬 열기 액션 (계산기 → 시뮬)
+
+/// 계산기에서 짝이 되는 시뮬로 점프할 때 호출하는 환경 액션.
+/// `OpenCalculatorAction` 의 거울짝 — 계산기에서 "이 시뮬로 보기" 버튼이 호출.
+struct OpenSimulationAction: @unchecked Sendable {
+    let action: ((SimulationItem) -> Void)?
+
+    func callAsFunction(_ item: SimulationItem) {
+        action?(item)
+    }
+}
+
+private struct OpenSimulationKey: EnvironmentKey {
+    static let defaultValue = OpenSimulationAction(action: nil)
+}
+
+extension EnvironmentValues {
+    var openSimulation: OpenSimulationAction {
+        get { self[OpenSimulationKey.self] }
+        set { self[OpenSimulationKey.self] = newValue }
     }
 }

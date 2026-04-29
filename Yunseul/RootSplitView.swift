@@ -71,6 +71,12 @@ struct RootSplitView: View {
                 .navigationBarTitleDisplayMode(.inline)
         case .calculator(let topic):
             CalculatorView(topic: topic)
+                .environment(\.openSimulation, OpenSimulationAction { item in
+                    // 시뮬로 점프 — sidebar 도 해당 시뮬의 학년으로 옮김.
+                    let c = SimulationCatalog.curriculum(of: item) ?? .free
+                    sidebarSelection = .curriculum(c)
+                    detailSelection = .simulation(item)
+                })
         case nil:
             WelcomeDetail()
         }

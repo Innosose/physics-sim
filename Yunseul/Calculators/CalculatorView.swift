@@ -46,6 +46,7 @@ struct CalculatorView: View {
 /// 토픽 헤더 — ConceptCard 와 같은 톤.
 private struct CalcHeader: View {
     let topic: CalculatorTopic
+    @Environment(\.openSimulation) private var openSimulation
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -58,6 +59,17 @@ private struct CalcHeader: View {
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(Theme.ink)
                 Spacer(minLength: 0)
+                if let simId = topic.simulationId {
+                    let item = SimulationCatalog.item(simId)
+                    Button {
+                        openSimulation(item)
+                    } label: {
+                        Label("시뮬로 보기", systemImage: "play.rectangle")
+                            .font(.caption.weight(.semibold))
+                    }
+                    .buttonStyle(.glass)
+                    .accessibilityLabel("이 계산기의 시뮬 — \(item.title) 열기")
+                }
             }
             Text(topic.formula)
                 .font(.system(.footnote, design: .monospaced).weight(.medium))
