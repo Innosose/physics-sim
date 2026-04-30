@@ -40,12 +40,6 @@ struct MotionGraphScene: View {
             LabeledSlider(title: "가속도 a", value: $a, range: -3...4,
                           format: "%.2f", unit: "m/s²")
             PlayResetBar(running: $running, onReset: { startTime = Date(); running = true }, resetLabel: "처음부터")
-            Divider()
-            let t = max(0, Date().timeIntervalSince(startTime))
-            Readout(label: "현재 t", value: String(format: "%.2f s", t))
-            Readout(label: "등속 x₁", value: String(format: "%.2f m", x1(t)))
-            Readout(label: "등가속도 x₂", value: String(format: "%.2f m", x2(t)))
-            Readout(label: "등가속도 v₂", value: String(format: "%.2f m/s", v0 + a * t))
         }
     }
 

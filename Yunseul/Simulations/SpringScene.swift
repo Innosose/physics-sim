@@ -66,15 +66,6 @@ struct SpringScene: View {
             PlayResetBar(running: $running,
                          onReset: { startTime = Date() },
                          resetLabel: "처음부터")
-            Divider()
-            Readout(label: "고유진동수 ω₀",
-                    value: String(format: "%.2f rad/s", omega0))
-            Readout(label: "감쇠비 ζ",
-                    value: String(format: "%.2f  (%@)", zeta, dampingRegimeLabel))
-            Readout(label: "정상상태 진폭 X",
-                    value: String(format: "%.2f m", steadyAmplitude))
-            Readout(label: "현재 위치 x(t)",
-                    value: String(format: "%+.2f m", state(at: max(0, Date().timeIntervalSince(startTime)))))
         }
     }
 

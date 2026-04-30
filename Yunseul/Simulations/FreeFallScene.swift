@@ -39,23 +39,6 @@ struct FreeFallScene: View {
             LabeledSlider(title: "중력 g", value: $gravity,
                           range: 1.62...24.79, format: "%.2f", unit: "m/s²")
             PlayResetBar(running: $running, onReset: { startTime = Date(); running = true }, resetLabel: "처음부터")
-            Divider()
-            let t = elapsed(at: Date())
-            let s = state(at: t)
-            Readout(label: "시간 t", value: String(format: "%.2f s", t))
-            Readout(label: "높이 y", value: String(format: "%.2f m", s.y))
-            Readout(label: "속도 v", value: String(format: "%+.2f m/s", s.v))
-            // 최고점에 도달하는 시각·높이 (해석해).
-            if initialVelocity > 0 {
-                let tApex = initialVelocity / gravity
-                let yApex = initialHeight + initialVelocity * tApex - 0.5 * gravity * tApex * tApex
-                Readout(label: "최고점 시각", value: String(format: "%.2f s", tApex))
-                Readout(label: "최고점 높이", value: String(format: "%.2f m", yApex))
-            }
-            // 바닥(y=0)에 닿는 시각.
-            if let tg = groundTime() {
-                Readout(label: "바닥 도달 시각", value: String(format: "%.2f s", tg))
-            }
         }
     }
 

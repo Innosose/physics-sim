@@ -36,18 +36,6 @@ struct DopplerScene: View {
             LabeledSlider(title: "방출 진동수 f", value: $freq, range: 0.5...4,
                           format: "%.2f", unit: "Hz")
             PlayResetBar(running: $running, onReset: { startTime = Date(); running = true }, resetLabel: "처음부터")
-            Divider()
-            let mach = sourceSpeed / soundSpeed
-            Readout(label: "마하 수 v_s / c", value: String(format: "%.2f", mach))
-            if sourceSpeed < soundSpeed {
-                let fFront = freq * soundSpeed / (soundSpeed - sourceSpeed)
-                let fRear  = freq * soundSpeed / (soundSpeed + sourceSpeed)
-                Readout(label: "앞쪽 관측 f′", value: String(format: "%.2f Hz", fFront))
-                Readout(label: "뒤쪽 관측 f′", value: String(format: "%.2f Hz", fRear))
-            } else {
-                Text("초음속 — 마하 원뿔의 평면 단면이 보입니다.")
-                    .font(.caption).foregroundStyle(.secondary)
-            }
         }
     }
 

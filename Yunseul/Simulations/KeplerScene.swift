@@ -54,22 +54,6 @@ struct KeplerScene: View {
             PlayResetBar(running: $running,
                          onReset: { startTime = Date() },
                          resetLabel: "처음부터")
-            Divider()
-            let circ = sqrt(GM / r0)
-            let esc  = sqrt(2 * GM / r0)
-            Readout(label: "원궤도 속력",   value: String(format: "%.2f", circ))
-            Readout(label: "탈출속력",     value: String(format: "%.2f", esc))
-            if let p = orbitParams {
-                Readout(label: "반장축 a", value: String(format: "%.2f", p.a))
-                Readout(label: "이심률 e", value: String(format: "%.2f", p.e))
-                let T = 2 * .pi * sqrt(p.a * p.a * p.a / GM)
-                Readout(label: "주기 T",   value: String(format: "%.2f", T))
-                let pos = position(at: max(0, Date().timeIntervalSince(startTime)))
-                Readout(label: "현재 r",   value: String(format: "%.2f", pos.length))
-            } else {
-                Text("탈출 궤도 — v₀ ≥ 탈출속력")
-                    .font(.caption).foregroundStyle(.orange)
-            }
         }
     }
 

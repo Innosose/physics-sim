@@ -55,11 +55,7 @@ struct FreeCollisionScene: View {
     @State private var newRadius: Double = 0.05
     @State private var gravity: Double = 0.0     // 0 = 중력 없음 (당구대처럼)
     @State private var running = true
-    @State private var collisionCount: Int = 0
     @State private var lastTime: TimeInterval? = nil
-    /// 보존량 드리프트 검증을 위한 초기값 — 프리셋/탭으로 입자 구성이 바뀔 때 갱신.
-    @State private var baselineMomentum: Double = 0
-    @State private var baselineKE: Double = 0
 
     var body: some View {
         SimChrome(
@@ -106,49 +102,17 @@ struct FreeCollisionScene: View {
             LabeledSlider(title: "중력 g (아래쪽)", value: $gravity,
                           range: 0...3, format: "%.2f")
             HStack {
-                Button("3개 충돌") { resetWith(preset3()) }
+                Button("3개 충돌") { particles = preset3() }
                     .buttonStyle(.glass)
-                Button("뉴턴 요람") { resetWith(presetCradle()) }
+                Button("뉴턴 요람") { particles = presetCradle() }
                     .buttonStyle(.glass)
-                Button("무작위 12") { resetWith(randomMany(12)) }
+                Button("무작위 12") { particles = randomMany(12) }
                     .buttonStyle(.glass)
             }
             PlayResetBar(running: $running,
-                         onReset: { resetWith([]) },
+                         onReset: { particles.removeAll() },
                          resetLabel: "비우기")
-            Divider()
-            let p = totalMomentum
-            let ke = totalKE
-            Readout(label: "입자 수", value: "\(particles.count)")
-            Readout(label: "총 운동량 |p|",
-                    value: String(format: "%.2f kg·m/s", p.length))
-            Readout(label: "총 운동량 (벡터)",
-                    value: String(format: "(%.2f, %.2f)", p.x, p.y))
-            Readout(label: "총 운동에너지",
-                    value: String(format: "%.2f J", ke))
-            Readout(label: "충돌 횟수", value: "\(collisionCount)")
-            // 보존량 검증 — 초기값 대비 드리프트.
-            // 운동량은 항상 보존되어야 하므로 ≈ 0 이어야 정상 (수치 오차만큼).
-            // 에너지는 e<1 충돌마다 감소 → 음의 드리프트가 정상.
-            if baselineMomentum > 1e-6 {
-                let dp = (p.length - baselineMomentum) / baselineMomentum * 100
-                Readout(label: "운동량 보존 |Δp|/|p₀|",
-                        value: String(format: "%+.2f %%", dp))
-            }
-            if baselineKE > 1e-6 {
-                let dke = (ke - baselineKE) / baselineKE * 100
-                Readout(label: "에너지 변화 ΔE/E₀",
-                        value: String(format: "%+.2f %%", dke))
-            }
         }
-    }
-
-    /// 새 입자 구성으로 갈아끼우면서 충돌 카운터·보존량 베이스라인 재설정.
-    private func resetWith(_ next: [Particle]) {
-        particles = next
-        collisionCount = 0
-        baselineMomentum = next.reduce(Vec2.zero) { $0 + $1.vel * $1.mass }.length
-        baselineKE = next.reduce(0) { $0 + 0.5 * $1.mass * $1.vel.lengthSquared }
     }
 
     // MARK: - 프리셋
@@ -211,15 +175,6 @@ struct FreeCollisionScene: View {
             material: selectedMaterial))
     }
 
-    // MARK: - 보존량
-
-    private var totalMomentum: Vec2 {
-        particles.reduce(.zero) { $0 + $1.vel * $1.mass }
-    }
-    private var totalKE: Double {
-        particles.reduce(0) { $0 + 0.5 * $1.mass * $1.vel.lengthSquared }
-    }
-
     // MARK: - 적분
 
     private func advance(to now: TimeInterval) {
@@ -279,7 +234,6 @@ struct FreeCollisionScene: View {
                         let J = (1 + e) * mu * vn
                         particles[i].vel = particles[i].vel + n̂ * (J / m1)
                         particles[j].vel = particles[j].vel - n̂ * (J / m2)
-                        collisionCount += 1
                     }
                     // 침투 보정 (질량 비율).
                     let m1 = particles[i].mass, m2 = particles[j].mass

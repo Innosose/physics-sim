@@ -18,7 +18,6 @@ struct CollisionScene: View {
     @State private var u1: Double = 0
     @State private var u2: Double = 0
     @State private var lastTime: TimeInterval? = nil
-    @State private var hasCollided = false
 
     private let halfWidth = 0.4   // 카트의 반-폭 (m)
     private let trackHalf = 6.0   // m
@@ -55,22 +54,13 @@ struct CollisionScene: View {
             LabeledSlider(title: "초속 v₂", value: $v2, range: -8...8, format: "%.2f", unit: "m/s")
             LabeledSlider(title: "반발계수 e", value: $restitution, range: 0...1, format: "%.2f")
             PlayResetBar(running: $running, onReset: reset)
-            Divider()
-            let p = m1 * u1 + m2 * u2
-            let ke = 0.5 * m1 * u1 * u1 + 0.5 * m2 * u2 * u2
-            Readout(label: "u₁", value: String(format: "%.2f m/s", u1))
-            Readout(label: "u₂", value: String(format: "%.2f m/s", u2))
-            Readout(label: "총 운동량 p",  value: String(format: "%.2f kg·m/s", p))
-            Readout(label: "총 운동에너지 KE", value: String(format: "%.2f J", ke))
-            Text(hasCollided ? "충돌 후" : "충돌 전")
-                .font(.caption).foregroundStyle(.secondary)
         }
     }
 
     // MARK: - 동역학
 
     private func reset() {
-        x1 = -3; x2 = 3; u1 = v1; u2 = v2; lastTime = nil; hasCollided = false
+        x1 = -3; x2 = 3; u1 = v1; u2 = v2; lastTime = nil
     }
 
     private func advance(to now: TimeInterval) {
@@ -93,7 +83,6 @@ struct CollisionScene: View {
             let pen = 2 * halfWidth - (x2 - x1)
             x1 -= pen / 2
             x2 += pen / 2
-            hasCollided = true
         }
 
         // 트랙 양 끝에서 반사 (시뮬을 화면 안에 가두기 위함).

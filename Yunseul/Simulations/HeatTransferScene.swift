@@ -57,19 +57,6 @@ struct HeatTransferScene: View {
             PlayResetBar(running: $running,
                          onReset: { startTime = Date() },
                          resetLabel: "처음부터")
-            Divider()
-            let t = max(0, Date().timeIntervalSince(startTime))
-            let s = state(at: t)
-            Readout(label: "평형 온도 T_eq",
-                    value: String(format: "%.2f °C", Teq))
-            Readout(label: "시상수 τ",
-                    value: String(format: "%.2f s", tau))
-            Readout(label: "현재 t",
-                    value: String(format: "%.2f s", t))
-            Readout(label: "T₁(t) (분석해)",
-                    value: String(format: "%.2f °C", s.T1))
-            Readout(label: "T₂(t) (분석해)",
-                    value: String(format: "%.2f °C", s.T2))
         }
     }
 

@@ -57,21 +57,6 @@ struct RLCScene: View {
             PlayResetBar(running: $running,
                          onReset: { startTime = Date() },
                          resetLabel: "처음부터")
-            Divider()
-            Readout(label: "공명 ω₀ = 1/√(LC)",
-                    value: String(format: "%.2f rad/s", omega0))
-            Readout(label: "X_L = ωL",
-                    value: String(format: "%.2f Ω", omega * L))
-            Readout(label: "X_C = 1/(ωC)",
-                    value: String(format: "%.2f Ω", 1 / (omega * C)))
-            let XL = omega * L, XC = 1 / (omega * C)
-            let Z = sqrt(R * R + (XL - XC) * (XL - XC))
-            let phi = atan2(XL - XC, R)
-            Readout(label: "|Z|", value: String(format: "%.2f Ω", Z))
-            Readout(label: "위상 φ", value: String(format: "%+.2f°", phi * 180 / .pi))
-            Readout(label: "전류 i(t)",
-                    value: String(format: "%+.2f A",
-                                  state(at: max(0, Date().timeIntervalSince(startTime))).i))
         }
     }
 

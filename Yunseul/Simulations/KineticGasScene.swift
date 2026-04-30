@@ -11,25 +11,15 @@ struct KineticGasScene: View {
     @State private var running = true
 
     /// 물리 상태는 reference type 에 보관 — N체와 같은 패턴.
-    /// `@State` 로 두면 입자·히스토그램이 매 advance 마다 SwiftUI diff 를 트리거
-    /// → 입자 수·bin 수가 늘면 부하 폭증. Canvas 는 TimelineView tick 으로 재실행되므로
-    /// 관찰 불필요.
     private final class World {
         var particles: [Particle] = []
         var histAcc: [Double] = []
         var lastTime: TimeInterval? = nil
-        var baselineKE: Double = 0
-        /// readout 갱신 throttle 용 카운터.
-        var framesSinceDisplayBump: Int = 0
     }
 
     @State private var world = World()
-    /// reset/preset 로 Canvas 를 강제 재생성할 때 .id() 에 묶음 — 애니메이션 중엔 변하지 않음.
+    /// reset/preset 로 Canvas 를 강제 재생성할 때 .id() 에 묶음.
     @State private var redrawTick: Int = 0
-    /// controls 패널의 readout(평균 속력·KE·ΔE) 을 ~10 Hz 로 갱신하기 위한 tick.
-    /// world 가 class 라 내부 mutation 만으로는 SwiftUI 재렌더가 안 일어남 — 이 값을
-    /// throttled 로 bump 해 body 재계산을 유도.
-    @State private var displayTick: Int = 0
 
     private let radius = 0.012
     private let mass = 1.0
@@ -38,11 +28,8 @@ struct KineticGasScene: View {
     struct Particle { var pos: Vec2; var vel: Vec2 }
 
     var body: some View {
-        // displayTick 을 명시적으로 read — SwiftUI 가 이 @State 의 변경을 의존성으로
-        // 잡아 controls 패널의 readout 을 ~10 Hz 로 갱신하도록 보장.
-        let _ = displayTick
-        return SimChrome(
-                  blurb: "초기에 모두 같은 속력이라도, 충돌만으로 속력 분포는 맥스웰–볼츠만 모양으로 수렴. 각 충돌은 닫힌 해 임펄스, 사이는 등속 — 구간별 닫힌 해. 평형 분포 자체는 통계역학의 닫힌 해.",
+        SimChrome(
+                  blurb: "초기에 모두 같은 속력이라도, 충돌만으로 속력 분포는 맥스웰–볼츠만 모양으로 수렴.",
                   canvas: { canvas },
                   controls: { controls })
             .onAppear { reset() }
@@ -74,19 +61,6 @@ struct KineticGasScene: View {
                           format: "%.2f")
             Toggle("왼쪽 벽 가열 (열 흐름 관찰)", isOn: $heaterOn)
             PlayResetBar(running: $running, onReset: reset)
-            Divider()
-            let speeds = world.particles.map { $0.vel.length }
-            let mean = speeds.isEmpty ? 0 : speeds.reduce(0, +) / Double(speeds.count)
-            let ke = world.particles.reduce(0) { $0 + 0.5 * mass * $1.vel.lengthSquared }
-            Readout(label: "평균 속력 ⟨|v|⟩", value: String(format: "%.2f", mean))
-            Readout(label: "총 운동에너지", value: String(format: "%.2f", ke))
-            // 보존량 검증 — 벽은 탄성 (heaterOn 제외) 이라 ΔE/E₀ ≈ 0 이어야 정상.
-            // heaterOn 일 때는 왼쪽 벽이 매 충돌 ×1.02 → KE 가 단조 증가해야 함.
-            if world.baselineKE > 1e-6 {
-                let dke = (ke - world.baselineKE) / world.baselineKE * 100
-                Readout(label: heaterOn ? "에너지 증가 (가열)" : "에너지 변화 ΔE/E₀",
-                        value: String(format: "%+.2f %%", dke))
-            }
         }
     }
 
@@ -118,7 +92,6 @@ struct KineticGasScene: View {
         world.particles = arr
         world.histAcc = [Double](repeating: 0, count: histBins)
         world.lastTime = nil
-        world.baselineKE = arr.reduce(0) { $0 + 0.5 * mass * $1.vel.lengthSquared }
         redrawTick &+= 1
     }
 
@@ -140,14 +113,6 @@ struct KineticGasScene: View {
         for p in world.particles {
             let bin = min(histBins - 1, Int(p.vel.length / maxV * Double(histBins)))
             world.histAcc[bin] += 1
-        }
-
-        // readout 갱신 — 6 프레임마다 (≈ 10 Hz). 매 프레임 bump 하면 reference type
-        // 으로 옮긴 의미가 사라지고, 안 bump 하면 controls 패널이 얼어붙음.
-        world.framesSinceDisplayBump += 1
-        if world.framesSinceDisplayBump >= 6 {
-            world.framesSinceDisplayBump = 0
-            displayTick &+= 1
         }
     }
 

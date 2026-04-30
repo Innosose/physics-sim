@@ -65,8 +65,7 @@ struct SimChrome<Canvas: View, Controls: View>: View {
     }
 
     private func propertiesPanel(width: CGFloat?) -> some View {
-        // 단순화 — 교육과정/공식 카드 + 컨트롤 만. PROPERTIES 헤더 제거,
-        // blurb 도 없으면 표시하지 않음.
+        // 단원 위치 행 + blurb (있으면) + 컨트롤. 수식·정확한 값은 표시하지 않음.
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 14) {
                 if let item {
@@ -93,65 +92,39 @@ struct SimChrome<Canvas: View, Controls: View>: View {
     }
 }
 
-// MARK: - ConceptCard — 교육과정 + 공식
+// MARK: - ConceptCard — 교육과정 위치 + 계산 종류 배지
 
-/// 시뮬 화면 properties 패널 상단에 고정으로 보여주는 정보 카드.
-///
-/// GeoGebra 의 "이론" 영역처럼, 이 시뮬이 "어느 단원의 무엇" 인지 명시적으로
-/// 짚어주고 핵심 공식을 모노스페이스 박스로 강조한다.
+/// 시뮬 화면 properties 패널 상단에 고정으로 보여주는 정보 행.
+/// 단원 위치 + 계산 종류 배지만. 수식·정확한 값은 표시하지 않음 — 시뮬은 보는 용도.
 struct ConceptCard: View {
     let item: SimulationItem
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            // 교육과정 칩 + 계산 종류 배지.
-            HStack(spacing: 6) {
-                Image(systemName: "graduationcap.fill")
-                    .imageScale(.small)
-                    .foregroundStyle(Theme.glow)
-                    .accessibilityHidden(true)
-                Text(item.curriculum)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(Theme.ink)
-                    .lineLimit(2)
-                Spacer(minLength: 0)
-                CalcKindBadge(kind: item.calcKind)
-            }
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel("교육과정 위치: \(item.curriculum). 계산 종류: \(item.calcKind.label).")
-
-            // 공식 박스 — GeoGebra 의 수식 영역처럼 강조.
-            // 줄바꿈을 허용하고, 한 줄짜리 짧은 공식은 자연스럽게 한 줄에 들어간다.
-            // (`minimumScaleFactor` 는 lineLimit(1) 와 함께일 때만 의미 — 여기선
-            // wrap 으로 처리.)
-            Text(item.formula)
-                .font(.system(.footnote, design: .monospaced).weight(.medium))   // HIG: Dynamic Type
+        HStack(spacing: 6) {
+            Image(systemName: "graduationcap.fill")
+                .imageScale(.small)
+                .foregroundStyle(Theme.glow)
+                .accessibilityHidden(true)
+            Text(item.curriculum)
+                .font(.caption.weight(.semibold))
                 .foregroundStyle(Theme.ink)
-                .lineSpacing(3)
-                .textSelection(.enabled)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 10)
-                .background(
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(Theme.crest.opacity(0.55))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .stroke(Theme.glow.opacity(0.22), lineWidth: 1)
-                )
-                .accessibilityLabel("핵심 공식: \(item.formula)")
+                .lineLimit(2)
+            Spacer(minLength: 0)
+            CalcKindBadge(kind: item.calcKind)
         }
-        .padding(12)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
                 .fill(Theme.surface.opacity(0.55))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
                 .stroke(Theme.stroke, lineWidth: 1)
         )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("교육과정 위치: \(item.curriculum). 계산 종류: \(item.calcKind.label).")
     }
 }
 
@@ -225,24 +198,6 @@ struct LabeledSlider: View {
             Slider(value: $value, in: range,
                    onEditingChanged: onEditingChanged)
         }
-    }
-}
-
-/// 한 줄 측정값.
-struct Readout: View {
-    let label: String
-    let value: String
-    var body: some View {
-        HStack {
-            Text(label)
-                .font(.caption)
-                .foregroundStyle(Theme.mist)
-            Spacer()
-            Text(value)
-                .font(.themeMono)
-                .foregroundStyle(Theme.ink)
-        }
-        .padding(.vertical, 1)
     }
 }
 

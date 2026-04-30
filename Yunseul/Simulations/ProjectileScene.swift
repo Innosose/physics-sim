@@ -94,12 +94,6 @@ struct ProjectileScene: View {
             PlayResetBar(running: $running,
                          onReset: { startTime = Date(); running = true },
                          resetLabel: "다시 발사")
-            Divider()
-            let tt = Date().timeIntervalSince(startTime)
-            let p = trajectoryPoint(t: tt, drag: drag)
-            Readout(label: "비행시간 t", value: String(format: "%.2f s", tt))
-            Readout(label: "x (m)", value: String(format: "%.2f", p.x))
-            Readout(label: "y (m)", value: String(format: "%.2f", p.y))
         }
     }
 

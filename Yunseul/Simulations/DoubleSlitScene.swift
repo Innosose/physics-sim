@@ -34,13 +34,6 @@ struct DoubleSlitScene: View {
             LabeledSlider(title: "막까지 거리 D", value: $screenDist, range: 0.3...3,
                           format: "%.2f", unit: "m")
             Toggle("회절 봉투 표시", isOn: $showEnvelope)
-            Divider()
-            // 첫 번째 보강 무늬 위치 y₁ = λ D / d.
-            let y1 = wavelength * 1e-9 * screenDist / (slitSep * 1e-9)
-            Readout(label: "이웃 무늬 간격", value: String(format: "%.2f mm", y1 * 1000))
-            // 첫 번째 회절 영점 y_a = λ D / a.
-            let ya = wavelength * 1e-9 * screenDist / (slitWidth * 1e-9)
-            Readout(label: "회절 첫 영점", value: String(format: "%.2f mm", ya * 1000))
         }
     }
 

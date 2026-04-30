@@ -38,22 +38,6 @@ struct CircuitScene: View {
                           format: "%.2f", unit: "Ω")
             LabeledSlider(title: "저항 R₂", value: $R2, range: 0.5...30,
                           format: "%.2f", unit: "Ω")
-            Divider()
-            let r = result
-            Readout(label: "합성 저항 R_eq",
-                    value: String(format: "%.2f Ω", r.Req))
-            Readout(label: "전체 전류 I",
-                    value: String(format: "%.2f A", r.I))
-            Readout(label: mode == .series ? "R₁ 양단 전압" : "R₁ 전류",
-                    value: mode == .series
-                        ? String(format: "%.2f V", r.q1)
-                        : String(format: "%.2f A", r.q1))
-            Readout(label: mode == .series ? "R₂ 양단 전압" : "R₂ 전류",
-                    value: mode == .series
-                        ? String(format: "%.2f V", r.q2)
-                        : String(format: "%.2f A", r.q2))
-            Readout(label: "총 전력 P = VI",
-                    value: String(format: "%.2f W", emf * r.I))
         }
     }
 

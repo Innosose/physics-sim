@@ -60,25 +60,6 @@ struct PendulumScene: View {
             PlayResetBar(running: $running,
                          onReset: { startTime = Date() },
                          resetLabel: "처음부터")
-            Divider()
-            let ω0 = sqrt(gravity / length)
-            let T0 = 2 * .pi / ω0
-            let θmax = initialAngleDeg * .pi / 180
-            let k = sin(θmax / 2)
-            let TNL = 4 * ellipticK(k: k) / ω0
-            Readout(label: "고유진동수 ω₀ = √(g/L)",
-                    value: String(format: "%.2f rad/s", ω0))
-            Readout(label: "선형 주기 T₀ = 2π/ω₀",
-                    value: String(format: "%.2f s", T0))
-            Readout(label: "비선형 주기 T = 4·K(k)/ω₀",
-                    value: String(format: "%.2f s", TNL))
-            Readout(label: "차이 ΔT / T₀",
-                    value: String(format: "%+.2f %%", (TNL - T0) / T0 * 100))
-            let t = max(0, Date().timeIntervalSince(startTime))
-            Readout(label: "비선형 θ(t)",
-                    value: String(format: "%+.2f°", nonlinearTheta(at: t) * 180 / .pi))
-            Readout(label: "선형 θ(t)",
-                    value: String(format: "%+.2f°", linearTheta(at: t) * 180 / .pi))
         }
     }
 

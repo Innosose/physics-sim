@@ -31,26 +31,6 @@ struct ReflectionScene: View {
                           format: "%.2f")
             LabeledSlider(title: "아래쪽 매질 굴절률 n₂", value: $n2, range: 1.0...2.5,
                           format: "%.2f")
-            Divider()
-            let θ1 = incidenceDeg * .pi / 180
-            let sin2 = n1 * sin(θ1) / n2
-            if sin2 <= 1 + 1e-9 {
-                let θ2 = asin(min(1, max(-1, sin2)))
-                Readout(label: "굴절각 θ₂",
-                        value: String(format: "%.2f°", θ2 * 180 / .pi))
-            } else {
-                Text("전반사 — 굴절광선 없음")
-                    .font(.callout.weight(.semibold))
-                    .foregroundStyle(.orange)
-            }
-            if n1 > n2 {
-                let θc = asin(n2 / n1) * 180 / .pi
-                Readout(label: "임계각 θ_c",
-                        value: String(format: "%.2f°", θc))
-            } else {
-                Text("n₁ ≤ n₂ — 임계각 없음 (이 방향에서는 전반사 불가)")
-                    .font(.caption).foregroundStyle(.secondary)
-            }
         }
     }
 

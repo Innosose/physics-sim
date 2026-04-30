@@ -63,22 +63,6 @@ struct LorentzScene: View {
             PlayResetBar(running: $running,
                          onReset: { startTime = Date() },
                          resetLabel: "처음부터")
-            Divider()
-            let omegaC = charge * Bz / mass
-            let vd = driftVelocity
-            let v0 = Vec2(x: initialVx, y: initialVy)
-            let r = abs(omegaC) > 1e-6
-                ? (v0 - vd).length / abs(omegaC)
-                : .infinity
-            Readout(label: "사이클로트론 ω_c",
-                    value: String(format: "%+.2f rad/s", omegaC))
-            Readout(label: "자이로 반지름",
-                    value: r.isFinite ? String(format: "%.2f m", r) : "∞")
-            Readout(label: "표류 속도 v_d",
-                    value: String(format: "(%+.2f, %+.2f) m/s", vd.x, vd.y))
-            let p = position(at: max(0, Date().timeIntervalSince(startTime)))
-            Readout(label: "현재 r(t)",
-                    value: String(format: "(%+.2f, %+.2f) m", p.x, p.y))
         }
     }
 
