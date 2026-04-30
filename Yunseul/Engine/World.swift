@@ -113,32 +113,41 @@ final class World {
 
     private func applyBounds() {
         guard let b = bounds else { return }
+        let dead = b.restitution < 0.05
         for i in bodies.indices where !bodies[i].pinned {
             let r = bodies[i].radius
+            var hit = false
             if bodies[i].pos.x < b.min.x + r {
                 bodies[i].pos.x = b.min.x + r
                 bodies[i].vel.x = abs(bodies[i].vel.x) * b.restitution
+                hit = true
             }
             if bodies[i].pos.x > b.max.x - r {
                 bodies[i].pos.x = b.max.x - r
                 bodies[i].vel.x = -abs(bodies[i].vel.x) * b.restitution
+                hit = true
             }
             if bodies[i].pos.y < b.min.y + r {
                 bodies[i].pos.y = b.min.y + r
                 bodies[i].vel.y = abs(bodies[i].vel.y) * b.restitution
+                hit = true
             }
             if bodies[i].pos.y > b.max.y - r {
                 bodies[i].pos.y = b.max.y - r
                 bodies[i].vel.y = -abs(bodies[i].vel.y) * b.restitution
+                hit = true
             }
             if bodies[i].pos.z < b.min.z + r {
                 bodies[i].pos.z = b.min.z + r
                 bodies[i].vel.z = abs(bodies[i].vel.z) * b.restitution
+                hit = true
             }
             if bodies[i].pos.z > b.max.z - r {
                 bodies[i].pos.z = b.max.z - r
                 bodies[i].vel.z = -abs(bodies[i].vel.z) * b.restitution
+                hit = true
             }
+            if hit && dead { bodies[i].vel = .zero }
         }
     }
 

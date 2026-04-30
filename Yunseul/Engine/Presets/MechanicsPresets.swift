@@ -51,7 +51,7 @@ enum MechanicsPresets {
         w.restitution = 1.0
         w.bounds = Bounds(min: Vec3(x: -8, y: -1, z: -2),
                           max: Vec3(x: 8, y: 4, z: 2),
-                          restitution: 1.0)
+                          restitution: 0)
         w.bodies = [
             PhysicsBody(pos: Vec3(x: -3, y: 0.5, z: 0),
                         vel: Vec3(x: 3, y: 0, z: 0),
