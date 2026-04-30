@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// 교육과정 단계 — 윤슬은 **중·고등학생** 대상이고, 그 위에 자유 샌드박스가 더해진다.
+/// 사이드바 분류 — 윤슬은 **중·고등학생** 대상이고, 그 위에 샌드박스가 더해진다.
 enum Curriculum: String, CaseIterable, Identifiable, Hashable {
     case middle = "중학교"
     case high   = "고등학교"
@@ -17,7 +17,7 @@ enum Curriculum: String, CaseIterable, Identifiable, Hashable {
         }
     }
 
-    /// 강조색 — 학년이 올라갈수록 차분한 톤.
+    /// 강조색 — 분류 단계가 올라갈수록 차분한 톤.
     var accent: Color {
         switch self {
         case .middle: return Color(red: 0.30, green: 0.74, blue: 0.85)
