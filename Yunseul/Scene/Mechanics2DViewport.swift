@@ -27,7 +27,7 @@ struct Mechanics2DViewport: View {
                 .onChange(of: nBodyVariant) { _, _ in reset() }
             }
 
-            TimelineView(.animation(paused: !running)) { tl in
+            TimelineView(.animation) { tl in
                 Canvas { ctx, size in
                     draw(ctx: ctx, size: size)
                 }

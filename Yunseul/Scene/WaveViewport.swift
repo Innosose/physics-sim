@@ -29,7 +29,7 @@ private struct WaveSumView: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            TimelineView(.animation(paused: !running)) { tl in
+            TimelineView(.animation) { tl in
                 Canvas { ctx, size in
                     draw(ctx: ctx, size: size, t: elapsed)
                 }
@@ -152,7 +152,7 @@ private struct DopplerView: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            TimelineView(.animation(paused: !running)) { tl in
+            TimelineView(.animation) { tl in
                 Canvas { ctx, size in
                     draw(ctx: ctx, size: size, t: elapsed)
                 }
