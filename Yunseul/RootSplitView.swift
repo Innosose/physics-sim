@@ -128,8 +128,7 @@ private struct Sidebar: View {
         .navigationTitle("윤슬")
         .navigationBarTitleDisplayMode(.inline)
         .scrollContentBackground(.hidden)
-        .background(YunseulBackground(topGlow: Theme.glow.opacity(0.10),
-                                       stars: false))
+        .background(YunseulBackground(topGlow: Theme.glow.opacity(0.10)))
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button { showSettings = true } label: {
@@ -143,36 +142,17 @@ private struct Sidebar: View {
 
 private struct YunseulBrand: View {
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 8) {
-                LogoOrFallback().frame(width: 22, height: 22)
-                Text("YUNSEUL")
-                    .font(.system(.caption2, design: .monospaced).weight(.bold))
-                    .tracking(3)
-                    .foregroundStyle(Theme.mist)
-            }
+        VStack(alignment: .leading, spacing: 2) {
             Text("윤슬")
                 .font(.title.bold())
                 .foregroundStyle(Theme.ink)
             Text("물리를 눈으로 보는 시뮬")
                 .font(.caption)
                 .foregroundStyle(Theme.mist)
-            RippleAccent()
-                .frame(width: 72, height: 8)
-                .padding(.top, 2)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("윤슬. 물리를 눈으로 보는 시뮬레이션 모음.")
-    }
-}
-
-private struct LogoOrFallback: View {
-    var body: some View {
-        ZStack {
-            Circle().fill(Theme.glow).accessibilityHidden(true)
-            Image("AppLogo").resizable().scaledToFit()
-        }
     }
 }
 
@@ -224,8 +204,7 @@ private struct SimList: View {
         }
         .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
-        .background(YunseulBackground(
-            topGlow: curriculum.accent.opacity(0.10), stars: false))
+        .background(YunseulBackground(topGlow: curriculum.accent.opacity(0.10)))
         .navigationTitle(curriculum.rawValue)
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -268,24 +247,20 @@ private struct SimRow: View {
 private struct WelcomeDetail: View {
     var body: some View {
         ZStack {
-            YunseulBackground(topGlow: Theme.glow.opacity(0.18), stars: true)
-            VStack(spacing: 14) {
+            YunseulBackground(topGlow: Theme.glow.opacity(0.10))
+            VStack(spacing: 10) {
                 Text("윤슬")
-                    .font(.themeTitle)
+                    .font(.title.bold())
                     .foregroundStyle(Theme.ink)
                 Text("물리를 눈으로 보는 시뮬레이션 모음")
                     .font(.callout)
                     .foregroundStyle(Theme.mist)
-                RippleAccent()
-                    .frame(width: 120, height: 12)
-                    .padding(.top, 6)
-                Text("‹ 왼쪽에서 학년을 골라 시뮬을 열어 보세요")
+                Text("왼쪽에서 학년을 골라 시뮬을 열어 보세요. 계산기는 각 시뮬 화면 우상단에서 진입.")
                     .font(.footnote)
                     .foregroundStyle(Theme.mist)
-                    .padding(.top, 18)
-                Text("계산기는 각 시뮬 화면 우상단에서 진입")
-                    .font(.caption2)
-                    .foregroundStyle(Theme.mist.opacity(0.7))
+                    .multilineTextAlignment(.center)
+                    .padding(.top, 12)
+                    .frame(maxWidth: 360)
             }
             .padding()
         }
@@ -300,12 +275,8 @@ private struct EmptyState: View {
 
     var body: some View {
         ZStack {
-            YunseulBackground(topGlow: Theme.glow.opacity(0.10), stars: false)
-            VStack(spacing: 12) {
-                Text("?")
-                    .font(.system(size: 64, weight: .heavy, design: .rounded))
-                    .foregroundStyle(Theme.glow.opacity(0.7))
-                    .accessibilityHidden(true)
+            YunseulBackground(topGlow: Theme.glow.opacity(0.10))
+            VStack(spacing: 8) {
                 Text(title)
                     .font(.headline)
                     .foregroundStyle(Theme.ink)

@@ -35,7 +35,7 @@ struct CalculatorView: View {
             .frame(maxWidth: 720)
         }
         .frame(maxWidth: .infinity)
-        .background(YunseulBackground(topGlow: Theme.glow.opacity(0.06), stars: false))
+        .background(YunseulBackground(topGlow: Theme.glow.opacity(0.06)))
         .navigationTitle(topic.rawValue)
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -94,7 +94,7 @@ private struct CalcHeader: View {
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .themeCard(cornerRadius: 16, marker: false)
+        .themeCard(cornerRadius: 16)
     }
 }
 

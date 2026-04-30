@@ -4,8 +4,7 @@ import SwiftUI
 ///
 /// 화면이 넓으면 좌측 viewport + 우측 properties panel,
 /// 좁으면 상단 viewport + 하단 properties panel.
-/// 뷰포트는 깊은 밤바다 (`Theme.deep`) 위에 잔물결 라인 (`RippleField`),
-/// 패널은 Liquid Glass 위에 `surface` 톤을 살짝 입힌 `themeCard`.
+/// 뷰포트는 깊은 밤바다 (`Theme.deep`), 패널은 Liquid Glass 위 surface 톤 (`themeCard`).
 struct SimChrome<Canvas: View, Controls: View>: View {
     let blurb: String
     @ViewBuilder var canvas: () -> Canvas
@@ -57,10 +56,7 @@ struct SimChrome<Canvas: View, Controls: View>: View {
     private var viewportArea: some View {
         let shape = RoundedRectangle(cornerRadius: 14, style: .continuous)
         return ZStack {
-            // 깊은 밤바다 + 잔물결 라인 (윤슬).
             shape.fill(Theme.deep)
-            RippleField()
-                .clipShape(shape)
             canvas()
                 .clipShape(shape)
         }
@@ -93,8 +89,7 @@ struct SimChrome<Canvas: View, Controls: View>: View {
     }
 
     private var background: some View {
-        // 전체 화면: void 그라데이션 + 위쪽 금빛 광원 (별 패턴은 시뮬에서는 생략).
-        YunseulBackground(topGlow: Theme.glow.opacity(0.06), stars: false)
+        YunseulBackground(topGlow: Theme.glow.opacity(0.06))
     }
 }
 

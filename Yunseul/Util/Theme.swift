@@ -75,11 +75,6 @@ enum Theme {
     static let divider = Color.adaptive(
         light: Color.black.opacity(0.06),
         dark:  Color.white.opacity(0.04))
-
-    /// 별자리·잔물결 등 장식 라인의 잉크색 — 라이트에서는 검정 톤, 다크는 흰 톤.
-    static let decorationLine = Color.adaptive(
-        light: Color.black,
-        dark:  Color.white)
 }
 
 // MARK: - Color.adaptive
@@ -105,162 +100,25 @@ extension Font {
     static var themeHeader: Font   { .system(size: 11, weight: .semibold, design: .default).smallCaps() }
     /// 본문 라벨 — 둥근 SF Pro.
     static var themeLabel: Font    { .system(size: 13, weight: .regular,  design: .rounded) }
-    /// 큰 표제.
-    static var themeTitle: Font    { .system(size: 56, weight: .heavy,    design: .rounded) }
 }
 
-// MARK: - 카드·헤더 모디파이어
+// MARK: - 카드 모디파이어
 
 extension View {
-    /// 윤슬 카드 — Liquid Glass 위에 surface 톤 살짝 입히고, 좌상단에 작은 금빛 마커.
-    func themeCard(cornerRadius: CGFloat = 16, marker: Bool = true) -> some View {
-        modifier(ThemeCard(cornerRadius: cornerRadius, marker: marker))
-    }
-
-    /// 슬림한 헤더 바 (옵션) — 시뮬 화면 윗부분 등에 쓰기.
-    func themeHeaderBar() -> some View {
-        self
-            .padding(.horizontal, 14)
-            .padding(.vertical, 8)
-            .modifier(ThemeCard(cornerRadius: 12, marker: false, tint: Theme.crest.opacity(0.55)))
+    /// 윤슬 카드 — Liquid Glass 위에 surface 톤 살짝.
+    func themeCard(cornerRadius: CGFloat = 16) -> some View {
+        modifier(ThemeCard(cornerRadius: cornerRadius))
     }
 }
 
 private struct ThemeCard: ViewModifier {
     let cornerRadius: CGFloat
-    var marker: Bool = true
     var tint: Color = Theme.surface.opacity(0.55)
     func body(content: Content) -> some View {
         let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
         return content
             .glassEffect(.regular.tint(tint), in: shape)
             .overlay(shape.stroke(Theme.stroke, lineWidth: 1))
-            .overlay(alignment: .topLeading) {
-                if marker {
-                    Circle()
-                        .fill(Theme.glow)
-                        .frame(width: 5, height: 5)
-                        .shadow(color: Theme.glow.opacity(0.7), radius: 4)
-                        .padding(10)
-                        .accessibilityHidden(true)         // HIG: 순수 장식
-                }
-            }
-    }
-}
-
-// MARK: - 윤슬 — 잔물결 라인 배경 (시뮬 뷰포트 용)
-
-/// 가로로 길게 누운 잔물결을 몇 줄 그려서 "수면" 같은 느낌을 준다.
-/// 정적 (시간에 의존하지 않음) — 적분 비용 0.
-struct RippleField: View {
-    var body: some View {
-        Canvas { ctx, size in
-            let n = 7                                    // 잔물결 줄 수
-            let amp: CGFloat = 6
-            let wavelength: CGFloat = max(120, size.width / 6)
-            for i in 0..<n {
-                let f = CGFloat(i) / CGFloat(n - 1)
-                let cy = size.height * (0.18 + f * 0.72)
-                var path = Path()
-                let phase = CGFloat(i) * 0.7
-                let step: CGFloat = 6
-                var x: CGFloat = 0
-                while x <= size.width {
-                    let y = cy + amp * CGFloat(sin(Double(x / wavelength * 2 * .pi + phase)))
-                    if x == 0 { path.move(to: CGPoint(x: x, y: y)) }
-                    else      { path.addLine(to: CGPoint(x: x, y: y)) }
-                    x += step
-                }
-                let alpha = 0.05 + 0.04 * cos(Double(f) * .pi)
-                ctx.stroke(path,
-                           with: .color(Theme.glow.opacity(alpha)),
-                           lineWidth: 0.7)
-            }
-        }
-        .allowsHitTesting(false)
-        .accessibilityHidden(true)              // HIG: 장식 요소
-    }
-}
-
-// MARK: - 별자리 — 시작화면 / 환영 화면 배경
-
-/// 듬성듬성한 점 + 두세 개의 빛나는 별. 비결정적이지만 안정적인 배치를 위해
-/// 단일 시드 기반 의사난수를 사용. 라이트 모드에서는 검은 톤으로 자동 전환.
-struct StarField: View {
-    var body: some View {
-        Canvas { ctx, size in
-            var rng = SeededGenerator(seed: 1729)
-            let n = max(40, Int(size.width * size.height / 12_000))
-            for _ in 0..<n {
-                let x = CGFloat.random(in: 0...size.width, using: &rng)
-                let y = CGFloat.random(in: 0...size.height, using: &rng)
-                let r: CGFloat = CGFloat.random(in: 0.4...1.4, using: &rng)
-                let a = Double.random(in: 0.08...0.35, using: &rng)
-                ctx.fill(
-                    Path(ellipseIn: CGRect(x: x - r, y: y - r,
-                                           width: r * 2, height: r * 2)),
-                    with: .color(Theme.decorationLine.opacity(a)))
-            }
-            // 두 개의 큰 별 — glow 색.
-            for (cx, cy, br) in [(size.width * 0.18, size.height * 0.22, 1.0),
-                                  (size.width * 0.78, size.height * 0.34, 0.7)] {
-                let core: CGFloat = 2.0
-                ctx.fill(
-                    Path(ellipseIn: CGRect(x: cx - core, y: cy - core,
-                                           width: core * 2, height: core * 2)),
-                    with: .color(Theme.glow.opacity(0.8 * br)))
-                let h: CGFloat = 14
-                ctx.fill(
-                    Path(ellipseIn: CGRect(x: cx - h, y: cy - h,
-                                           width: h * 2, height: h * 2)),
-                    with: .radialGradient(
-                        Gradient(colors: [Theme.glow.opacity(0.30 * br), .clear]),
-                        center: CGPoint(x: cx, y: cy),
-                        startRadius: 0, endRadius: h))
-            }
-        }
-        .allowsHitTesting(false)
-        .accessibilityHidden(true)
-    }
-}
-
-/// 짧은 금빛 잔물결 — 시작화면 표제 아래 같은 곳에 쓰는 작은 장식.
-struct RippleAccent: View {
-    var body: some View {
-        Canvas { ctx, size in
-            var path = Path()
-            let amp = size.height * 0.35
-            let cy = size.height / 2
-            let n = 64
-            for i in 0...n {
-                let t = CGFloat(i) / CGFloat(n)
-                let x = t * size.width
-                let y = cy + amp * CGFloat(sin(Double(t) * .pi * 4))
-                if i == 0 { path.move(to: CGPoint(x: x, y: y)) }
-                else      { path.addLine(to: CGPoint(x: x, y: y)) }
-            }
-            ctx.stroke(path,
-                       with: .linearGradient(
-                            Gradient(colors: [.clear, Theme.glow, .clear]),
-                            startPoint: .zero,
-                            endPoint: CGPoint(x: size.width, y: 0)),
-                       lineWidth: 1.2)
-        }
-        .allowsHitTesting(false)
-        .accessibilityHidden(true)
-    }
-}
-
-/// 결정적 의사 난수 — StarField 가 매 렌더마다 점 위치를 바꾸지 않도록.
-private struct SeededGenerator: RandomNumberGenerator {
-    var state: UInt64
-    init(seed: UInt64) { state = seed == 0 ? 0xDEADBEEF : seed }
-    mutating func next() -> UInt64 {
-        state &+= 0x9E3779B97F4A7C15
-        var z = state
-        z = (z ^ (z >> 30)) &* 0xBF58476D1CE4E5B9
-        z = (z ^ (z >> 27)) &* 0x94D049BB133111EB
-        return z ^ (z >> 31)
     }
 }
 
@@ -269,7 +127,6 @@ private struct SeededGenerator: RandomNumberGenerator {
 /// 앱 전체에서 쓰는 윤슬 그라데이션 배경. 라이트/다크 자동 전환.
 struct YunseulBackground: View {
     var topGlow: Color = Theme.glow.opacity(0.10)
-    var stars: Bool = true
 
     var body: some View {
         ZStack {
@@ -281,11 +138,6 @@ struct YunseulBackground: View {
                            center: .top,
                            startRadius: 0, endRadius: 420)
                 .ignoresSafeArea()
-            if stars {
-                StarField()
-                    .opacity(0.85)
-                    .ignoresSafeArea()
-            }
         }
     }
 }
