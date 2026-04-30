@@ -22,18 +22,31 @@ struct RootSplitView: View {
 
     private var sidebar: some View {
         List(selection: $sidebarSelection) {
-            ForEach(Curriculum.allCases) { c in
-                NavigationLink(value: c) {
-                    HStack(spacing: 12) {
-                        RoundedRectangle(cornerRadius: 2, style: .continuous)
-                            .fill(c.accent)
-                            .frame(width: 3)
-                        Text(c.rawValue)
-                            .font(.body.weight(.semibold))
-                            .foregroundStyle(Theme.ink)
+            Section {
+                ForEach(Curriculum.allCases) { c in
+                    NavigationLink(value: c) {
+                        HStack(spacing: 12) {
+                            RoundedRectangle(cornerRadius: 2, style: .continuous)
+                                .fill(c.accent)
+                                .frame(width: 3)
+                            Text(c.rawValue)
+                                .font(.body.weight(.semibold))
+                                .foregroundStyle(Theme.ink)
+                        }
+                        .padding(.vertical, 4)
                     }
-                    .padding(.vertical, 4)
                 }
+            } header: {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("윤슬")
+                        .font(.title.bold())
+                        .foregroundStyle(Theme.ink)
+                    Text("물리를 눈으로 보다")
+                        .font(.caption)
+                        .foregroundStyle(Theme.mist)
+                }
+                .padding(.vertical, 6)
+                .textCase(nil)
             }
         }
         .listStyle(.sidebar)
