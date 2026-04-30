@@ -1,6 +1,7 @@
 import SwiftUI
 
-/// 계산기 주제 — 시뮬레이션과 별개로 "값 입력 → 닫힌 해 결과" 만 빠르게 보여주는 도구.
+/// 계산기 주제 — 각 시뮬 화면 우상단의 "계산기" 버튼으로 진입.
+/// "값 입력 → 닫힌 해 결과" 만 빠르게 보여주고, 헤더의 "시뮬로 보기" 로 짝 시뮬에 복귀.
 enum CalculatorTopic: String, CaseIterable, Identifiable, Hashable {
     // 역학
     case freefall   = "자유낙하"

@@ -4,16 +4,17 @@ import SwiftUI
 ///
 /// HIG 근거:
 /// - *Sidebars* — "Use a sidebar to navigate between top-level collections of
-///   content in a hierarchical app." 학년·도구가 그 케이스.
+///   content in a hierarchical app." 학년이 그 케이스.
 /// - *Navigation* — iPad/Mac 에서 NavigationSplitView 권장. iPhone 에서는
 ///   자동으로 stack 으로 collapse 되어 push 처럼 동작.
 ///
 /// 컬럼:
-/// - **Sidebar**: [학년 섹션] 중·고·자유  +  [도구 섹션] 계산기
-/// - **Content**: 선택된 학년 시뮬 목록 / 계산기 토픽 목록
-/// - **Detail**: 선택된 시뮬 또는 계산기 화면. 미선택 시 환영 화면.
+/// - **Sidebar**: 학년 (중·고·자유)
+/// - **Content**: 선택된 학년의 시뮬 목록
+/// - **Detail**: 선택된 시뮬 화면. 시뮬 안에서 계산기로 진입 가능 — 계산기는
+///   별도 사이드바 항목이 아니라 시뮬에 딸린 "이론·계산" 도구로 자리잡음.
 ///
-/// 정체성은 한글 글자 마크(`LetterMark`) 로 표현하고, 작은 보조 심볼(▶·↻·›·🎓·계)
+/// 정체성은 한글 글자 마크(`LetterMark`) 로 표현하고, 작은 보조 심볼(▶·↻·›·🎓)
 /// 만 SF Symbol 로 사용한다.
 struct RootSplitView: View {
     @State private var sidebarSelection: SidebarSection? = nil
@@ -34,9 +35,6 @@ struct RootSplitView: View {
         }
         .navigationSplitViewStyle(.balanced)
         .sheet(isPresented: $showSettings) { SettingsView() }
-        // sidebar 가 바뀌어도 detail 은 그대로 둔다 (HIG 의 표준 split-view 동작).
-        // 사용자가 새 content 행을 탭하면 detail 이 갱신됨. 시뮬 → 계산기 점프
-        // 처럼 명시적 액션도 detail 을 곧장 업데이트할 수 있게 됨.
     }
 
     // MARK: - 컬럼
@@ -46,12 +44,10 @@ struct RootSplitView: View {
         switch sidebarSelection {
         case .curriculum(let c):
             SimList(curriculum: c, selection: $detailSelection)
-        case .calculator:
-            CalculatorList(selection: $detailSelection)
         case nil:
             EmptyState(
-                title: "학년 또는 도구를 선택하세요",
-                message: "왼쪽 사이드바에서 시뮬 또는 계산기를 골라 보세요."
+                title: "학년을 선택하세요",
+                message: "왼쪽 사이드바에서 학년을 골라 시뮬을 열어 보세요. 계산기는 각 시뮬 화면 우상단에서 진입할 수 있습니다."
             )
         }
     }
@@ -63,8 +59,7 @@ struct RootSplitView: View {
             SimulationCatalog.view(for: item.id)
                 .environment(\.simulationItem, item)
                 .environment(\.openCalculator, OpenCalculatorAction { topic in
-                    // 계산기로 점프 — sidebar 도 [도구] 로 옮겨주는 게 일관됨.
-                    sidebarSelection = .calculator
+                    // 계산기로 진입 — sidebar 선택은 그대로 (시뮬의 학년 유지).
                     detailSelection = .calculator(topic)
                 })
                 .navigationTitle(item.title)
@@ -72,7 +67,7 @@ struct RootSplitView: View {
         case .calculator(let topic):
             CalculatorView(topic: topic)
                 .environment(\.openSimulation, OpenSimulationAction { item in
-                    // 시뮬로 점프 — sidebar 도 해당 시뮬의 학년으로 옮김.
+                    // 짝이 되는 시뮬로 복귀 — sidebar 도 해당 시뮬의 학년으로 옮김.
                     let c = SimulationCatalog.curriculum(of: item) ?? .free
                     sidebarSelection = .curriculum(c)
                     detailSelection = .simulation(item)
@@ -85,15 +80,13 @@ struct RootSplitView: View {
 
 // MARK: - 선택 모델
 
-/// 사이드바의 최상위 항목.
+/// 사이드바의 최상위 항목 — 현재는 학년만.
 enum SidebarSection: Hashable, Identifiable {
     case curriculum(Curriculum)
-    case calculator
 
     var id: String {
         switch self {
         case .curriculum(let c): return "curriculum:\(c.rawValue)"
-        case .calculator:        return "tool:calculator"
         }
     }
 }
@@ -128,20 +121,6 @@ private struct Sidebar: View {
             } header: {
                 YunseulBrand()
                     .padding(.vertical, 6)
-                    .textCase(nil)
-            }
-
-            Section {
-                NavigationLink(value: SidebarSection.calculator) {
-                    ToolRow(letterMark: "계",
-                            title: "계산기",
-                            subtitle: "값 입력 → 닫힌 해 결과",
-                            tint: Color(red: 0.45, green: 0.78, blue: 0.95))
-                }
-            } header: {
-                Text("도구")
-                    .font(.themeHeader)
-                    .foregroundStyle(Theme.mist)
                     .textCase(nil)
             }
         }
@@ -207,28 +186,6 @@ private struct CurriculumRow: View {
                     .font(.body.weight(.semibold))
                     .foregroundStyle(Theme.ink)
                 Text(curriculum.subtitle)
-                    .font(.caption).foregroundStyle(Theme.mist).lineLimit(1)
-            }
-        }
-        .padding(.vertical, 4)
-        .accessibilityElement(children: .combine)
-    }
-}
-
-private struct ToolRow: View {
-    let letterMark: String
-    let title: String
-    let subtitle: String
-    let tint: Color
-
-    var body: some View {
-        HStack(spacing: 12) {
-            LetterMark(mark: letterMark, tint: tint, size: 38)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.body.weight(.semibold))
-                    .foregroundStyle(Theme.ink)
-                Text(subtitle)
                     .font(.caption).foregroundStyle(Theme.mist).lineLimit(1)
             }
         }
@@ -314,80 +271,6 @@ private struct SimRow: View {
     }
 }
 
-// MARK: - 계산기 목록 (Content column when 도구.계산기 선택)
-
-private struct CalculatorList: View {
-    @Binding var selection: DetailItem?
-
-    private let toolTint = Color(red: 0.45, green: 0.78, blue: 0.95)
-
-    /// 섹션별로 묶은 토픽 — `CalculatorTopic.section` 기준.
-    private var grouped: [(String, [CalculatorTopic])] {
-        let order = ["역학", "전자기", "파동·광학"]
-        var dict: [String: [CalculatorTopic]] = [:]
-        for t in CalculatorTopic.allCases { dict[t.section, default: []].append(t) }
-        return order.compactMap { name in
-            dict[name].map { (name, $0) }
-        }
-    }
-
-    var body: some View {
-        List(selection: $selection) {
-            ForEach(grouped, id: \.0) { (name, topics) in
-                Section {
-                    ForEach(topics) { topic in
-                        NavigationLink(value: DetailItem.calculator(topic)) {
-                            CalcTopicRow(topic: topic, tint: toolTint)
-                        }
-                    }
-                } header: {
-                    Text(name.uppercased())
-                        .font(.themeHeader)
-                        .foregroundStyle(Theme.mist)
-                        .textCase(nil)
-                }
-            }
-        }
-        .listStyle(.insetGrouped)
-        .scrollContentBackground(.hidden)
-        .background(YunseulBackground(topGlow: toolTint.opacity(0.10), stars: false))
-        .navigationTitle("계산기")
-        .navigationBarTitleDisplayMode(.inline)
-    }
-}
-
-private struct CalcTopicRow: View {
-    let topic: CalculatorTopic
-    let tint: Color
-    var body: some View {
-        HStack(spacing: 12) {
-            LetterMark(mark: "계", tint: tint, size: 36)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(topic.rawValue)
-                    .font(.body.weight(.semibold))
-                    .foregroundStyle(Theme.ink)
-                Text(topic.subtitle)
-                    .font(.caption)
-                    .foregroundStyle(Theme.mist)
-                    .lineLimit(2)
-                HStack(spacing: 4) {
-                    Image(systemName: "graduationcap.fill")
-                        .imageScale(.small)
-                        .accessibilityHidden(true)
-                    Text(topic.curriculum)
-                        .font(.caption2.weight(.semibold))
-                        .lineLimit(1)
-                }
-                .foregroundStyle(Theme.glow.opacity(0.85))
-                .padding(.top, 1)
-            }
-        }
-        .padding(.vertical, 4)
-        .accessibilityElement(children: .combine)
-        .accessibilityHint("계산기 열기 — \(topic.curriculum)")
-    }
-}
-
 // MARK: - Detail (환영 / 빈 상태)
 
 private struct WelcomeDetail: View {
@@ -404,15 +287,18 @@ private struct WelcomeDetail: View {
                 RippleAccent()
                     .frame(width: 120, height: 12)
                     .padding(.top, 6)
-                Text("‹ 왼쪽에서 학년·도구를 골라 보세요")
+                Text("‹ 왼쪽에서 학년을 골라 시뮬을 열어 보세요")
                     .font(.footnote)
                     .foregroundStyle(Theme.mist)
                     .padding(.top, 18)
+                Text("계산기는 각 시뮬 화면 우상단에서 진입")
+                    .font(.caption2)
+                    .foregroundStyle(Theme.mist.opacity(0.7))
             }
             .padding()
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("환영 화면. 왼쪽 사이드바에서 학년 또는 도구를 선택하세요.")
+        .accessibilityLabel("환영 화면. 왼쪽 사이드바에서 학년을 선택하면 시뮬 목록이 나타납니다.")
     }
 }
 
