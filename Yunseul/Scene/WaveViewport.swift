@@ -23,9 +23,6 @@ private struct WaveSumView: View {
     @State private var f1: Double = 1.0
     @State private var f2: Double = 1.1
     @State private var oppose: Bool = false
-    @State private var sf1: Double = 1.0
-    @State private var sf2: Double = 1.1
-    @State private var sOppose: Bool = false
     @State private var elapsed: Double = 0
     @State private var lastTick: TimeInterval? = nil
     @State private var running: Bool = false
@@ -54,7 +51,6 @@ private struct WaveSumView: View {
     private var playReset: some View {
         HStack(spacing: 8) {
             Button {
-                if !running { snapshot() }
                 running.toggle()
             } label: {
                 Label(running ? "일시정지" : "재생",
@@ -67,7 +63,6 @@ private struct WaveSumView: View {
 
             Button {
                 elapsed = 0; lastTick = nil; running = false
-                snapshot()
             } label: {
                 Label("처음부터", systemImage: "arrow.counterclockwise")
                     .font(.callout.weight(.semibold))
@@ -75,10 +70,6 @@ private struct WaveSumView: View {
             }
             .buttonStyle(.glass)
         }
-    }
-
-    private func snapshot() {
-        sf1 = f1; sf2 = f2; sOppose = oppose
     }
 
     private func advance(to now: TimeInterval) {
@@ -105,9 +96,9 @@ private struct WaveSumView: View {
     private func draw(ctx: GraphicsContext, size: CGSize, t: Double) {
         let h = size.height / 3
         drawWave(ctx, in: CGRect(x: 0, y: 0, width: size.width, height: h),
-                 amp: 1, omega: 2 * .pi * sf1, t: t, sign: 1, color: .cyan)
+                 amp: 1, omega: 2 * .pi * f1, t: t, sign: 1, color: .cyan)
         drawWave(ctx, in: CGRect(x: 0, y: h, width: size.width, height: h),
-                 amp: 1, omega: 2 * .pi * sf2, t: t, sign: sOppose ? -1 : 1, color: .pink)
+                 amp: 1, omega: 2 * .pi * f2, t: t, sign: oppose ? -1 : 1, color: .pink)
         drawSum(ctx, in: CGRect(x: 0, y: 2 * h, width: size.width, height: h), t: t)
     }
 
@@ -134,9 +125,9 @@ private struct WaveSumView: View {
         var path = Path()
         let n = 600
         let xMax = 12.0
-        let s2: Double = sOppose ? -1 : 1
-        let ω1 = 2 * .pi * sf1
-        let ω2 = 2 * .pi * sf2
+        let s2: Double = oppose ? -1 : 1
+        let ω1 = 2 * .pi * f1
+        let ω2 = 2 * .pi * f2
         let amp = r.height * 0.45
         for i in 0...n {
             let f = Double(i) / Double(n)
@@ -155,9 +146,6 @@ private struct DopplerView: View {
     @State private var sourceSpeed: Double = 60
     @State private var soundSpeed: Double = 340
     @State private var freq: Double = 1.5
-    @State private var sSourceSpeed: Double = 60
-    @State private var sSoundSpeed: Double = 340
-    @State private var sFreq: Double = 1.5
     @State private var elapsed: Double = 0
     @State private var lastTick: TimeInterval? = nil
     @State private var running: Bool = false
@@ -186,7 +174,6 @@ private struct DopplerView: View {
     private var playReset: some View {
         HStack(spacing: 8) {
             Button {
-                if !running { snapshot() }
                 running.toggle()
             } label: {
                 Label(running ? "일시정지" : "재생",
@@ -199,7 +186,6 @@ private struct DopplerView: View {
 
             Button {
                 elapsed = 0; lastTick = nil; running = false
-                snapshot()
             } label: {
                 Label("처음부터", systemImage: "arrow.counterclockwise")
                     .font(.callout.weight(.semibold))
@@ -207,10 +193,6 @@ private struct DopplerView: View {
             }
             .buttonStyle(.glass)
         }
-    }
-
-    private func snapshot() {
-        sSourceSpeed = sourceSpeed; sSoundSpeed = soundSpeed; sFreq = freq
     }
 
     private func advance(to now: TimeInterval) {
@@ -239,16 +221,16 @@ private struct DopplerView: View {
         let scale = size.width / CGFloat(span)
         let cy = size.height / 2
 
-        let cur = -span / 4 + sSourceSpeed * t
-        let period = 1 / sFreq
-        let tMax = span / sSoundSpeed * 1.4
+        let cur = -span / 4 + sourceSpeed * t
+        let period = 1 / freq
+        let tMax = span / soundSpeed * 1.4
         let kMin = max(0, Int(((t - tMax) / period).rounded(.up)))
         let kMax = Int((t / period).rounded(.down))
         if kMax >= kMin {
             for k in kMin...kMax {
                 let te = Double(k) * period
-                let xs = -span / 4 + sSourceSpeed * te
-                let radius = sSoundSpeed * (t - te)
+                let xs = -span / 4 + sourceSpeed * te
+                let radius = soundSpeed * (t - te)
                 if radius < 0 { continue }
                 let center = CGPoint(x: CGFloat(xs + span / 2) * scale, y: cy)
                 let rPx = CGFloat(radius) * scale
