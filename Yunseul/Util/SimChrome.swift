@@ -38,17 +38,13 @@ struct SimChrome<Canvas: View, Controls: View>: View {
             }
         }
         .toolbar {
-            // 짝이 되는 계산기가 있으면 우상단에 f(x) 버튼.
-            // SF Symbol 대신 수학 표기 그대로 — "이론·계산" 도구 정체성을 직관적으로.
+            // 짝이 되는 계산기가 있으면 우상단에 점프 버튼.
             ToolbarItem(placement: .topBarTrailing) {
                 if let topic = item?.calculatorTopic {
                     Button {
                         openCalculator(topic)
                     } label: {
-                        Text("f(x)")
-                            .font(.system(size: 17, weight: .semibold,
-                                          design: .serif).italic())
-                            .foregroundStyle(Theme.glow)
+                        Label("계산기", systemImage: "function")
                     }
                     .accessibilityLabel("이 시뮬의 계산기 열기")
                 }
