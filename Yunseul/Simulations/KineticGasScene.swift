@@ -199,8 +199,11 @@ struct KineticGasScene: View {
 
         let pr = CGFloat(radius) * s
         for p in world.particles {
+            // NaN 차단 — 침투 보정·극단 충돌에서 NaN 발생 시 Metal 크래시 방지.
+            guard p.pos.x.isFinite, p.pos.y.isFinite else { continue }
             let cx = bx + CGFloat(p.pos.x) * s
             let cy = by + CGFloat(p.pos.y) * s
+            guard cx.isFinite, cy.isFinite else { continue }
             let speed = p.vel.length
             let hue = max(0, min(0.7, 0.7 - speed * 0.5))    // 빠를수록 빨강
             ctx.fill(Path(ellipseIn: CGRect(x: cx - pr, y: cy - pr,

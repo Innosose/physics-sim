@@ -255,9 +255,12 @@ struct FreeCollisionScene: View {
         ctx.stroke(Path(frame), with: .color(.white.opacity(0.5)), lineWidth: 1.5)
 
         for p in particles {
+            // NaN/Inf 차단 — 침투 보정 실패·극단 케이스에서 NaN 발생 시 Metal 크래시 방지.
+            guard p.pos.x.isFinite, p.pos.y.isFinite, p.radius.isFinite else { continue }
             let cx = bx + CGFloat(p.pos.x) * s
             let cy = by + CGFloat(p.pos.y) * s
             let pr = CGFloat(p.radius) * s
+            guard cx.isFinite, cy.isFinite, pr.isFinite, pr > 0 else { continue }
             ctx.fill(Path(ellipseIn: CGRect(x: cx - pr, y: cy - pr,
                                             width: pr * 2, height: pr * 2)),
                      with: .color(p.material.color))
@@ -266,7 +269,7 @@ struct FreeCollisionScene: View {
                        with: .color(.white.opacity(0.35)), lineWidth: 1)
             // 속도 화살표.
             let v = p.vel
-            if v.length > 0.05 {
+            if v.x.isFinite && v.y.isFinite && v.length > 0.05 {
                 let ex = cx + CGFloat(v.x) * s * 0.15
                 let ey = cy + CGFloat(v.y) * s * 0.15
                 var arr = Path()

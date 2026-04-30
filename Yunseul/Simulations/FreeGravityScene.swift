@@ -284,10 +284,15 @@ struct FreeGravityScene: View {
         for b in bodies {
             guard let trail = world.trails[b.id], trail.count > 1 else { continue }
             var path = Path()
-            for (i, p) in trail.enumerated() {
+            var started = false
+            for p in trail {
+                guard p.x.isFinite, p.y.isFinite else { continue }
                 let pt = map.point(p)
-                if i == 0 { path.move(to: pt) } else { path.addLine(to: pt) }
+                guard pt.x.isFinite, pt.y.isFinite else { continue }
+                if !started { path.move(to: pt); started = true }
+                else        { path.addLine(to: pt) }
             }
+            guard started else { continue }
             ctx.stroke(path, with: .color(b.color.opacity(0.30)),
                        style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round))
             ctx.stroke(path, with: .color(b.color.opacity(0.95)),
@@ -295,7 +300,11 @@ struct FreeGravityScene: View {
         }
 
         for b in bodies {
+            // NaN/Inf 차단 — advance() 의 발산 감지·리셋이 한 프레임 늦게 발동할 수 있어
+            // draw 시점에 NaN 좌표가 잡히면 Metal/CoreGraphics 가 크래시.
+            guard b.pos.x.isFinite, b.pos.y.isFinite else { continue }
             let pt = map.point(b.pos)
+            guard pt.x.isFinite, pt.y.isFinite else { continue }
             let coreR: CGFloat = CGFloat(2 + 1.5 * sqrt(b.mass))
             let haloR: CGFloat = coreR * 4
             ctx.fill(
