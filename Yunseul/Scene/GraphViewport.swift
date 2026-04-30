@@ -100,31 +100,43 @@ private struct MotionGraphView: View {
         let track = CGRect(x: 0, y: 0, width: size.width, height: trackH)
         let plot  = CGRect(x: 0, y: trackH, width: size.width, height: plotH)
 
-        let x1 = v1 * t
-        let x2 = v0 * t + 0.5 * a * t * t
+        let trackLength: Double = 30
+        // 벽에 닿으면 정지 — 클램프.
+        let x1 = min(trackLength, max(0, v1 * t))
+        let x2 = min(trackLength, max(0, v0 * t + 0.5 * a * t * t))
 
         var line = Path()
         line.move(to: CGPoint(x: 16, y: track.midY))
         line.addLine(to: CGPoint(x: track.maxX - 16, y: track.midY))
         ctx.stroke(line, with: .color(Theme.ink.opacity(0.4)), lineWidth: 1)
 
-        let xMax = max(20.0, max(x1, x2) * 1.2 + 5)
+        // 오른쪽 벽.
+        let wallX = track.maxX - 16
+        var wall = Path()
+        wall.move(to: CGPoint(x: wallX, y: track.midY - 24))
+        wall.addLine(to: CGPoint(x: wallX, y: track.midY + 24))
+        ctx.stroke(wall, with: .color(Theme.ink.opacity(0.7)), lineWidth: 2)
+
         let usable = track.width - 32
-        let p1 = CGPoint(x: 16 + CGFloat(x1 / xMax) * usable, y: track.midY - 14)
-        let p2 = CGPoint(x: 16 + CGFloat(x2 / xMax) * usable, y: track.midY + 14)
+        let toX: (Double) -> CGFloat = { val in
+            16 + CGFloat(val / trackLength) * usable
+        }
+        let p1 = CGPoint(x: toX(x1), y: track.midY - 14)
+        let p2 = CGPoint(x: toX(x2), y: track.midY + 14)
         ctx.fill(Path(ellipseIn: CGRect(x: p1.x - 8, y: p1.y - 8, width: 16, height: 16)),
                  with: .color(.cyan))
         ctx.fill(Path(ellipseIn: CGRect(x: p2.x - 8, y: p2.y - 8, width: 16, height: 16)),
                  with: .color(.orange))
 
+        // x-t 그래프 — 두 카트 모두 trackLength 에서 plateau.
         let tEnd = max(8.0, t * 1.05)
-        let yMax2 = max(20.0, max(v1 * tEnd, v0 * tEnd + 0.5 * a * tEnd * tEnd) * 1.1 + 1)
+        let yMax2 = trackLength * 1.1
         ctx.stroke(Path(roundedRect: plot.insetBy(dx: 12, dy: 12), cornerRadius: 8),
                    with: .color(Theme.ink.opacity(0.18)), lineWidth: 1)
         drawCurve(ctx, in: plot.insetBy(dx: 12, dy: 12), tEnd: tEnd, yMax: yMax2,
-                  fn: { v1 * $0 }, color: .cyan)
+                  fn: { min(trackLength, max(0, v1 * $0)) }, color: .cyan)
         drawCurve(ctx, in: plot.insetBy(dx: 12, dy: 12), tEnd: tEnd, yMax: yMax2,
-                  fn: { v0 * $0 + 0.5 * a * $0 * $0 }, color: .orange)
+                  fn: { min(trackLength, max(0, v0 * $0 + 0.5 * a * $0 * $0)) }, color: .orange)
     }
 
     private func drawCurve(_ ctx: GraphicsContext, in r: CGRect, tEnd: Double,
