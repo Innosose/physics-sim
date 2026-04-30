@@ -11,7 +11,7 @@ enum MechanicsPresets {
                           max: Vec3(x: 10, y: 60, z: 2),
                           restitution: 0.5)
         w.bodies = [
-            Body(pos: Vec3(x: 0, y: 20, z: 0),
+            PhysicsBody(pos: Vec3(x: 0, y: 20, z: 0),
                  vel: Vec3(x: 0, y: 5, z: 0),
                  mass: 1, radius: 0.4,
                  color: .yellow)
@@ -27,14 +27,14 @@ enum MechanicsPresets {
                           max: Vec3(x: 60, y: 4, z: 2),
                           restitution: 0)
         // 등속 카트.
-        var c1 = Body(pos: Vec3(x: 0, y: 0.5, z: 0.6),
+        var c1 = PhysicsBody(pos: Vec3(x: 0, y: 0.5, z: 0.6),
                       vel: Vec3(x: 5, y: 0, z: 0),
                       mass: 1, radius: 0.3, color: .cyan)
         c1.kind = .particle
         // 등가속도 카트 — 가속도 a 를 균일중력 흉내로 줄 순 없으니 항력으로 근사.
         // 단순화: 두 입자 모두 외부 힘 없이 초기속도만 — 가속도는 사용자가 spawner
         // 로 추가할 수 있도록 비워둠. 학습용으로 부족하면 별도 graph 모드.
-        let c2 = Body(pos: Vec3(x: 0, y: 0.5, z: -0.6),
+        let c2 = PhysicsBody(pos: Vec3(x: 0, y: 0.5, z: -0.6),
                       vel: Vec3(x: 0, y: 0, z: 0),
                       mass: 1, radius: 0.3, color: .orange)
         w.bodies = [c1, c2]
@@ -51,7 +51,7 @@ enum MechanicsPresets {
                           max: Vec3(x: 80, y: 40, z: 3),
                           restitution: 0)
         w.bodies = [
-            Body(pos: Vec3(x: 0, y: 0.5, z: 0),
+            PhysicsBody(pos: Vec3(x: 0, y: 0.5, z: 0),
                  vel: Vec3(x: v0 * cos(θ), y: v0 * sin(θ), z: 0),
                  mass: 1, radius: 0.3, color: .yellow)
         ]
@@ -67,10 +67,10 @@ enum MechanicsPresets {
                           max: Vec3(x: 8, y: 4, z: 2),
                           restitution: 1.0)
         w.bodies = [
-            Body(pos: Vec3(x: -3, y: 0.5, z: 0),
+            PhysicsBody(pos: Vec3(x: -3, y: 0.5, z: 0),
                  vel: Vec3(x: 3, y: 0, z: 0),
                  mass: 2, radius: 0.5, color: .yellow),
-            Body(pos: Vec3(x: 3, y: 0.5, z: 0),
+            PhysicsBody(pos: Vec3(x: 3, y: 0.5, z: 0),
                  vel: Vec3(x: -1, y: 0, z: 0),
                  mass: 1, radius: 0.4, color: .cyan),
         ]
@@ -81,12 +81,12 @@ enum MechanicsPresets {
     static func pendulum(_ w: World) {
         w.gravity = Vec3(x: 0, y: -9.81, z: 0)
         // 천장 anchor (pinned) + 추.
-        let pivot = Body(pos: Vec3(x: 0, y: 3, z: 0),
+        let pivot = PhysicsBody(pos: Vec3(x: 0, y: 3, z: 0),
                          mass: 1e9, radius: 0.1,
                          color: .gray, pinned: true, kind: .anchor)
         let θ0 = 60.0 * .pi / 180
         let L = 1.5
-        let bob = Body(pos: Vec3(x: pivot.pos.x + L * sin(θ0),
+        let bob = PhysicsBody(pos: Vec3(x: pivot.pos.x + L * sin(θ0),
                                  y: pivot.pos.y - L * cos(θ0),
                                  z: 0),
                        mass: 1, radius: 0.18,
@@ -102,10 +102,10 @@ enum MechanicsPresets {
 
     static func spring(_ w: World) {
         w.gravity = .zero
-        let wall = Body(pos: Vec3(x: -3, y: 1, z: 0),
+        let wall = PhysicsBody(pos: Vec3(x: -3, y: 1, z: 0),
                         mass: 1e9, radius: 0.2,
                         color: .gray, pinned: true, kind: .anchor)
-        let mass = Body(pos: Vec3(x: 0, y: 1, z: 0),
+        let mass = PhysicsBody(pos: Vec3(x: 0, y: 1, z: 0),
                         vel: Vec3(x: 1, y: 0, z: 0),
                         mass: 1, radius: 0.3, color: .yellow)
         w.bodies = [wall, mass]
@@ -120,12 +120,12 @@ enum MechanicsPresets {
     static func kepler(_ w: World) {
         w.pairwiseGravity = true
         w.G = 1.0
-        let sun = Body(pos: .zero, mass: 200, radius: 0.6,
+        let sun = PhysicsBody(pos: .zero, mass: 200, radius: 0.6,
                        color: Color(red: 1.0, green: 0.74, blue: 0.40),
                        pinned: true, kind: .star)
         let r = 5.0
         let v = (w.G * sun.mass / r).squareRoot()
-        let planet = Body(pos: Vec3(x: r, y: 0, z: 0),
+        let planet = PhysicsBody(pos: Vec3(x: r, y: 0, z: 0),
                           vel: Vec3(x: 0, y: v, z: 0),
                           mass: 1, radius: 0.2,
                           color: Color(red: 0.74, green: 0.88, blue: 0.96),
@@ -143,12 +143,12 @@ enum MechanicsPresets {
                           max: Vec3(x: 1, y: 1, z: 1),
                           restitution: 0.95)
         w.bodies = [
-            Body(pos: Vec3(x: -0.7, y: 0, z: 0),
+            PhysicsBody(pos: Vec3(x: -0.7, y: 0, z: 0),
                  vel: Vec3(x: 1, y: 0.05, z: 0),
                  mass: 2.5, radius: 0.12, color: .gray),
-            Body(pos: Vec3(x: 0, y: 0, z: 0),
+            PhysicsBody(pos: Vec3(x: 0, y: 0, z: 0),
                  mass: 1.0, radius: 0.10, color: .pink),
-            Body(pos: Vec3(x: 0.7, y: 0, z: 0),
+            PhysicsBody(pos: Vec3(x: 0.7, y: 0, z: 0),
                  vel: Vec3(x: -0.7, y: -0.05, z: 0),
                  mass: 2.0, radius: 0.12, color: .brown),
         ]
@@ -159,7 +159,7 @@ enum MechanicsPresets {
     static func nBody(_ w: World) {
         w.pairwiseGravity = true
         w.G = 1.0
-        let sun = Body(pos: .zero, mass: 100, radius: 0.5,
+        let sun = PhysicsBody(pos: .zero, mass: 100, radius: 0.5,
                        color: Color(red: 1.00, green: 0.83, blue: 0.50),
                        kind: .star)
         var arr = [sun]
@@ -172,7 +172,7 @@ enum MechanicsPresets {
         for (i, r) in radii.enumerated() {
             let v = (w.G * sun.mass / r).squareRoot()
             let θ = Double(i) * 2.1
-            arr.append(Body(
+            arr.append(PhysicsBody(
                 pos: Vec3(x: r * cos(θ), y: r * sin(θ), z: 0),
                 vel: Vec3(x: -v * sin(θ), y: v * cos(θ), z: 0),
                 mass: 0.5, radius: 0.18, color: colors[i],
@@ -192,7 +192,7 @@ enum MechanicsPresets {
         w.magneticB = Vec3(x: 0, y: 0, z: 1)        // 화면 안쪽 +z
         w.electricE = .zero
         w.bodies = [
-            Body(pos: Vec3(x: -2, y: 0, z: 0),
+            PhysicsBody(pos: Vec3(x: -2, y: 0, z: 0),
                  vel: Vec3(x: 1.5, y: 0, z: 0),
                  mass: 1, radius: 0.2, charge: 1,
                  color: .red, kind: .charge)
@@ -206,10 +206,10 @@ enum MechanicsPresets {
         w.kCoulomb = 1.0
         // 두 전하는 pinned (정적 dipole) — 학습용. 자유 spawner 로 추가 가능.
         w.bodies = [
-            Body(pos: Vec3(x: -2, y: 0, z: 0),
+            PhysicsBody(pos: Vec3(x: -2, y: 0, z: 0),
                  mass: 1, radius: 0.25, charge: 1, color: .red,
                  pinned: true, kind: .charge),
-            Body(pos: Vec3(x: 2, y: 0, z: 0),
+            PhysicsBody(pos: Vec3(x: 2, y: 0, z: 0),
                  mass: 1, radius: 0.25, charge: -1, color: .blue,
                  pinned: true, kind: .charge),
         ]

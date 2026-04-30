@@ -162,7 +162,7 @@ private struct MechanicsRealityView: View {
         .realityViewCameraControls(.orbit)
     }
 
-    private func bodyMaterial(_ b: Body) -> SimpleMaterial {
+    private func bodyMaterial(_ b: PhysicsBody) -> SimpleMaterial {
         let ui = UIColor(b.color)
         var m = SimpleMaterial(color: ui, isMetallic: false)
         m.roughness = 0.4

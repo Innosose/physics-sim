@@ -4,7 +4,7 @@ import SwiftUI
 ///
 /// 한 타입이 모든 역할 — 입자·행성·전하·카트·봅 (펜듈럼 추) 까지.
 /// 어떤 힘이 작용할지는 `World` 의 force field 설정과 `kind` 가 함께 결정.
-struct Body: Identifiable {
+struct PhysicsBody: Identifiable {
     let id = UUID()
     var pos: Vec3
     var vel: Vec3 = .zero

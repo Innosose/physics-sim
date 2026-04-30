@@ -129,7 +129,7 @@ enum PresetCatalog {
                                      max: Vec3(x: 1, y: 1, z: 1),
                                      restitution: 1.0)
                    var rng = SystemRandomNumberGenerator()
-                   var bs: [Body] = []
+                   var bs: [PhysicsBody] = []
                    let n = 80, r = 0.04, speed = 0.4
                    let cols = max(1, Int(Double(n).squareRoot().rounded(.up)))
                    let cell = (1 - 4 * r) / Double(cols)
@@ -140,7 +140,7 @@ enum PresetCatalog {
                            let x = -0.5 + 2 * r + cell * (Double(ix) + 0.5)
                            let y = -0.5 + 2 * r + cell * (Double(iy) + 0.5)
                            let θ = Double.random(in: 0...(2 * .pi), using: &rng)
-                           bs.append(Body(
+                           bs.append(PhysicsBody(
                                pos: Vec3(x: x, y: y, z: 0),
                                vel: Vec3(x: speed * cos(θ), y: speed * sin(θ), z: 0),
                                mass: 1, radius: r,

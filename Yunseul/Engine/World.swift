@@ -9,7 +9,7 @@ import Foundation
 /// 적분: Velocity-Verlet. 닫힌 해가 있는 케이스 (자유낙하·진자 cn 등) 도 같은
 /// 적분기로 처리해 일관성 유지 — 정확도가 충분하면 학습용으로 차이 무시 가능.
 final class World {
-    var bodies: [Body] = []
+    var bodies: [PhysicsBody] = []
     var springs: [Spring] = []
     var bounds: Bounds? = nil
 
