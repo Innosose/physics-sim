@@ -4,7 +4,11 @@ import SwiftUI
 ///
 /// 각 프리셋은 빈 `World` 를 받아 자기 시작 상태로 채움. 사용자는 그 위에서
 /// 추가로 객체 spawn / 힘장 조절 가능 (= 자유 실험).
-struct Preset: Identifiable, Hashable {
+///
+/// `@unchecked Sendable`: load 클로저는 항상 MainActor 에서만 호출되고 World 는
+/// class 라 본질적으로 sendable 이 아니지만 실제 사용 패턴상 안전. Swift 6
+/// strict 검사를 통과시키기 위한 명시 (OpenCalculatorAction 과 같은 결정).
+struct Preset: Identifiable, Hashable, @unchecked Sendable {
     let id: String
     let title: String
     let curriculum: Curriculum
