@@ -23,14 +23,18 @@ private struct WaveSumView: View {
     @State private var f1: Double = 1.0
     @State private var f2: Double = 1.1
     @State private var oppose: Bool = false
-    @State private var startTime = Date()
+    @State private var elapsed: Double = 0
+    @State private var lastTick: TimeInterval? = nil
+    @State private var running: Bool = false
 
     var body: some View {
         VStack(spacing: 8) {
-            TimelineView(.animation) { tl in
+            TimelineView(.animation(paused: !running)) { tl in
                 Canvas { ctx, size in
-                    let t = tl.date.timeIntervalSince(startTime)
-                    draw(ctx: ctx, size: size, t: t)
+                    draw(ctx: ctx, size: size, t: elapsed)
+                }
+                .onChange(of: tl.date) { _, newDate in
+                    advance(to: newDate.timeIntervalSinceReferenceDate)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -38,9 +42,45 @@ private struct WaveSumView: View {
                 slider("f₁", value: $f1, range: 0.1...4, unit: "Hz")
                 slider("f₂", value: $f2, range: 0.1...4, unit: "Hz")
                 Toggle("두 번째 파 반대 진행 (정상파)", isOn: $oppose).font(.caption)
+                playReset
             }
         }
         .padding(8)
+    }
+
+    private var playReset: some View {
+        HStack(spacing: 8) {
+            Button {
+                running.toggle()
+            } label: {
+                Label(running ? "일시정지" : "재생",
+                      systemImage: running ? "pause.fill" : "play.fill")
+                    .font(.callout.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.glassProminent)
+            .tint(Theme.glow)
+
+            Button {
+                elapsed = 0
+                lastTick = nil
+                running = false
+            } label: {
+                Label("처음부터", systemImage: "arrow.counterclockwise")
+                    .font(.callout.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.glass)
+        }
+    }
+
+    private func advance(to now: TimeInterval) {
+        guard let last = lastTick else { lastTick = now; return }
+        guard running else { lastTick = now; return }
+        var dt = now - last
+        if dt > 0.05 { dt = 0.05 }
+        lastTick = now
+        elapsed += dt
     }
 
     private func slider(_ title: String, value: Binding<Double>,
@@ -108,14 +148,18 @@ private struct DopplerView: View {
     @State private var sourceSpeed: Double = 60
     @State private var soundSpeed: Double = 340
     @State private var freq: Double = 1.5
-    @State private var startTime = Date()
+    @State private var elapsed: Double = 0
+    @State private var lastTick: TimeInterval? = nil
+    @State private var running: Bool = false
 
     var body: some View {
         VStack(spacing: 8) {
-            TimelineView(.animation) { tl in
+            TimelineView(.animation(paused: !running)) { tl in
                 Canvas { ctx, size in
-                    let t = tl.date.timeIntervalSince(startTime)
-                    draw(ctx: ctx, size: size, t: t)
+                    draw(ctx: ctx, size: size, t: elapsed)
+                }
+                .onChange(of: tl.date) { _, newDate in
+                    advance(to: newDate.timeIntervalSinceReferenceDate)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -123,9 +167,45 @@ private struct DopplerView: View {
                 slider("v_s", value: $sourceSpeed, range: 0...400, unit: "m/s")
                 slider("c", value: $soundSpeed, range: 100...400, unit: "m/s")
                 slider("f", value: $freq, range: 0.5...4, unit: "Hz")
+                playReset
             }
         }
         .padding(8)
+    }
+
+    private var playReset: some View {
+        HStack(spacing: 8) {
+            Button {
+                running.toggle()
+            } label: {
+                Label(running ? "일시정지" : "재생",
+                      systemImage: running ? "pause.fill" : "play.fill")
+                    .font(.callout.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.glassProminent)
+            .tint(Theme.glow)
+
+            Button {
+                elapsed = 0
+                lastTick = nil
+                running = false
+            } label: {
+                Label("처음부터", systemImage: "arrow.counterclockwise")
+                    .font(.callout.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.glass)
+        }
+    }
+
+    private func advance(to now: TimeInterval) {
+        guard let last = lastTick else { lastTick = now; return }
+        guard running else { lastTick = now; return }
+        var dt = now - last
+        if dt > 0.05 { dt = 0.05 }
+        lastTick = now
+        elapsed += dt
     }
 
     private func slider(_ title: String, value: Binding<Double>,

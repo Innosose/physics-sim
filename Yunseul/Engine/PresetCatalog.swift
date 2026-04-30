@@ -161,14 +161,14 @@ enum PresetCatalog {
                title: "자유 충돌 박스",
                curriculum: .free, category: .sandbox,
                calculatorTopic: nil,
-               kind: .mechanics3D,
+               kind: .mechanics2D,
                load: MechanicsPresets.freeCollision),
 
         Preset(id: "nbody",
                title: "N체 중력",
                curriculum: .free, category: .sandbox,
                calculatorTopic: nil,
-               kind: .mechanics3D,
+               kind: .mechanics2D,
                load: MechanicsPresets.solarSystem),
     ]
 

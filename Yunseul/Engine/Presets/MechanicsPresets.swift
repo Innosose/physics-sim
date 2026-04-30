@@ -135,7 +135,7 @@ enum MechanicsPresets {
         w.pairwiseGravity = true
         w.G = 1.0
         w.trailEnabled = true
-        w.trailMax = 50
+        w.trailMax = 400
         let sun = PhysicsBody(pos: .zero, mass: 300, radius: 0.55,
                               color: Color(red: 1.00, green: 0.78, blue: 0.30),
                               pinned: true, kind: .star)
@@ -163,7 +163,7 @@ enum MechanicsPresets {
         w.pairwiseGravity = true
         w.G = 1.0
         w.trailEnabled = true
-        w.trailMax = 80
+        w.trailMax = 500
         let v12 = Vec3(x: 0.93240737 / 2, y: 0.86473146 / 2, z: 0)
         let v3  = Vec3(x: -0.93240737, y: -0.86473146, z: 0)
         let colors: [Color] = [

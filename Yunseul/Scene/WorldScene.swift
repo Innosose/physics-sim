@@ -32,8 +32,6 @@ struct WorldScene: View {
         switch preset.kind {
         case .mechanics2D:
             Mechanics2DViewport(preset: preset)
-        case .mechanics3D:
-            MechanicsViewport(preset: preset)
         case .optics(let scene):
             OpticsViewport(scene: scene)
         case .wave(let scene):

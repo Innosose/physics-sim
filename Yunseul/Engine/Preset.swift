@@ -11,7 +11,6 @@ struct Preset: Identifiable, Hashable, @unchecked Sendable {
 
     enum Kind: Hashable {
         case mechanics2D
-        case mechanics3D
         case optics(OpticsScene)
         case wave(WaveScene)
         case circuit(CircuitScene)

@@ -1,15 +1,32 @@
 import SwiftUI
 
+enum NBodyVariant: String, CaseIterable, Identifiable {
+    case solar = "태양계"
+    case threeBody = "3체"
+    var id: String { rawValue }
+}
+
 struct Mechanics2DViewport: View {
     let preset: Preset
 
     @State private var world = World()
     @State private var lastTick: TimeInterval? = nil
-    @State private var running = true
+    @State private var running = false
     @State private var redrawTick: Int = 0
+    @State private var nBodyVariant: NBodyVariant = .solar
 
     var body: some View {
         VStack(spacing: 10) {
+            if preset.id == "nbody" {
+                Picker("", selection: $nBodyVariant) {
+                    ForEach(NBodyVariant.allCases) { v in
+                        Text(v.rawValue).tag(v)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .onChange(of: nBodyVariant) { _, _ in reset() }
+            }
+
             TimelineView(.animation(paused: !running)) { tl in
                 Canvas { ctx, size in
                     draw(ctx: ctx, size: size)
@@ -60,6 +77,7 @@ struct Mechanics2DViewport: View {
     private func reset() {
         world.bodies.removeAll()
         world.springs.removeAll()
+        world.trails.removeAll()
         world.bounds = nil
         world.gravity = .zero
         world.magneticB = .zero
@@ -71,9 +89,19 @@ struct Mechanics2DViewport: View {
         world.restitution = 1.0
         world.G = 1.0
         world.kCoulomb = 1.0
+        world.trailEnabled = false
+        world.trailMax = 60
         world.time = 0
-        preset.load(world)
+        if preset.id == "nbody" {
+            switch nBodyVariant {
+            case .solar:     MechanicsPresets.solarSystem(world)
+            case .threeBody: MechanicsPresets.threeBody(world)
+            }
+        } else {
+            preset.load(world)
+        }
         lastTick = nil
+        running = false
         redrawTick &+= 1
     }
 
@@ -114,6 +142,32 @@ struct Mechanics2DViewport: View {
             drawFieldGrid(ctx: ctx, size: size, outward: world.magneticB.z > 0)
         }
 
+        // 네온 자취 — 본체보다 먼저 그려서 본체 아래 깔리게.
+        if world.trailEnabled {
+            for body in world.bodies {
+                guard let pts = world.trails[body.id], pts.count > 1 else { continue }
+                var path = Path()
+                var first = true
+                for p in pts {
+                    guard p.isFinite else { continue }
+                    let pt = mapPoint(p, scale: scale, cx: cx, cy: cy, ext: extent.center)
+                    if first { path.move(to: pt); first = false }
+                    else     { path.addLine(to: pt) }
+                }
+                guard !first else { continue }
+                let col = body.color
+                // 외광 (가장 두껍고 흐림) → 중간 → 코어 (얇고 진함). 네온 효과.
+                ctx.stroke(path, with: .color(col.opacity(0.10)),
+                           style: StrokeStyle(lineWidth: 8, lineCap: .round, lineJoin: .round))
+                ctx.stroke(path, with: .color(col.opacity(0.25)),
+                           style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round))
+                ctx.stroke(path, with: .color(col.opacity(0.65)),
+                           style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+                ctx.stroke(path, with: .color(.white.opacity(0.8)),
+                           style: StrokeStyle(lineWidth: 0.6, lineCap: .round, lineJoin: .round))
+            }
+        }
+
         for s in world.springs {
             guard let a = world.bodies.first(where: { $0.id == s.aId }),
                   let b = world.bodies.first(where: { $0.id == s.bId }),
@@ -134,6 +188,16 @@ struct Mechanics2DViewport: View {
             let p = mapPoint(body.pos, scale: scale, cx: cx, cy: cy, ext: extent.center)
             let pr = max(2, CGFloat(body.radius) * scale)
             guard pr.isFinite else { continue }
+            // 자취 있는 입자에는 작은 글로우 헤일로.
+            if world.trailEnabled {
+                let halo = pr * 3
+                ctx.fill(
+                    Path(ellipseIn: CGRect(x: p.x - halo, y: p.y - halo,
+                                           width: halo * 2, height: halo * 2)),
+                    with: .radialGradient(
+                        Gradient(colors: [body.color.opacity(0.55), .clear]),
+                        center: p, startRadius: 0, endRadius: halo))
+            }
             ctx.fill(
                 Path(ellipseIn: CGRect(x: p.x - pr, y: p.y - pr,
                                        width: pr * 2, height: pr * 2)),
@@ -141,7 +205,7 @@ struct Mechanics2DViewport: View {
             ctx.stroke(
                 Path(ellipseIn: CGRect(x: p.x - pr, y: p.y - pr,
                                        width: pr * 2, height: pr * 2)),
-                with: .color(Theme.ink.opacity(0.4)), lineWidth: 0.8)
+                with: .color(.white.opacity(0.5)), lineWidth: 0.8)
         }
     }
 
