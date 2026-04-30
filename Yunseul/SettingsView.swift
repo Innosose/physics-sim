@@ -1,32 +1,30 @@
 import SwiftUI
 
-/// 사용자 설정 — 테마(외관) 만.
+/// 사용자 설정 — 테마만.
 ///
-/// 테마는 `AppStorage("appearance")` 에 저장되며, `.preferredColorScheme(_:)`
+/// 테마는 `AppStorage("themeMode")` 에 저장되며, `.preferredColorScheme(_:)`
 /// 으로 앱 루트에 적용된다. 시스템(자동) / 라이트 / 다크 세 옵션.
 struct SettingsView: View {
-    @AppStorage("appearance") private var appearanceRaw: String = Appearance.system.rawValue
+    @AppStorage("themeMode") private var themeModeRaw: String = ThemeMode.system.rawValue
     @Environment(\.dismiss) private var dismiss
 
-    private var appearance: Binding<Appearance> {
+    private var themeMode: Binding<ThemeMode> {
         Binding(
-            get: { Appearance(rawValue: appearanceRaw) ?? .system },
-            set: { appearanceRaw = $0.rawValue }
+            get: { ThemeMode(rawValue: themeModeRaw) ?? .system },
+            set: { themeModeRaw = $0.rawValue }
         )
     }
 
     var body: some View {
         NavigationStack {
             Form {
-                Section {
-                    Picker("외관", selection: appearance) {
-                        ForEach(Appearance.allCases) { a in
-                            Text(a.label).tag(a)
+                Section("테마") {
+                    Picker("테마", selection: themeMode) {
+                        ForEach(ThemeMode.allCases) { m in
+                            Text(m.label).tag(m)
                         }
                     }
                     .pickerStyle(.segmented)
-                } header: {
-                    Text("테마")
                 }
             }
             .navigationTitle("설정")
@@ -40,8 +38,8 @@ struct SettingsView: View {
     }
 }
 
-/// 외관 선택지. `AppStorage` 에 raw String 으로 저장.
-enum Appearance: String, CaseIterable, Identifiable {
+/// 테마 선택지. `AppStorage` 에 raw String 으로 저장.
+enum ThemeMode: String, CaseIterable, Identifiable {
     case system, light, dark
     var id: String { rawValue }
 
