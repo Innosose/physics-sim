@@ -140,21 +140,21 @@ private struct MechanicsRealityView: View {
             }
 
             // ───── body entity 들 ─────
-            for body in world.bodies {
-                let mat = bodyMaterial(body)
-                let mesh: MeshResource = .generateSphere(radius: Float(body.radius))
+            for pb in world.bodies {
+                let mat = bodyMaterial(pb)
+                let mesh: MeshResource = .generateSphere(radius: Float(pb.radius))
                 let entity = ModelEntity(mesh: mesh, materials: [mat])
-                entity.name = "body-\(body.id.uuidString)"
-                entity.transform.translation = body.pos.simd
+                entity.name = "body-\(pb.id.uuidString)"
+                entity.transform.translation = pb.pos.simd
                 content.add(entity)
             }
         } update: { content in
             // body 위치 갱신.
-            for body in world.bodies {
-                let name = "body-\(body.id.uuidString)"
+            for pb in world.bodies {
+                let name = "body-\(pb.id.uuidString)"
                 if let entity = content.entities.first(where: { $0.name == name }) {
-                    if body.pos.isFinite {
-                        entity.transform.translation = body.pos.simd
+                    if pb.pos.isFinite {
+                        entity.transform.translation = pb.pos.simd
                     }
                 }
             }
