@@ -117,7 +117,7 @@ struct FreeCollisionScene: View {
 
     // MARK: - 프리셋
 
-    private func loadPreset() { resetWith(preset3()) }
+    private func loadPreset() { particles = preset3() }
 
     private func preset3() -> [Particle] {
         [
