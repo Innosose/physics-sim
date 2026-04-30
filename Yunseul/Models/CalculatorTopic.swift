@@ -76,7 +76,7 @@ enum CalculatorTopic: String, CaseIterable, Identifiable, Hashable {
         }
     }
 
-    /// 분류 — 계산기 목록에서 섹션으로 묶기 위해.
+    /// 기능 — 계산기 목록에서 섹션으로 묶기 위해.
     var section: String {
         switch self {
         case .freefall, .projectile, .pendulum, .collision, .kepler:

@@ -500,7 +500,7 @@ struct CollisionCalculator: View {
                     abs(e - 1) < 1e-6 ? "완전탄성 (KE 보존)"
                     : (e < 1e-6 ? "완전비탄성 (서로 같은 속도)"
                                 : "부분탄성")
-                CalcOutput(label: "분류", value: label)
+                CalcOutput(label: "기능", value: label)
             }
         }
     }

@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// 시뮬 분류 (커리큘럼 안에서의 소분류).
+/// 시뮬 기능 (커리큘럼 안에서의 소기능).
 enum SimCategory: String, CaseIterable, Identifiable, Hashable {
     case mechanics = "역학"
     case waveThermo = "파동·열"
@@ -169,7 +169,7 @@ enum SimulationCatalog {
         return ids.map { item($0) }
     }
 
-    /// 커리큘럼 안에서 소분류별로 묶기.
+    /// 커리큘럼 안에서 소기능별로 묶기.
     static func grouped(for c: Curriculum) -> [(SimCategory, [SimulationItem])] {
         let items = items(for: c)
         var dict: [SimCategory: [SimulationItem]] = [:]
@@ -235,7 +235,7 @@ extension SimulationItem {
     }
 }
 
-/// 시뮬이 결과를 어떻게 계산하는지의 분류.
+/// 시뮬이 결과를 어떻게 계산하는지의 기능.
 enum SimCalcKind {
     /// 모든 시간에서 분석해 (예: 포물선·진자 cn·렌즈·스넬·도플러 등).
     case closed
