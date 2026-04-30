@@ -1,10 +1,5 @@
 import SwiftUI
 
-/// 통합 월드의 2D Canvas 렌더.
-///
-/// 자유낙하·포물선·진자·스프링·케플러·1차원 충돌·기체·Lorentz·E-field 등
-/// 평면에서 충분한 시뮬에 사용. World 엔진은 3D 와 동일 (XY 평면 사용, z=0).
-/// N체·자유충돌 같은 진정한 3D 케이스만 `MechanicsViewport` (RealityKit) 가 사용.
 struct Mechanics2DViewport: View {
     let preset: Preset
 
@@ -98,8 +93,6 @@ struct Mechanics2DViewport: View {
         }
     }
 
-    // MARK: - 그리기
-
     private func draw(ctx: GraphicsContext, size: CGSize) {
         let extent = computeExtent()
         let worldW = max(0.001, extent.x * 2)
@@ -108,7 +101,6 @@ struct Mechanics2DViewport: View {
         let cx = size.width / 2
         let cy = size.height / 2
 
-        // bounds 사각형.
         if let b = world.bounds {
             let x0 = cx + CGFloat(b.min.x - extent.center.x) * scale
             let x1 = cx + CGFloat(b.max.x - extent.center.x) * scale
@@ -118,12 +110,10 @@ struct Mechanics2DViewport: View {
                        with: .color(.white.opacity(0.4)), lineWidth: 1.2)
         }
 
-        // 자기장 (XY 평면 외부 향함) — 작은 점·×.
         if abs(world.magneticB.z) > 1e-6 {
             drawFieldGrid(ctx: ctx, size: size, outward: world.magneticB.z > 0)
         }
 
-        // 스프링.
         for s in world.springs {
             guard let a = world.bodies.first(where: { $0.id == s.aId }),
                   let b = world.bodies.first(where: { $0.id == s.bId }),
@@ -139,7 +129,6 @@ struct Mechanics2DViewport: View {
                        lineWidth: s.rigid ? 2 : 1.5)
         }
 
-        // 입자.
         for body in world.bodies {
             guard body.pos.isFinite else { continue }
             let p = mapPoint(body.pos, scale: scale, cx: cx, cy: cy, ext: extent.center)
@@ -187,7 +176,6 @@ struct Mechanics2DViewport: View {
         }
     }
 
-    /// 화면 중앙에 놓을 월드 중심 + 범위 절반.
     private struct Extent { var center: CGPoint; var x: Double; var y: Double }
 
     private func computeExtent() -> Extent {

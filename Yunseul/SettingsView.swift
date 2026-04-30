@@ -1,9 +1,5 @@
 import SwiftUI
 
-/// 사용자 설정 — 테마만.
-///
-/// 테마는 `AppStorage("themeMode")` 에 저장되며, `.preferredColorScheme(_:)`
-/// 으로 앱 루트에 적용된다. 시스템(자동) / 라이트 / 다크 세 옵션.
 struct SettingsView: View {
     @AppStorage("themeMode") private var themeModeRaw: String = ThemeMode.system.rawValue
     @Environment(\.dismiss) private var dismiss
@@ -37,8 +33,6 @@ struct SettingsView: View {
         }
     }
 }
-
-/// 테마 선택지. `AppStorage` 에 raw String 으로 저장.
 enum ThemeMode: String, CaseIterable, Identifiable {
     case system, light, dark
     var id: String { rawValue }
@@ -50,8 +44,6 @@ enum ThemeMode: String, CaseIterable, Identifiable {
         case .dark:   return "다크"
         }
     }
-
-    /// `.preferredColorScheme(_:)` 에 전달할 값. `nil` 이면 시스템 따라감.
     var colorScheme: ColorScheme? {
         switch self {
         case .system: return nil

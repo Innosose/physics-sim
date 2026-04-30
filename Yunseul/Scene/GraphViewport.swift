@@ -1,6 +1,5 @@
 import SwiftUI
 
-/// 단순 1D 그래프 시뮬 — 등속·등가속도 비교, 열전달.
 struct GraphViewport: View {
     let preset: Preset
 
@@ -20,8 +19,6 @@ struct GraphViewport: View {
         )
     }
 }
-
-// MARK: - 등속 vs 등가속도
 
 private struct MotionGraphView: View {
     @State private var v1: Double = 5
@@ -70,7 +67,6 @@ private struct MotionGraphView: View {
         let x1 = v1 * t
         let x2 = v0 * t + 0.5 * a * t * t
 
-        // 트랙.
         var line = Path()
         line.move(to: CGPoint(x: 16, y: track.midY))
         line.addLine(to: CGPoint(x: track.maxX - 16, y: track.midY))
@@ -85,7 +81,6 @@ private struct MotionGraphView: View {
         ctx.fill(Path(ellipseIn: CGRect(x: p2.x - 8, y: p2.y - 8, width: 16, height: 16)),
                  with: .color(.orange))
 
-        // x(t) 그래프.
         let tEnd = max(8.0, t * 1.05)
         let yMax2 = max(20.0, max(v1 * tEnd, v0 * tEnd + 0.5 * a * tEnd * tEnd) * 1.1 + 1)
         ctx.stroke(Path(roundedRect: plot.insetBy(dx: 12, dy: 12), cornerRadius: 8),
@@ -112,8 +107,6 @@ private struct MotionGraphView: View {
         ctx.stroke(path, with: .color(color), lineWidth: 1.6)
     }
 }
-
-// MARK: - 열전달
 
 private struct HeatTransferView: View {
     @State private var T1: Double = 80
@@ -166,7 +159,6 @@ private struct HeatTransferView: View {
         let cur1 = Teq + (T1 - Teq) * f
         let cur2 = Teq + (T2 - Teq) * f
 
-        // 두 박스.
         let bw: CGFloat = 100, bh: CGFloat = 60
         let r1 = CGRect(x: topR.midX - bw - 16, y: topR.midY - bh / 2, width: bw, height: bh)
         let r2 = CGRect(x: topR.midX + 16, y: topR.midY - bh / 2, width: bw, height: bh)
@@ -179,7 +171,6 @@ private struct HeatTransferView: View {
                     .foregroundColor(.black),
                  at: CGPoint(x: r2.midX, y: r2.midY))
 
-        // 곡선.
         let inner = plotR.insetBy(dx: 12, dy: 12)
         ctx.stroke(Path(roundedRect: inner, cornerRadius: 8),
                    with: .color(.white.opacity(0.18)), lineWidth: 1)

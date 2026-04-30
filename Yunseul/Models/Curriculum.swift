@@ -1,6 +1,5 @@
 import SwiftUI
 
-/// 사이드바 기능 — 윤슬은 **중·고등학생** 대상이고, 그 위에 샌드박스가 더해진다.
 enum Curriculum: String, CaseIterable, Identifiable, Hashable {
     case middle = "중학교"
     case high   = "고등학교"
@@ -8,7 +7,6 @@ enum Curriculum: String, CaseIterable, Identifiable, Hashable {
 
     var id: String { rawValue }
 
-    /// 사이드바 아래 보조 설명.
     var subtitle: String {
         switch self {
         case .middle: return "1–3학년 과학"
@@ -17,7 +15,6 @@ enum Curriculum: String, CaseIterable, Identifiable, Hashable {
         }
     }
 
-    /// 강조색 — 기능별 색.
     var accent: Color {
         switch self {
         case .middle: return Color(red: 0.30, green: 0.74, blue: 0.85)

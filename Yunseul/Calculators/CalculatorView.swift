@@ -1,18 +1,13 @@
 import SwiftUI
 
-/// 계산기 한 토픽의 입력·출력 화면. 토픽에 따라 분기.
-///
-/// 모든 계산기는 닫힌 해 (analytical) 만 사용 — 입력값이 바뀌면 즉시 결과 갱신.
 struct CalculatorView: View {
     let topic: CalculatorTopic
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
-                // ConceptCard 와 같은 톤의 헤더 — 단원·공식.
                 CalcHeader(topic: topic)
 
-                // 토픽별 본체.
                 Group {
                     switch topic {
                     case .freefall:   FreeFallCalculator()
@@ -40,10 +35,6 @@ struct CalculatorView: View {
         .navigationBarTitleDisplayMode(.inline)
     }
 }
-
-// MARK: - 계산기 공통 컴포넌트
-
-/// 토픽 헤더 — ConceptCard 와 같은 톤.
 private struct CalcHeader: View {
     let topic: CalculatorTopic
     @Environment(\.openSimulation) private var openSimulation
@@ -96,8 +87,6 @@ private struct CalcHeader: View {
         .themeCard(cornerRadius: 16)
     }
 }
-
-/// 입력 행 — 라벨 + 숫자 TextField + 단위.
 struct CalcInputField: View {
     let title: String
     @Binding var value: Double
@@ -126,8 +115,6 @@ struct CalcInputField: View {
         .padding(.vertical, 4)
     }
 }
-
-/// 출력 행 — 라벨 + 모노스페이스 값 + 단위.
 struct CalcOutput: View {
     let label: String
     let value: String
@@ -147,8 +134,6 @@ struct CalcOutput: View {
         .padding(.vertical, 3)
     }
 }
-
-/// 섹션 — "입력값" / "결과" 헤더 + 내용.
 struct CalcSection<Content: View>: View {
     let title: String
     @ViewBuilder var content: () -> Content
@@ -164,8 +149,6 @@ struct CalcSection<Content: View>: View {
         .padding(.vertical, 4)
     }
 }
-
-// MARK: - 자유낙하
 
 struct FreeFallCalculator: View {
     @State private var h0: Double = 20
@@ -209,8 +192,6 @@ struct FreeFallCalculator: View {
     }
 }
 
-// MARK: - 포물선 운동
-
 struct ProjectileCalculator: View {
     @State private var angleDeg: Double = 45
     @State private var speed: Double = 20
@@ -230,7 +211,6 @@ struct ProjectileCalculator: View {
                 let θ = angleDeg * .pi / 180
                 let v0x = speed * cos(θ)
                 let v0y = speed * sin(θ)
-                // 비행시간: ½ g T² − v₀y T − h₀ = 0 양의 해
                 let disc = v0y * v0y + 2 * g * h0
                 if disc < 0 {
                     Text("입력값 오류")
@@ -263,8 +243,6 @@ struct ProjectileCalculator: View {
         }
     }
 }
-
-// MARK: - 옴의 법칙 + 직렬·병렬
 
 struct OhmCalculator: View {
     enum Mode: String, CaseIterable, Identifiable {
@@ -325,8 +303,6 @@ struct OhmCalculator: View {
     }
 }
 
-// MARK: - 굴절 (스넬)
-
 struct RefractionCalculator: View {
     @State private var theta1Deg: Double = 30
     @State private var n1: Double = 1.0     // 공기
@@ -366,8 +342,6 @@ struct RefractionCalculator: View {
         }
     }
 }
-
-// MARK: - 얇은 렌즈
 
 struct LensCalculator: View {
     @State private var f: Double  = 2.0
@@ -414,8 +388,6 @@ struct LensCalculator: View {
     }
 }
 
-// MARK: - 단진자 주기
-
 struct PendulumCalculator: View {
     @State private var L: Double  = 1.0
     @State private var g: Double  = 9.81
@@ -434,9 +406,7 @@ struct PendulumCalculator: View {
                 CalcOutput(label: "작은-각 주기 T₀ = 2π√(L/g)",
                            value: String(format: "%.2f s", T0), emphasis: true)
 
-                // 진폭 보정 — 큰 각에서의 주기 (멱급수 근사, 정확):
-                //   T(θ_max) = T₀ · (1 + θ²/16 + 11·θ⁴/3072 + 173·θ⁶/737280 + …)
-                // 5차 항까지 — θ_max ≤ 170° 까지 < 1% 오차.
+                // T(θ_max) = T₀ · (1 + θ²/16 + 11·θ⁴/3072 + 173·θ⁶/737280)
                 let θ = thetaDeg * .pi / 180
                 let θ2 = θ * θ
                 let θ4 = θ2 * θ2
@@ -457,8 +427,6 @@ struct PendulumCalculator: View {
         }
     }
 }
-
-// MARK: - 1차원 충돌
 
 struct CollisionCalculator: View {
     @State private var m1: Double = 2.0
@@ -505,13 +473,10 @@ struct CollisionCalculator: View {
     }
 }
 
-// MARK: - 케플러 궤도 매개변수
-
 struct KeplerCalculator: View {
     @State private var GM: Double = 3.986e14   // 지구 GM (m³/s²)
     @State private var r: Double  = 6.78e6     // 저궤도 (m)
     @State private var v: Double  = 7700       // m/s
-    /// v 와 r (반경방향) 사이 각도. 90° = 순수 접선속력 (근/원일점), 0° = 순수 반경 = 자유낙하.
     @State private var gammaDeg: Double = 90
 
     var body: some View {
@@ -547,7 +512,6 @@ struct KeplerCalculator: View {
                                    emphasis: true)
                     } else {
                         let a = -GM / (2 * E)
-                        // 일반 궤도의 각운동량은 접선속력에서만 — L = r · v_t.
                         let L = r * vTangential
                         let term = max(0, 1 + 2 * E * L * L / (GM * GM))
                         let ecc = sqrt(term)
@@ -574,8 +538,6 @@ struct KeplerCalculator: View {
     }
 }
 
-// MARK: - 도플러 효과
-
 struct DopplerCalculator: View {
     enum Mode: String, CaseIterable, Identifiable {
         case sourceOnly = "음원만", observerOnly = "관측자만", both = "둘 다"
@@ -586,8 +548,6 @@ struct DopplerCalculator: View {
     @State private var c: Double  = 343        // m/s (공기, 20°C)
     @State private var vs: Double = 0          // 음원 속력 (관측자에게 다가가면 +)
     @State private var vo: Double = 0          // 관측자 속력 (음원에게 다가가면 +)
-
-    /// 선택된 모드에 따라 사용할 효과 속도. 토글된 쪽은 0 으로 강제.
     private var effectiveVs: Double { mode == .observerOnly ? 0 : vs }
     private var effectiveVo: Double { mode == .sourceOnly ? 0 : vo }
 
@@ -642,8 +602,6 @@ struct DopplerCalculator: View {
     }
 }
 
-// MARK: - 이중 슬릿
-
 struct DoubleSlitCalculator: View {
     @State private var lambdaNm: Double = 550   // nm
     @State private var dUm: Double      = 50    // μm — 슬릿 간격
@@ -674,7 +632,6 @@ struct DoubleSlitCalculator: View {
                                emphasis: true)
                     CalcOutput(label: "회절 첫 영점 위치 y_a = λ·D / a",
                                value: String(format: "%.2f mm", ya * 1000))
-                    // 봉투 안에 들어가는 보강무늬의 대략적 개수 — 정수가 자연스러움.
                     CalcOutput(label: "봉투 안의 보강 무늬 수 (대략 2·d/a)",
                                value: "\(Int((2 * d / a).rounded())) 개")
                     let θ1 = asin(min(1, λ / d))

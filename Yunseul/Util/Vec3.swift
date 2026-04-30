@@ -2,10 +2,6 @@ import CoreGraphics
 import Foundation
 import simd
 
-/// 3D 벡터 — 통합 월드 엔진 전반에서 공유. 기존 `Vec2` 를 대체.
-///
-/// 좌표계: y-up 오른손 좌표계. 화면 카메라가 -z 쪽에서 +z 쪽을 바라봄.
-/// RealityKit 의 `SIMD3<Float>` 와는 `simd` 변환자로 왕래.
 struct Vec3: Equatable {
     var x: Double
     var y: Double
@@ -20,7 +16,6 @@ struct Vec3: Equatable {
         self.x = x; self.y = y; self.z = z
     }
 
-    /// 2D 좌표에서 z=0 으로 승격 — 기존 2D 시뮬 식을 그대로 쓰고 싶을 때.
     init(x: Double, y: Double) { self.init(x: x, y: y, z: 0) }
 
     var length: Double { (x * x + y * y + z * z).squareRoot() }
@@ -51,14 +46,12 @@ struct Vec3: Equatable {
         a.x * b.x + a.y * b.y + a.z * b.z
     }
 
-    /// 3D 외적.
     static func cross(_ a: Vec3, _ b: Vec3) -> Vec3 {
         Vec3(x: a.y * b.z - a.z * b.y,
              y: a.z * b.x - a.x * b.z,
              z: a.x * b.y - a.y * b.x)
     }
 
-    /// RealityKit 변환.
     var simd: SIMD3<Float> {
         SIMD3<Float>(Float(x), Float(y), Float(z))
     }

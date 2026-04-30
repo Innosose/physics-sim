@@ -1,19 +1,12 @@
 import SwiftUI
 
-/// 계산기 주제 — 각 시뮬 화면 우상단의 "계산기" 버튼으로 진입.
-/// "값 입력 → 닫힌 해 결과" 만 빠르게 보여주고, 헤더의 "시뮬로 보기" 로 짝 시뮬에 복귀.
 enum CalculatorTopic: String, CaseIterable, Identifiable, Hashable {
-    // 역학
     case freefall   = "자유낙하"
     case projectile = "포물선 운동"
     case pendulum   = "단진자 주기"
     case collision  = "1차원 충돌"
     case kepler     = "케플러 궤도 매개변수"
-
-    // 전자기
     case ohm        = "옴의 법칙"
-
-    // 파동·광학
     case doppler    = "도플러 효과"
     case refraction = "스넬의 법칙"
     case lens       = "얇은 렌즈"
@@ -76,7 +69,6 @@ enum CalculatorTopic: String, CaseIterable, Identifiable, Hashable {
         }
     }
 
-    /// 기능 — 계산기 목록에서 섹션으로 묶기 위해.
     var section: String {
         switch self {
         case .freefall, .projectile, .pendulum, .collision, .kepler:
@@ -88,8 +80,6 @@ enum CalculatorTopic: String, CaseIterable, Identifiable, Hashable {
         }
     }
 
-    /// 이 계산기와 짝이 되는 시뮬레이션 ID. `SimulationCatalog.allItems` 의 id.
-    /// 계산기 화면 상단에 "이 시뮬로 보기" 버튼을 노출할 때 사용.
     var simulationId: String? {
         switch self {
         case .freefall:   return "freefall"

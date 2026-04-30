@@ -1,7 +1,5 @@
 import SwiftUI
 
-/// 파동 — 사인파 합·도플러. 통합 World 엔진과는 별도. 각각 작은 Canvas 파동
-/// 시각화로 구성.
 struct WaveViewport: View {
     let scene: Preset.WaveScene
 

@@ -1,19 +1,13 @@
 import SwiftUI
 import RealityKit
 
-/// 모든 프리셋의 공통 셸. preset.kind 에 따라 viewport 가 다음 중 하나로 분기:
-///   • mechanics : 통합 World 엔진을 RealityKit 으로 실시간 렌더
-///   • optics    : OpticsView (광선 추적·렌즈·슬릿)
-///   • wave      : WaveView  (heightfield / 파면)
-///   • circuit   : CircuitView (회로 다이어그램)
-///   • graph     : GraphView (단순 1D 그래프 — motiongraph·heat)
 struct WorldScene: View {
     let preset: Preset
     @Environment(\.openCalculator) private var openCalculator
 
     var body: some View {
         ZStack {
-            background
+            YunseulBackground(topGlow: Theme.glow.opacity(0.06))
             VStack(alignment: .leading, spacing: 12) {
                 header
                 viewport
@@ -36,10 +30,6 @@ struct WorldScene: View {
         }
         .navigationTitle(preset.title)
         .navigationBarTitleDisplayMode(.inline)
-    }
-
-    private var background: some View {
-        YunseulBackground(topGlow: Theme.glow.opacity(0.06))
     }
 
     private var header: some View {

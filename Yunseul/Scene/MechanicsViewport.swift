@@ -2,20 +2,12 @@ import SwiftUI
 import RealityKit
 import UIKit
 
-/// 통합 월드의 RealityKit 렌더. 모든 역학·전자기 프리셋 공용.
-///
-/// • 첫 setup 에서 카메라·라이트·바닥을 한 번 만든다.
-/// • 매 프레임 update 에서 World 의 body 위치만 entity transform 으로 흘림.
-/// • `TimelineView(.animation)` 로 60 fps tick → World.step 호출.
-/// • 드래그 = 카메라 orbit, 핀치 = 줌 (RealityView 의 .orbit 컨트롤).
 struct MechanicsViewport: View {
     let preset: Preset
 
-    /// reference type — SwiftUI diff 압박 회피.
     @State private var world = World()
     @State private var lastTick: TimeInterval? = nil
     @State private var running = true
-    /// preset 변경·reset 시 RealityView 재생성용.
     @State private var redrawTick: Int = 0
 
     var body: some View {
@@ -96,7 +88,6 @@ struct MechanicsViewport: View {
         let h = dt / Double(sub)
         for _ in 0..<sub { world.step(dt: h) }
 
-        // 발산 감지 — 어느 body 라도 NaN/Inf 가 되면 reset.
         if world.bodies.contains(where: {
             !$0.pos.isFinite || !$0.vel.isFinite
         }) {
@@ -105,20 +96,17 @@ struct MechanicsViewport: View {
     }
 }
 
-/// World 의 body 들을 RealityKit entity 로 1-1 매핑.
 private struct MechanicsRealityView: View {
     let world: World
 
     var body: some View {
         RealityView { content in
-            // ───── 라이트 ─────
             let light = DirectionalLight()
             light.light.intensity = 5000
             light.transform.translation = [10, 20, 10]
             light.look(at: [0, 0, 0], from: [10, 20, 10], relativeTo: nil)
             content.add(light)
 
-            // ───── 카메라 ─────
             let camera = PerspectiveCamera()
             let extent = max(8.0, estimatedExtent())
             let camPos = SIMD3<Float>(Float(extent * 1.2),
@@ -128,7 +116,6 @@ private struct MechanicsRealityView: View {
             camera.look(at: .zero, from: camPos, relativeTo: nil)
             content.add(camera)
 
-            // ───── 바닥 (선택) ─────
             if let b = world.bounds, b.min.y > -5 {
                 let groundSize = Float(max(b.max.x - b.min.x, b.max.z - b.min.z) + 4)
                 let ground = ModelEntity(
@@ -139,7 +126,6 @@ private struct MechanicsRealityView: View {
                 content.add(ground)
             }
 
-            // ───── body entity 들 ─────
             for pb in world.bodies {
                 let mat = bodyMaterial(pb)
                 let mesh: MeshResource = .generateSphere(radius: Float(pb.radius))
@@ -149,7 +135,6 @@ private struct MechanicsRealityView: View {
                 content.add(entity)
             }
         } update: { content in
-            // body 위치 갱신.
             for pb in world.bodies {
                 let name = "body-\(pb.id.uuidString)"
                 if let entity = content.entities.first(where: { $0.name == name }) {

@@ -1,6 +1,5 @@
 import SwiftUI
 
-/// 회로 — 직렬·병렬·RLC. 통합 World 와 별도. 회로식 직접 풀어 다이어그램 표시.
 struct CircuitViewport: View {
     let scene: Preset.CircuitScene
 
@@ -66,20 +65,17 @@ private struct SimpleCircuitView: View {
         let lb = CGPoint(x: r.minX, y: r.maxY)
         let mid = CGPoint(x: r.minX, y: r.midY)
 
-        // 배터리.
         var b1 = Path(); b1.move(to: CGPoint(x: lt.x - 14, y: r.midY - 14)); b1.addLine(to: CGPoint(x: lt.x + 14, y: r.midY - 14))
         ctx.stroke(b1, with: .color(.white), lineWidth: 3)
         var b2 = Path(); b2.move(to: CGPoint(x: lt.x - 8, y: r.midY + 14)); b2.addLine(to: CGPoint(x: lt.x + 8, y: r.midY + 14))
         ctx.stroke(b2, with: .color(.white), lineWidth: 2)
 
-        // 회로 배선.
         var wires = Path()
         wires.move(to: lt); wires.addLine(to: rt); wires.addLine(to: rb); wires.addLine(to: lb)
         wires.move(to: lt); wires.addLine(to: CGPoint(x: lt.x, y: r.midY - 30))
         wires.move(to: lb); wires.addLine(to: CGPoint(x: lb.x, y: r.midY + 30))
         ctx.stroke(wires, with: .color(.white.opacity(0.85)), lineWidth: 2)
 
-        // 저항 표시.
         let r1Pos = CGPoint(x: r.midX - 60, y: lt.y)
         let r2Pos: CGPoint = mode == .series
             ? CGPoint(x: r.midX, y: rb.y)
@@ -87,7 +83,6 @@ private struct SimpleCircuitView: View {
         drawResistor(ctx, at: r1Pos, label: String(format: "R₁=%.2fΩ", R1))
         drawResistor(ctx, at: r2Pos, label: String(format: "R₂=%.2fΩ", R2))
 
-        // 결과 라벨.
         let req: Double, I: Double
         switch mode {
         case .series:   req = R1 + R2; I = emf / req
@@ -148,7 +143,7 @@ private struct RLCView: View {
     }
 
     private func draw(ctx: GraphicsContext, size: CGSize) {
-        // 1/|Z(ω)| 곡선 — 공명 위치 표시.
+
         let r = CGRect(x: 8, y: 8, width: size.width - 16, height: size.height - 16)
         let omegaMax = max(omega * 1.4, omega0 * 2.5)
         var path = Path()
@@ -170,7 +165,7 @@ private struct RLCView: View {
             else      { path.addLine(to: CGPoint(x: px, y: py)) }
         }
         ctx.stroke(path, with: .color(.orange), lineWidth: 1.6)
-        // 현재 ω 마커.
+
         let xω = r.minX + CGFloat(min(omega, omegaMax) / omegaMax) * r.width
         var line = Path()
         line.move(to: CGPoint(x: xω, y: r.minY))

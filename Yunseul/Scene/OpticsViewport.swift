@@ -1,8 +1,5 @@
 import SwiftUI
 
-/// 광학 — 광선 추적 (반사·굴절·렌즈·이중슬릿). 통합 World 엔진을 쓰지 않고
-/// 각 케이스별 기하 광학식을 SwiftUI Canvas 로 직접 그림. 향후 RealityKit
-/// 광선 가시화로 확장 가능.
 struct OpticsViewport: View {
     let scene: Preset.OpticsScene
 
@@ -22,8 +19,6 @@ struct OpticsViewport: View {
         )
     }
 }
-
-// MARK: - 반사·굴절
 
 private struct ReflectionView: View {
     @State private var incidenceDeg: Double = 30
@@ -60,12 +55,12 @@ private struct ReflectionView: View {
 
     private func draw(ctx: GraphicsContext, size: CGSize) {
         let mid = size.height / 2
-        // 경계.
+
         var boundary = Path()
         boundary.move(to: CGPoint(x: 0, y: mid))
         boundary.addLine(to: CGPoint(x: size.width, y: mid))
         ctx.stroke(boundary, with: .color(.white.opacity(0.6)), lineWidth: 1.5)
-        // 법선.
+
         var normal = Path()
         normal.move(to: CGPoint(x: size.width / 2, y: 30))
         normal.addLine(to: CGPoint(x: size.width / 2, y: size.height - 30))
@@ -75,17 +70,17 @@ private struct ReflectionView: View {
         let θ1 = incidenceDeg * .pi / 180
         let len: CGFloat = 220
         let cx = size.width / 2
-        // 입사.
+
         var inc = Path()
         inc.move(to: CGPoint(x: cx - CGFloat(sin(θ1)) * len, y: mid - CGFloat(cos(θ1)) * len))
         inc.addLine(to: CGPoint(x: cx, y: mid))
         ctx.stroke(inc, with: .color(.yellow), lineWidth: 2)
-        // 반사.
+
         var refl = Path()
         refl.move(to: CGPoint(x: cx, y: mid))
         refl.addLine(to: CGPoint(x: cx + CGFloat(sin(θ1)) * len, y: mid - CGFloat(cos(θ1)) * len))
         ctx.stroke(refl, with: .color(.cyan), lineWidth: 2)
-        // 굴절 (스넬).
+
         let s2 = n1 * sin(θ1) / n2
         if abs(s2) <= 1 {
             let θ2 = asin(s2)
@@ -97,8 +92,6 @@ private struct ReflectionView: View {
         }
     }
 }
-
-// MARK: - 얇은 렌즈
 
 private struct LensView: View {
     @State private var f: Double = 2.0
@@ -140,29 +133,29 @@ private struct LensView: View {
         let cx = size.width * 0.5
         let cy = size.height * 0.5
         let scale: CGFloat = min(size.width, size.height * 1.5) / 16
-        // 광축.
+
         var axis = Path()
         axis.move(to: CGPoint(x: 10, y: cy))
         axis.addLine(to: CGPoint(x: size.width - 10, y: cy))
         ctx.stroke(axis, with: .color(.white.opacity(0.4)), lineWidth: 1)
-        // 렌즈.
+
         var lens = Path()
         lens.move(to: CGPoint(x: cx, y: cy - 80))
         lens.addLine(to: CGPoint(x: cx, y: cy + 80))
         ctx.stroke(lens, with: .color(.cyan), lineWidth: 2)
-        // 초점.
+
         for s in [-1.0, 1.0] {
             let fx = cx + CGFloat(s * abs(fSigned)) * scale
             ctx.fill(Path(ellipseIn: CGRect(x: fx - 3, y: cy - 3, width: 6, height: 6)),
                      with: .color(.orange))
         }
-        // 물체 (왼쪽).
+
         let objX = cx - CGFloat(p) * scale
         var obj = Path()
         obj.move(to: CGPoint(x: objX, y: cy))
         obj.addLine(to: CGPoint(x: objX, y: cy - 40))
         ctx.stroke(obj, with: .color(.yellow), lineWidth: 2)
-        // 상.
+
         if q.isFinite {
             let imgX = cx + CGFloat(q) * scale
             let m = -q / p
@@ -176,8 +169,6 @@ private struct LensView: View {
         }
     }
 }
-
-// MARK: - 이중 슬릿
 
 private struct DoubleSlitView: View {
     @State private var lambdaNm: Double = 550
@@ -237,7 +228,7 @@ private struct DoubleSlitView: View {
             samples.append((y, I)); Imax = max(Imax, I)
         }
         let color = wavelengthColor(lambdaNm)
-        // 강도 띠.
+
         for (y, I) in samples {
             let f = CGFloat((y + yMax) / (2 * yMax))
             let x = stripRect.minX + f * stripRect.width
@@ -245,7 +236,7 @@ private struct DoubleSlitView: View {
                              width: stripRect.width / CGFloat(n) + 1, height: stripRect.height)
             ctx.fill(Path(bar), with: .color(color.opacity(I / Imax)))
         }
-        // 곡선.
+
         var path = Path()
         for (idx, (y, I)) in samples.enumerated() {
             let f = CGFloat((y + yMax) / (2 * yMax))

@@ -1,10 +1,8 @@
 import SwiftUI
 
-/// 모든 프리셋의 단일 등록처. 사이드바·계산기 매핑·기능별 그룹화에 사용.
 enum PresetCatalog {
 
     static let all: [Preset] = [
-        // ─── 중학교 ───
         Preset(id: "freefall",
                title: "자유낙하·연직 던지기",
                curriculum: .middle, category: .mechanics,
@@ -59,12 +57,11 @@ enum PresetCatalog {
                kind: .mechanics2D,
                load: MechanicsPresets.collision1D),
 
-        // ─── 고등학교 ───
         Preset(id: "projectile",
                title: "포물선 운동",
                curriculum: .high, category: .mechanics,
                curriculumLabel: "물리Ⅰ · 등가속도 운동",
-               blurb: "공기 저항이 있을 때와 없을 때의 자취 비교. 3D 시점 자유 회전.",
+               blurb: "공기 저항이 있을 때와 없을 때의 자취 비교.",
                calculatorTopic: .projectile,
                kind: .mechanics2D,
                load: MechanicsPresets.projectile),
@@ -196,7 +193,6 @@ enum PresetCatalog {
                kind: .optics(.lens),
                load: { _ in }),
 
-        // ─── 샌드박스 ───
         Preset(id: "freecollide",
                title: "자유 충돌 박스",
                curriculum: .free, category: .sandbox,
@@ -235,7 +231,6 @@ enum PresetCatalog {
         }
     }
 
-    /// 계산기 토픽으로부터 짝 시뮬 프리셋.
     static func preset(forTopic t: CalculatorTopic) -> Preset? {
         all.first { $0.calculatorTopic == t }
     }

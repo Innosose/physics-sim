@@ -1,11 +1,5 @@
 import SwiftUI
 
-/// 앱의 최상위 화면 — 사이드바(기능) + content(시뮬 목록) + detail(시뮬 화면).
-///
-/// 사이드바: 중학교·고등학교·샌드박스. 각 기능은 프리셋 묶음.
-/// 시뮬 화면은 단일 `WorldScene` 셸 — preset.kind 에 따라 viewport 가 mechanics
-/// (3D RealityKit) / optics / wave / circuit / graph 중 하나로 자동 분기.
-/// 계산기는 시뮬 우상단 버튼으로만 진입.
 struct RootSplitView: View {
     @State private var sidebarSelection: Curriculum? = nil
     @State private var detailSelection: DetailItem? = nil
@@ -88,8 +82,6 @@ struct RootSplitView: View {
     }
 }
 
-// MARK: - 선택 모델
-
 enum DetailItem: Hashable, Identifiable {
     case preset(Preset)
     case calculator(CalculatorTopic)
@@ -101,8 +93,6 @@ enum DetailItem: Hashable, Identifiable {
         }
     }
 }
-
-// MARK: - 사이드바 행
 
 private struct YunseulBrand: View {
     var body: some View {
@@ -140,8 +130,6 @@ private struct CurriculumRow: View {
         .accessibilityElement(children: .combine)
     }
 }
-
-// MARK: - 시뮬 목록
 
 private struct PresetList: View {
     let curriculum: Curriculum
@@ -213,8 +201,6 @@ private struct PresetRow: View {
         .accessibilityHint("열기 — \(preset.curriculumLabel)")
     }
 }
-
-// MARK: - Detail (환영 / 빈 상태)
 
 private struct WelcomeDetail: View {
     var body: some View {
