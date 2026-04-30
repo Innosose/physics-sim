@@ -5,7 +5,7 @@ struct OpticsViewport: View {
 
     var body: some View {
         ZStack {
-            Color.black
+            Theme.deep
             switch scene {
             case .reflection:  ReflectionView()
             case .lens:        LensView()
@@ -59,12 +59,12 @@ private struct ReflectionView: View {
         var boundary = Path()
         boundary.move(to: CGPoint(x: 0, y: mid))
         boundary.addLine(to: CGPoint(x: size.width, y: mid))
-        ctx.stroke(boundary, with: .color(.white.opacity(0.6)), lineWidth: 1.5)
+        ctx.stroke(boundary, with: .color(Theme.ink.opacity(0.6)), lineWidth: 1.5)
 
         var normal = Path()
         normal.move(to: CGPoint(x: size.width / 2, y: 30))
         normal.addLine(to: CGPoint(x: size.width / 2, y: size.height - 30))
-        ctx.stroke(normal, with: .color(.white.opacity(0.4)),
+        ctx.stroke(normal, with: .color(Theme.ink.opacity(0.4)),
                    style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
 
         let θ1 = incidenceDeg * .pi / 180
@@ -137,7 +137,7 @@ private struct LensView: View {
         var axis = Path()
         axis.move(to: CGPoint(x: 10, y: cy))
         axis.addLine(to: CGPoint(x: size.width - 10, y: cy))
-        ctx.stroke(axis, with: .color(.white.opacity(0.4)), lineWidth: 1)
+        ctx.stroke(axis, with: .color(Theme.ink.opacity(0.4)), lineWidth: 1)
 
         var lens = Path()
         lens.move(to: CGPoint(x: cx, y: cy - 80))

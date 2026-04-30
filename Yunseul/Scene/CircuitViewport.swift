@@ -5,7 +5,7 @@ struct CircuitViewport: View {
 
     var body: some View {
         ZStack {
-            Color.black
+            Theme.deep
             switch scene {
             case .circuit: SimpleCircuitView()
             case .rlc:     RLCView()
@@ -66,15 +66,15 @@ private struct SimpleCircuitView: View {
         let mid = CGPoint(x: r.minX, y: r.midY)
 
         var b1 = Path(); b1.move(to: CGPoint(x: lt.x - 14, y: r.midY - 14)); b1.addLine(to: CGPoint(x: lt.x + 14, y: r.midY - 14))
-        ctx.stroke(b1, with: .color(.white), lineWidth: 3)
+        ctx.stroke(b1, with: .color(Theme.ink), lineWidth: 3)
         var b2 = Path(); b2.move(to: CGPoint(x: lt.x - 8, y: r.midY + 14)); b2.addLine(to: CGPoint(x: lt.x + 8, y: r.midY + 14))
-        ctx.stroke(b2, with: .color(.white), lineWidth: 2)
+        ctx.stroke(b2, with: .color(Theme.ink), lineWidth: 2)
 
         var wires = Path()
         wires.move(to: lt); wires.addLine(to: rt); wires.addLine(to: rb); wires.addLine(to: lb)
         wires.move(to: lt); wires.addLine(to: CGPoint(x: lt.x, y: r.midY - 30))
         wires.move(to: lb); wires.addLine(to: CGPoint(x: lb.x, y: r.midY + 30))
-        ctx.stroke(wires, with: .color(.white.opacity(0.85)), lineWidth: 2)
+        ctx.stroke(wires, with: .color(Theme.ink.opacity(0.85)), lineWidth: 2)
 
         let r1Pos = CGPoint(x: r.midX - 60, y: lt.y)
         let r2Pos: CGPoint = mode == .series
@@ -101,7 +101,7 @@ private struct SimpleCircuitView: View {
         ctx.fill(Path(roundedRect: rect, cornerRadius: 6),
                  with: .color(.orange.opacity(0.85)))
         ctx.stroke(Path(roundedRect: rect, cornerRadius: 6),
-                   with: .color(.white.opacity(0.5)), lineWidth: 1)
+                   with: .color(Theme.ink.opacity(0.5)), lineWidth: 1)
         ctx.draw(Text(label).font(.caption2.weight(.semibold)).foregroundColor(.white),
                  at: CGPoint(x: c.x, y: c.y + h / 2 + 10))
     }

@@ -5,7 +5,7 @@ struct GraphViewport: View {
 
     var body: some View {
         ZStack {
-            Color.black
+            Theme.deep
             switch preset.id {
             case "motiongraph": MotionGraphView()
             case "heat":        HeatTransferView()
@@ -70,7 +70,7 @@ private struct MotionGraphView: View {
         var line = Path()
         line.move(to: CGPoint(x: 16, y: track.midY))
         line.addLine(to: CGPoint(x: track.maxX - 16, y: track.midY))
-        ctx.stroke(line, with: .color(.white.opacity(0.4)), lineWidth: 1)
+        ctx.stroke(line, with: .color(Theme.ink.opacity(0.4)), lineWidth: 1)
 
         let xMax = max(20.0, max(x1, x2) * 1.2 + 5)
         let usable = track.width - 32
@@ -84,7 +84,7 @@ private struct MotionGraphView: View {
         let tEnd = max(8.0, t * 1.05)
         let yMax2 = max(20.0, max(v1 * tEnd, v0 * tEnd + 0.5 * a * tEnd * tEnd) * 1.1 + 1)
         ctx.stroke(Path(roundedRect: plot.insetBy(dx: 12, dy: 12), cornerRadius: 8),
-                   with: .color(.white.opacity(0.18)), lineWidth: 1)
+                   with: .color(Theme.ink.opacity(0.18)), lineWidth: 1)
         drawCurve(ctx, in: plot.insetBy(dx: 12, dy: 12), tEnd: tEnd, yMax: yMax2,
                   fn: { v1 * $0 }, color: .cyan)
         drawCurve(ctx, in: plot.insetBy(dx: 12, dy: 12), tEnd: tEnd, yMax: yMax2,
@@ -173,7 +173,7 @@ private struct HeatTransferView: View {
 
         let inner = plotR.insetBy(dx: 12, dy: 12)
         ctx.stroke(Path(roundedRect: inner, cornerRadius: 8),
-                   with: .color(.white.opacity(0.18)), lineWidth: 1)
+                   with: .color(Theme.ink.opacity(0.18)), lineWidth: 1)
         let tEnd = max(2 * tau, t * 1.1, 0.5)
         let lo = min(0.0, T1, T2), hi = max(100.0, T1, T2)
         var p1 = Path(), p2 = Path()

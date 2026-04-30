@@ -5,7 +5,7 @@ struct WaveViewport: View {
 
     var body: some View {
         ZStack {
-            Color.black
+            Theme.deep
             switch scene {
             case .waveSum: WaveSumView()
             case .doppler: DopplerView()

@@ -20,7 +20,7 @@ struct Mechanics2DViewport: View {
             }
             .id(redrawTick)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Color.black)
+            .background(Theme.deep)
             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
@@ -107,7 +107,7 @@ struct Mechanics2DViewport: View {
             let y0 = cy - CGFloat(b.max.y - extent.center.y) * scale
             let y1 = cy - CGFloat(b.min.y - extent.center.y) * scale
             ctx.stroke(Path(CGRect(x: x0, y: y0, width: x1 - x0, height: y1 - y0)),
-                       with: .color(.white.opacity(0.4)), lineWidth: 1.2)
+                       with: .color(Theme.ink.opacity(0.4)), lineWidth: 1.2)
         }
 
         if abs(world.magneticB.z) > 1e-6 {
@@ -125,7 +125,7 @@ struct Mechanics2DViewport: View {
             path.move(to: pa)
             path.addLine(to: pb)
             ctx.stroke(path,
-                       with: .color(.white.opacity(s.rigid ? 0.7 : 0.5)),
+                       with: .color(Theme.ink.opacity(s.rigid ? 0.7 : 0.5)),
                        lineWidth: s.rigid ? 2 : 1.5)
         }
 
@@ -141,7 +141,7 @@ struct Mechanics2DViewport: View {
             ctx.stroke(
                 Path(ellipseIn: CGRect(x: p.x - pr, y: p.y - pr,
                                        width: pr * 2, height: pr * 2)),
-                with: .color(.white.opacity(0.4)), lineWidth: 0.8)
+                with: .color(Theme.ink.opacity(0.4)), lineWidth: 0.8)
         }
     }
 
@@ -161,14 +161,14 @@ struct Mechanics2DViewport: View {
                     let r: CGFloat = 1.5
                     ctx.fill(Path(ellipseIn: CGRect(x: x - r, y: y - r,
                                                      width: r * 2, height: r * 2)),
-                             with: .color(.white.opacity(0.20)))
+                             with: .color(Theme.ink.opacity(0.20)))
                 } else {
                     var c = Path()
                     c.move(to: CGPoint(x: x - 3, y: y - 3))
                     c.addLine(to: CGPoint(x: x + 3, y: y + 3))
                     c.move(to: CGPoint(x: x - 3, y: y + 3))
                     c.addLine(to: CGPoint(x: x + 3, y: y - 3))
-                    ctx.stroke(c, with: .color(.white.opacity(0.18)), lineWidth: 1)
+                    ctx.stroke(c, with: .color(Theme.ink.opacity(0.18)), lineWidth: 1)
                 }
                 y += step
             }
