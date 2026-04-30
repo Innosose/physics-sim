@@ -55,7 +55,12 @@ struct FreeGravityScene: View {
         // state during view update" 경고 — `.onChange(of: tl.date)` 로 분리.
         // `.id(redrawTick)` 은 paused 상태에서 preset/reset 을 해도 Canvas 가 즉시 갱신되도록.
         TimelineView(.animation(paused: !running)) { tl in
+            // `tl.date` 를 Canvas 클로저 안에서 읽어 SwiftUI 의 의존성으로 등록 →
+            // 매 tick 마다 Canvas 가 재실행. 이 한 줄 없으면 world (class) 만 mutate
+            // 되고 View struct 는 변하지 않아 Canvas 가 캐시되어 화면이 정지함.
+            let now = tl.date
             Canvas { ctx, size in
+                _ = now
                 draw(ctx: ctx, size: size)
             }
             .onChange(of: tl.date) { _, newDate in

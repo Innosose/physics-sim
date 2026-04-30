@@ -52,7 +52,11 @@ struct KineticGasScene: View {
 
     private var canvas: some View {
         TimelineView(.animation(paused: !running)) { tl in
+            // tl.date 를 Canvas 클로저 안에서 읽어 매 tick 재실행 의존성을 만든다.
+            // 안 그러면 world(class) 만 변하고 View struct 는 동일해 Canvas 가 캐시됨.
+            let now = tl.date
             Canvas { ctx, size in
+                _ = now
                 draw(ctx: ctx, size: size)
             }
             .onChange(of: tl.date) { _, newDate in

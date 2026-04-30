@@ -27,9 +27,6 @@ struct SettingsView: View {
                     .pickerStyle(.segmented)
                 } header: {
                     Text("테마")
-                } footer: {
-                    Text("시스템 — 기기 설정을 따라감.  라이트 — 밝은 테마.  다크 — 어두운 테마.")
-                        .font(.caption)
                 }
             }
             .navigationTitle("설정")

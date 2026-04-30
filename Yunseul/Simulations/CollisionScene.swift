@@ -34,8 +34,11 @@ struct CollisionScene: View {
     private var canvas: some View {
         // Canvas 렌더 클로저 안에서 state 를 변형하면 SwiftUI 가 "Modifying
         // state during view update" 경고. `.onChange(of: tl.date)` 로 분리.
+        // tl.date 를 Canvas 클로저 안에서도 읽어 매 tick 재렌더 의존성 등록.
         TimelineView(.animation(paused: !running)) { tl in
+            let now = tl.date
             Canvas { ctx, size in
+                _ = now
                 draw(ctx: ctx, size: size)
             }
             .onChange(of: tl.date) { _, newDate in

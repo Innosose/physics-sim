@@ -71,8 +71,11 @@ struct FreeCollisionScene: View {
 
     private var canvas: some View {
         TimelineView(.animation(paused: !running)) { tl in
+            // tl.date 를 Canvas 클로저 안에서 읽어 매 tick 재렌더 의존성 등록.
+            let now = tl.date
             GeometryReader { geo in
                 Canvas { ctx, size in
+                    _ = now
                     draw(ctx: ctx, size: size)
                 }
                 .contentShape(Rectangle())
