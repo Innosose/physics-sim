@@ -4,7 +4,7 @@ import SwiftUI
 enum Curriculum: String, CaseIterable, Identifiable, Hashable {
     case middle = "중학교"
     case high   = "고등학교"
-    case free   = "자유 시뮬레이션"
+    case free   = "샌드박스"
 
     var id: String { rawValue }
 
@@ -13,7 +13,7 @@ enum Curriculum: String, CaseIterable, Identifiable, Hashable {
         switch self {
         case .middle: return "1–3학년 과학"
         case .high:   return "물리Ⅰ·Ⅱ"
-        case .free:   return "값을 직접 조절"
+        case .free:   return "자유 시뮬레이션"
         }
     }
 
