@@ -68,8 +68,9 @@ private struct ReflectionView: View {
                    style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
 
         let θ1 = incidenceDeg * .pi / 180
-        let len: CGFloat = 220
         let cx = size.width / 2
+        let len: CGFloat = min(min(cx, size.width - cx) - 16,
+                               min(mid, size.height - mid) - 16)
 
         var inc = Path()
         inc.move(to: CGPoint(x: cx - CGFloat(sin(θ1)) * len, y: mid - CGFloat(cos(θ1)) * len))

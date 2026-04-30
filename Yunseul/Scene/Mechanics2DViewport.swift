@@ -275,8 +275,7 @@ struct Mechanics2DViewport: View {
                 let r0 = c.radius * 1.6
                 var p = Vec3(x: c.pos.x + r0 * cos(θ),
                              y: c.pos.y + r0 * sin(θ), z: 0)
-                var path = Path()
-                path.move(to: mapPoint(p, scale: scale, cx: cx, cy: cy, ext: ext))
+                var pts: [CGPoint] = [mapPoint(p, scale: scale, cx: cx, cy: cy, ext: ext)]
 
                 var stopped = false
                 for _ in 0..<maxSteps {
@@ -296,7 +295,7 @@ struct Mechanics2DViewport: View {
                     if mag < 1e-9 { break }
                     p.x += stepSize * Ex / mag
                     p.y += stepSize * Ey / mag
-                    path.addLine(to: mapPoint(p, scale: scale, cx: cx, cy: cy, ext: ext))
+                    pts.append(mapPoint(p, scale: scale, cx: cx, cy: cy, ext: ext))
                     for q in charges where q.charge < 0 {
                         let dx = p.x - q.pos.x
                         let dy = p.y - q.pos.y
@@ -307,9 +306,40 @@ struct Mechanics2DViewport: View {
                     if stopped { break }
                     if abs(p.x) > 50 || abs(p.y) > 50 { break }
                 }
+
+                guard pts.count > 1 else { continue }
+                var path = Path()
+                path.move(to: pts[0])
+                for pt in pts.dropFirst() { path.addLine(to: pt) }
                 ctx.stroke(path, with: .color(Theme.glow.opacity(0.55)), lineWidth: 1.1)
+
+                let midIdx = pts.count / 2
+                if midIdx >= 1 && midIdx < pts.count {
+                    drawArrowhead(ctx: ctx,
+                                  from: pts[midIdx - 1],
+                                  to: pts[midIdx],
+                                  color: Theme.glow.opacity(0.85))
+                }
             }
         }
+    }
+
+    private func drawArrowhead(ctx: GraphicsContext, from a: CGPoint, to b: CGPoint,
+                               color: Color) {
+        let dx = b.x - a.x
+        let dy = b.y - a.y
+        let len = (dx * dx + dy * dy).squareRoot()
+        guard len > 0.001 else { return }
+        let nx = dx / len, ny = dy / len
+        let size: CGFloat = 5
+        var head = Path()
+        head.move(to: b)
+        head.addLine(to: CGPoint(x: b.x - nx * size - ny * size * 0.5,
+                                  y: b.y - ny * size + nx * size * 0.5))
+        head.move(to: b)
+        head.addLine(to: CGPoint(x: b.x - nx * size + ny * size * 0.5,
+                                  y: b.y - ny * size - nx * size * 0.5))
+        ctx.stroke(head, with: .color(color), lineWidth: 1.2)
     }
 
     private struct Extent { var center: CGPoint; var x: Double; var y: Double }

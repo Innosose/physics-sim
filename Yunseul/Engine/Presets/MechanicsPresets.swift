@@ -103,6 +103,8 @@ enum MechanicsPresets {
     static func kepler(_ w: World) {
         w.pairwiseGravity = true
         w.G = 1.0
+        w.trailEnabled = true
+        w.trailMax = 500
         let sun = PhysicsBody(pos: .zero, mass: 200, radius: 0.6,
                               color: Color(red: 1.0, green: 0.74, blue: 0.40),
                               pinned: true, kind: .star)
