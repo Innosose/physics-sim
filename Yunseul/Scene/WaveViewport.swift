@@ -150,6 +150,14 @@ private struct DopplerView: View {
     @State private var lastTick: TimeInterval? = nil
     @State private var running: Bool = false
 
+    private var tStop: Double {
+        let span: Double = 800
+        let xStart = -span / 4
+        let xWall = span / 2 - 30
+        return sourceSpeed > 0 ? (xWall - xStart) / sourceSpeed : .infinity
+    }
+    private var sourceAtWall: Bool { elapsed >= tStop }
+
     var body: some View {
         VStack(spacing: 8) {
             TimelineView(.animation) { tl in
@@ -174,6 +182,9 @@ private struct DopplerView: View {
     private var playReset: some View {
         HStack(spacing: 8) {
             Button {
+                if !running && sourceAtWall {
+                    elapsed = 0; lastTick = nil
+                }
                 running.toggle()
             } label: {
                 Label(running ? "일시정지" : "재생",
@@ -202,6 +213,7 @@ private struct DopplerView: View {
         if dt > 0.05 { dt = 0.05 }
         lastTick = now
         elapsed += dt
+        if sourceAtWall { running = false }
     }
 
     private func slider(_ title: String, value: Binding<Double>,

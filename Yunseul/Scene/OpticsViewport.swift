@@ -132,7 +132,10 @@ private struct LensView: View {
     private func draw(ctx: GraphicsContext, size: CGSize) {
         let cx = size.width * 0.5
         let cy = size.height * 0.5
-        let scale: CGFloat = min(size.width, size.height * 1.5) / 16
+        let qVal = q.isFinite ? q : 0
+        let maxExtent = max(p, abs(qVal), abs(fSigned), 4) * 1.15
+        let scale: CGFloat = (min(size.width, size.height * 1.6) / 2 - 20)
+                             / CGFloat(maxExtent)
 
         var axis = Path()
         axis.move(to: CGPoint(x: 10, y: cy))

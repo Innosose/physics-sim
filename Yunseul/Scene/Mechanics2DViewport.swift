@@ -53,6 +53,7 @@ struct Mechanics2DViewport: View {
     private var controls: some View {
         HStack(spacing: 8) {
             Button {
+                if !running && allBodiesAtRest() { reset() }
                 running.toggle()
             } label: {
                 Label(running ? "일시정지" : "재생",
@@ -72,6 +73,19 @@ struct Mechanics2DViewport: View {
             }
             .buttonStyle(.glass)
         }
+    }
+
+    private func allBodiesAtRest() -> Bool {
+        guard !world.pairwiseGravity, world.time > 0.3 else { return false }
+        let dissipative = world.drag > 0
+            || world.springs.contains { $0.damping > 0 }
+            || (world.bounds.map { $0.restitution < 0.99 } ?? false)
+            || (world.hardSphereCollisions && world.restitution < 0.99)
+        guard dissipative else { return false }
+        let nonPinned = world.bodies.filter { !$0.pinned }
+        guard !nonPinned.isEmpty else { return false }
+        let maxV = nonPinned.map { $0.vel.length }.max() ?? 0
+        return maxV < 1e-3
     }
 
     private func reset() {
@@ -119,6 +133,7 @@ struct Mechanics2DViewport: View {
         }) {
             reset()
         }
+        if allBodiesAtRest() { running = false }
     }
 
     private func draw(ctx: GraphicsContext, size: CGSize) {
@@ -140,6 +155,10 @@ struct Mechanics2DViewport: View {
 
         if abs(world.magneticB.z) > 1e-6 {
             drawFieldGrid(ctx: ctx, size: size, outward: world.magneticB.z > 0)
+        }
+
+        if world.bodies.contains(where: { $0.charge != 0 }) {
+            drawEFieldLines(ctx: ctx, scale: scale, cx: cx, cy: cy, ext: extent.center)
         }
 
         // 네온 자취 — 본체보다 먼저 그려서 본체 아래 깔리게.
@@ -237,6 +256,59 @@ struct Mechanics2DViewport: View {
                 y += step
             }
             x += step
+        }
+    }
+
+    private func drawEFieldLines(ctx: GraphicsContext, scale: CGFloat,
+                                 cx: CGFloat, cy: CGFloat, ext: CGPoint) {
+        let charges = world.bodies.filter { $0.charge != 0 && $0.pos.isFinite }
+        let positives = charges.filter { $0.charge > 0 }
+        guard !positives.isEmpty else { return }
+
+        let nLines = 14
+        let stepSize: Double = 0.06
+        let maxSteps = 400
+
+        for c in positives {
+            for i in 0..<nLines {
+                let θ = Double(i) / Double(nLines) * 2 * .pi
+                let r0 = c.radius * 1.6
+                var p = Vec3(x: c.pos.x + r0 * cos(θ),
+                             y: c.pos.y + r0 * sin(θ), z: 0)
+                var path = Path()
+                path.move(to: mapPoint(p, scale: scale, cx: cx, cy: cy, ext: ext))
+
+                var stopped = false
+                for _ in 0..<maxSteps {
+                    var Ex: Double = 0, Ey: Double = 0
+                    for q in charges {
+                        let dx = p.x - q.pos.x
+                        let dy = p.y - q.pos.y
+                        let r2 = dx * dx + dy * dy
+                        if r2 < 1e-6 { stopped = true; break }
+                        let r = r2.squareRoot()
+                        let f = q.charge / (r2 * r)
+                        Ex += f * dx
+                        Ey += f * dy
+                    }
+                    if stopped { break }
+                    let mag = (Ex * Ex + Ey * Ey).squareRoot()
+                    if mag < 1e-9 { break }
+                    p.x += stepSize * Ex / mag
+                    p.y += stepSize * Ey / mag
+                    path.addLine(to: mapPoint(p, scale: scale, cx: cx, cy: cy, ext: ext))
+                    for q in charges where q.charge < 0 {
+                        let dx = p.x - q.pos.x
+                        let dy = p.y - q.pos.y
+                        if dx * dx + dy * dy < q.radius * q.radius * 2.5 {
+                            stopped = true; break
+                        }
+                    }
+                    if stopped { break }
+                    if abs(p.x) > 50 || abs(p.y) > 50 { break }
+                }
+                ctx.stroke(path, with: .color(Theme.glow.opacity(0.55)), lineWidth: 1.1)
+            }
         }
     }
 

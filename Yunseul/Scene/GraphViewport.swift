@@ -52,6 +52,9 @@ private struct MotionGraphView: View {
     private var playReset: some View {
         HStack(spacing: 8) {
             Button {
+                if !running && bothCartsAtWall() {
+                    elapsed = 0; lastTick = nil
+                }
                 running.toggle()
             } label: {
                 Label(running ? "일시정지" : "재생",
@@ -80,6 +83,18 @@ private struct MotionGraphView: View {
         if dt > 0.05 { dt = 0.05 }
         lastTick = now
         elapsed += dt
+        if bothCartsAtWall() { running = false }
+    }
+
+    private func bothCartsAtWall() -> Bool {
+        let trackLength: Double = 30
+        guard elapsed > 0.1 else { return false }
+        let x1 = v1 * elapsed
+        let x2 = v0 * elapsed + 0.5 * a * elapsed * elapsed
+        let cart1Done = v1 <= 1e-3 || x1 >= trackLength
+        let vNow = v0 + a * elapsed
+        let cart2Done = (x2 >= trackLength) || (x2 <= 0 && vNow <= 0)
+        return cart1Done && cart2Done
     }
 
     private func slider(_ title: String, value: Binding<Double>,
@@ -193,6 +208,9 @@ private struct HeatTransferView: View {
     private var playReset: some View {
         HStack(spacing: 8) {
             Button {
+                if !running && heatSettled {
+                    elapsed = 0; lastTick = nil
+                }
                 running.toggle()
             } label: {
                 Label(running ? "일시정지" : "재생",
@@ -214,6 +232,13 @@ private struct HeatTransferView: View {
         }
     }
 
+    private var heatSettled: Bool {
+        guard elapsed > 0.5 else { return false }
+        let f = exp(-elapsed / tau)
+        let gap = max(abs(T1 - Teq), abs(T2 - Teq)) * f
+        return gap < 0.3
+    }
+
     private func advance(to now: TimeInterval) {
         guard let last = lastTick else { lastTick = now; return }
         guard running else { lastTick = now; return }
@@ -221,6 +246,7 @@ private struct HeatTransferView: View {
         if dt > 0.05 { dt = 0.05 }
         lastTick = now
         elapsed += dt
+        if heatSettled { running = false }
     }
 
     private func slider(_ title: String, value: Binding<Double>,

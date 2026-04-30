@@ -63,35 +63,56 @@ private struct SimpleCircuitView: View {
         let rt = CGPoint(x: r.maxX, y: r.minY)
         let rb = CGPoint(x: r.maxX, y: r.maxY)
         let lb = CGPoint(x: r.minX, y: r.maxY)
-        let mid = CGPoint(x: r.minX, y: r.midY)
 
-        var b1 = Path(); b1.move(to: CGPoint(x: lt.x - 14, y: r.midY - 14)); b1.addLine(to: CGPoint(x: lt.x + 14, y: r.midY - 14))
+        var b1 = Path()
+        b1.move(to: CGPoint(x: lt.x - 14, y: r.midY - 14))
+        b1.addLine(to: CGPoint(x: lt.x + 14, y: r.midY - 14))
         ctx.stroke(b1, with: .color(Theme.ink), lineWidth: 3)
-        var b2 = Path(); b2.move(to: CGPoint(x: lt.x - 8, y: r.midY + 14)); b2.addLine(to: CGPoint(x: lt.x + 8, y: r.midY + 14))
+        var b2 = Path()
+        b2.move(to: CGPoint(x: lt.x - 8, y: r.midY + 14))
+        b2.addLine(to: CGPoint(x: lt.x + 8, y: r.midY + 14))
         ctx.stroke(b2, with: .color(Theme.ink), lineWidth: 2)
+        ctx.draw(Text(String(format: "%.1fV", emf))
+                    .font(.caption2.weight(.semibold)).foregroundStyle(Theme.mist),
+                 at: CGPoint(x: lt.x - 22, y: r.midY))
 
         var wires = Path()
-        wires.move(to: lt); wires.addLine(to: rt); wires.addLine(to: rb); wires.addLine(to: lb)
+        wires.move(to: lt); wires.addLine(to: rt)
+        wires.addLine(to: rb); wires.addLine(to: lb)
         wires.move(to: lt); wires.addLine(to: CGPoint(x: lt.x, y: r.midY - 30))
         wires.move(to: lb); wires.addLine(to: CGPoint(x: lb.x, y: r.midY + 30))
-        ctx.stroke(wires, with: .color(Theme.ink.opacity(0.85)), lineWidth: 2)
 
-        let r1Pos = CGPoint(x: r.midX - 60, y: lt.y)
-        let r2Pos: CGPoint = mode == .series
-            ? CGPoint(x: r.midX, y: rb.y)
-            : CGPoint(x: r.midX, y: lt.y + 40)
-        drawResistor(ctx, at: r1Pos, label: String(format: "R₁=%.2fΩ", R1))
-        drawResistor(ctx, at: r2Pos, label: String(format: "R₂=%.2fΩ", R2))
+        switch mode {
+        case .series:
+            ctx.stroke(wires, with: .color(Theme.ink.opacity(0.85)), lineWidth: 2)
+            drawResistor(ctx, at: CGPoint(x: r.midX - 70, y: lt.y),
+                         label: String(format: "R₁=%.2fΩ", R1))
+            drawResistor(ctx, at: CGPoint(x: r.midX + 70, y: lt.y),
+                         label: String(format: "R₂=%.2fΩ", R2))
+        case .parallel:
+            let branchY = lt.y + 60
+            let leftJ = CGPoint(x: lt.x + 60, y: lt.y)
+            let rightJ = CGPoint(x: rt.x - 60, y: lt.y)
+            wires.move(to: leftJ)
+            wires.addLine(to: CGPoint(x: leftJ.x, y: branchY))
+            wires.addLine(to: CGPoint(x: rightJ.x, y: branchY))
+            wires.addLine(to: rightJ)
+            ctx.stroke(wires, with: .color(Theme.ink.opacity(0.85)), lineWidth: 2)
+            drawResistor(ctx, at: CGPoint(x: r.midX, y: lt.y),
+                         label: String(format: "R₁=%.2fΩ", R1))
+            drawResistor(ctx, at: CGPoint(x: r.midX, y: branchY),
+                         label: String(format: "R₂=%.2fΩ", R2))
+        }
 
         let req: Double, I: Double
         switch mode {
         case .series:   req = R1 + R2; I = emf / req
         case .parallel: req = (R1 * R2) / (R1 + R2); I = emf / req
         }
-        ctx.draw(Text(String(format: "R_eq = %.2f Ω    I = %.2f A    P = %.2f W",
+        ctx.draw(Text(String(format: "R_eq=%.2fΩ   I=%.2fA   P=%.2fW",
                               req, I, emf * I))
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(.green),
+                    .foregroundStyle(Theme.glow),
                  at: CGPoint(x: r.midX, y: r.maxY + 18))
     }
 

@@ -4,12 +4,14 @@ enum MechanicsPresets {
 
     static func freeFall(_ w: World) {
         w.gravity = Vec3(x: 0, y: -9.81, z: 0)
-        w.bounds = Bounds(min: Vec3(x: -10, y: 0, z: -2),
-                          max: Vec3(x: 10, y: 60, z: 2),
-                          restitution: 0.5)
+        w.bounds = Bounds(min: Vec3(x: -6, y: 0, z: -2),
+                          max: Vec3(x: 6, y: 50, z: 2),
+                          restitution: 0)
+        w.trailEnabled = true
+        w.trailMax = 300
         w.bodies = [
-            PhysicsBody(pos: Vec3(x: 0, y: 20, z: 0),
-                        vel: Vec3(x: 0, y: 5, z: 0),
+            PhysicsBody(pos: Vec3(x: 0, y: 48, z: 0),
+                        vel: .zero,
                         mass: 1, radius: 0.4,
                         color: .yellow)
         ]
@@ -38,6 +40,8 @@ enum MechanicsPresets {
         w.bounds = Bounds(min: Vec3(x: -2, y: 0, z: -3),
                           max: Vec3(x: 80, y: 40, z: 3),
                           restitution: 0)
+        w.trailEnabled = true
+        w.trailMax = 500
         w.bodies = [
             PhysicsBody(pos: Vec3(x: 0, y: 0.5, z: 0),
                         vel: Vec3(x: v0 * cos(θ), y: v0 * sin(θ), z: 0),
@@ -187,6 +191,8 @@ enum MechanicsPresets {
     static func lorentz(_ w: World) {
         w.magneticB = Vec3(x: 0, y: 0, z: 1)
         w.electricE = .zero
+        w.trailEnabled = true
+        w.trailMax = 400
         w.bodies = [
             PhysicsBody(pos: Vec3(x: -2, y: 0, z: 0),
                         vel: Vec3(x: 1.5, y: 0, z: 0),
