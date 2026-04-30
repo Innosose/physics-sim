@@ -19,6 +19,11 @@ final class World {
 
     var time: Double = 0
 
+    /// 입자별 최근 위치 — N체 등 자취 표시용. 유지 시 매 step 끝에 push.
+    var trails: [UUID: [Vec3]] = [:]
+    var trailEnabled: Bool = false
+    var trailMax: Int = 60
+
     func step(dt: Double) {
         guard !bodies.isEmpty else { time += dt; return }
         let n = bodies.count
@@ -39,6 +44,16 @@ final class World {
         applyRigidConstraints(iterations: 4)
         applyBounds()
         if hardSphereCollisions { applyPairCollisions() }
+
+        if trailEnabled {
+            for b in bodies {
+                guard b.pos.isFinite else { continue }
+                var arr = trails[b.id] ?? []
+                arr.append(b.pos)
+                if arr.count > trailMax { arr.removeFirst(arr.count - trailMax) }
+                trails[b.id] = arr
+            }
+        }
 
         time += dt
     }

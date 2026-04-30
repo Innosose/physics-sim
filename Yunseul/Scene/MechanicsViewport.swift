@@ -30,7 +30,7 @@ struct MechanicsViewport: View {
             }
 
             TimelineView(.animation(paused: !running)) { tl in
-                MechanicsRealityView(world: world)
+                MechanicsRealityView(world: world, tick: tl.date)
                     .onChange(of: tl.date) { _, newDate in
                         advance(to: newDate.timeIntervalSinceReferenceDate)
                     }
@@ -78,6 +78,7 @@ struct MechanicsViewport: View {
     private func reset() {
         world.bodies.removeAll()
         world.springs.removeAll()
+        world.trails.removeAll()
         world.bounds = nil
         world.gravity = .zero
         world.magneticB = .zero
@@ -89,6 +90,8 @@ struct MechanicsViewport: View {
         world.restitution = 1.0
         world.G = 1.0
         world.kCoulomb = 1.0
+        world.trailEnabled = false
+        world.trailMax = 60
         world.time = 0
         if preset.id == "nbody" {
             switch nBodyVariant {
@@ -122,6 +125,7 @@ struct MechanicsViewport: View {
 
 private struct MechanicsRealityView: View {
     let world: World
+    let tick: Date
 
     var body: some View {
         RealityView { content in
@@ -157,13 +161,44 @@ private struct MechanicsRealityView: View {
                 entity.name = "body-\(pb.id.uuidString)"
                 entity.transform.translation = pb.pos.simd
                 content.add(entity)
+
+                if world.trailEnabled {
+                    let trailRadius = Float(pb.radius * 0.45)
+                    let trailMesh: MeshResource = .generateSphere(radius: trailRadius)
+                    var trailMat = SimpleMaterial(color: UIColor(pb.color).withAlphaComponent(0.55),
+                                                   isMetallic: false)
+                    trailMat.roughness = 0.6
+                    for k in 0..<world.trailMax {
+                        let dot = ModelEntity(mesh: trailMesh, materials: [trailMat])
+                        dot.name = "trail-\(pb.id.uuidString)-\(k)"
+                        dot.isEnabled = false
+                        content.add(dot)
+                    }
+                }
             }
         } update: { content in
+            _ = tick
             for pb in world.bodies {
                 let name = "body-\(pb.id.uuidString)"
                 if let entity = content.entities.first(where: { $0.name == name }) {
                     if pb.pos.isFinite {
                         entity.transform.translation = pb.pos.simd
+                    }
+                }
+                if world.trailEnabled {
+                    let pts = world.trails[pb.id] ?? []
+                    for k in 0..<world.trailMax {
+                        let nm = "trail-\(pb.id.uuidString)-\(k)"
+                        guard let dot = content.entities.first(where: { $0.name == nm })
+                        else { continue }
+                        if k < pts.count, pts[k].isFinite {
+                            dot.isEnabled = true
+                            dot.transform.translation = pts[k].simd
+                            let f = Float(k) / Float(max(1, pts.count - 1))
+                            dot.transform.scale = SIMD3<Float>(repeating: 0.2 + 0.8 * f)
+                        } else {
+                            dot.isEnabled = false
+                        }
                     }
                 }
             }
