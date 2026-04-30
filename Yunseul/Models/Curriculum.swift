@@ -7,14 +7,6 @@ enum Curriculum: String, CaseIterable, Identifiable, Hashable {
 
     var id: String { rawValue }
 
-    var subtitle: String {
-        switch self {
-        case .middle: return "1–3학년 과학"
-        case .high:   return "물리Ⅰ·Ⅱ"
-        case .free:   return "자유 시뮬레이션"
-        }
-    }
-
     var accent: Color {
         switch self {
         case .middle: return Color(red: 0.30, green: 0.74, blue: 0.85)

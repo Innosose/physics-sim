@@ -5,8 +5,6 @@ struct Preset: Identifiable, Hashable, @unchecked Sendable {
     let title: String
     let curriculum: Curriculum
     let category: SimCategory
-    let curriculumLabel: String
-    let blurb: String
     let calculatorTopic: CalculatorTopic?
     let kind: Kind
     let load: (World) -> Void

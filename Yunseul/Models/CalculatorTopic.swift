@@ -14,21 +14,6 @@ enum CalculatorTopic: String, CaseIterable, Identifiable, Hashable {
 
     var id: String { rawValue }
 
-    var subtitle: String {
-        switch self {
-        case .freefall:   return "h₀, v₀, g 만 알면 비행시간·최고점·충격속도가 나온다"
-        case .projectile: return "발사각·초속력·발사높이 → 사거리·체공시간·최고점"
-        case .pendulum:   return "줄 길이와 진폭으로 주기 — 작은각 근사와 진폭 보정"
-        case .collision:  return "두 입자의 충돌 후 속도와 에너지 변화"
-        case .kepler:     return "현재 위치·속도로부터 a, e, 주기, 근/원일점"
-        case .ohm:        return "전압·저항으로 전류·전력. 직렬·병렬 합성도."
-        case .doppler:    return "음원·관측자 속도로 관측 진동수 f′"
-        case .refraction: return "n₁ sinθ₁ = n₂ sinθ₂ — 굴절각·임계각"
-        case .lens:       return "1/f = 1/p + 1/q — 상거리·배율·실상/허상"
-        case .slit:       return "이중슬릿 무늬 간격과 회절 영점"
-        }
-    }
-
     var formula: String {
         switch self {
         case .freefall:

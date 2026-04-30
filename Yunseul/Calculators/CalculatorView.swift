@@ -40,27 +40,7 @@ private struct CalcHeader: View {
     @Environment(\.openSimulation) private var openSimulation
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 6) {
-                Image(systemName: "graduationcap.fill")
-                    .imageScale(.small)
-                    .foregroundStyle(Theme.glow)
-                    .accessibilityHidden(true)
-                Text(topic.curriculum)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(Theme.ink)
-                Spacer(minLength: 0)
-                if let preset = PresetCatalog.preset(forTopic: topic) {
-                    Button {
-                        openSimulation(preset)
-                    } label: {
-                        Label("시뮬로 보기", systemImage: "play.rectangle")
-                            .font(.caption.weight(.semibold))
-                    }
-                    .buttonStyle(.glass)
-                    .accessibilityLabel("이 계산기의 시뮬 — \(preset.title) 열기")
-                }
-            }
+        HStack(alignment: .top, spacing: 12) {
             Text(topic.formula)
                 .font(.system(.footnote, design: .monospaced).weight(.medium))
                 .foregroundStyle(Theme.ink)
@@ -73,18 +53,17 @@ private struct CalcHeader: View {
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
                         .fill(Theme.crest.opacity(0.55))
                 )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .stroke(Theme.glow.opacity(0.22), lineWidth: 1)
-                )
-                .accessibilityLabel("핵심 공식: \(topic.formula)")
-            Text(topic.subtitle)
-                .font(.callout)
-                .foregroundStyle(Theme.mist)
+
+            if let preset = PresetCatalog.preset(forTopic: topic) {
+                Button {
+                    openSimulation(preset)
+                } label: {
+                    Image(systemName: "play.rectangle")
+                        .font(.title3)
+                }
+                .buttonStyle(.glass)
+            }
         }
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .themeCard(cornerRadius: 16)
     }
 }
 struct CalcInputField: View {
