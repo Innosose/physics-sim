@@ -245,10 +245,6 @@ private struct SimRow: View {
                 Text(item.title)
                     .font(.body.weight(.semibold))
                     .foregroundStyle(Theme.ink)
-                Text(item.subtitle)
-                    .font(.caption)
-                    .foregroundStyle(Theme.mist)
-                    .lineLimit(2)
                 HStack(spacing: 4) {
                     Image(systemName: "graduationcap.fill")
                         .imageScale(.small)
