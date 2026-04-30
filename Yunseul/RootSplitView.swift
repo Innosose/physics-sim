@@ -4,17 +4,17 @@ import SwiftUI
 ///
 /// HIG 근거:
 /// - *Sidebars* — "Use a sidebar to navigate between top-level collections of
-///   content in a hierarchical app." 분류(중학교·고등학교·샌드박스)가 그 케이스.
+///   content in a hierarchical app." 기능(중학교·고등학교·샌드박스)이 그 케이스.
 /// - *Navigation* — iPad/Mac 에서 NavigationSplitView 권장. iPhone 에서는
 ///   자동으로 stack 으로 collapse 되어 push 처럼 동작.
 ///
 /// 컬럼:
-/// - **Sidebar**: 분류 (중학교·고등학교·샌드박스)
-/// - **Content**: 선택된 분류의 시뮬 목록
+/// - **Sidebar**: 기능 (중학교·고등학교·샌드박스)
+/// - **Content**: 선택된 기능의 시뮬 목록
 /// - **Detail**: 선택된 시뮬 화면. 시뮬 안에서 계산기로 진입 가능 — 계산기는
 ///   별도 사이드바 항목이 아니라 시뮬에 딸린 "이론·계산" 도구로 자리잡음.
 ///
-/// 정체성은 분류·카테고리 강조색의 좌측 컬러 막대로 표현하고, 작은 보조 심볼(▶·↻·›·🎓)
+/// 정체성은 기능·카테고리 강조색의 좌측 컬러 막대로 표현하고, 작은 보조 심볼(▶·↻·›·🎓)
 /// 만 SF Symbol 로 사용한다.
 struct RootSplitView: View {
     @State private var sidebarSelection: SidebarSection? = nil
@@ -46,8 +46,8 @@ struct RootSplitView: View {
             SimList(curriculum: c, selection: $detailSelection)
         case nil:
             EmptyState(
-                title: "분류를 선택하세요",
-                message: "왼쪽 사이드바에서 분류를 골라 시뮬을 열어 보세요. 계산기는 각 시뮬 화면 우상단에서 진입할 수 있습니다."
+                title: "기능을 선택하세요",
+                message: "왼쪽 사이드바에서 기능을 골라 시뮬을 열어 보세요. 계산기는 각 시뮬 화면 우상단에서 진입할 수 있습니다."
             )
         }
     }
@@ -59,7 +59,7 @@ struct RootSplitView: View {
             SimulationCatalog.view(for: item.id)
                 .environment(\.simulationItem, item)
                 .environment(\.openCalculator, OpenCalculatorAction { topic in
-                    // 계산기로 진입 — sidebar 선택은 그대로 (시뮬의 분류 유지).
+                    // 계산기로 진입 — sidebar 선택은 그대로 (시뮬의 기능 유지).
                     detailSelection = .calculator(topic)
                 })
                 .navigationTitle(item.title)
@@ -67,7 +67,7 @@ struct RootSplitView: View {
         case .calculator(let topic):
             CalculatorView(topic: topic)
                 .environment(\.openSimulation, OpenSimulationAction { item in
-                    // 짝이 되는 시뮬로 복귀 — sidebar 도 해당 시뮬의 분류로 옮김.
+                    // 짝이 되는 시뮬로 복귀 — sidebar 도 해당 시뮬의 기능으로 옮김.
                     let c = SimulationCatalog.curriculum(of: item) ?? .free
                     sidebarSelection = .curriculum(c)
                     detailSelection = .simulation(item)
@@ -80,7 +80,7 @@ struct RootSplitView: View {
 
 // MARK: - 선택 모델
 
-/// 사이드바의 최상위 항목 — 분류만.
+/// 사이드바의 최상위 항목 — 기능만.
 enum SidebarSection: Hashable, Identifiable {
     case curriculum(Curriculum)
 
@@ -159,7 +159,7 @@ private struct YunseulBrand: View {
 private struct CurriculumRow: View {
     let curriculum: Curriculum
     var body: some View {
-        // 분류 강조색을 좌측의 가는 막대로.
+        // 기능 강조색을 좌측의 가는 막대로.
         HStack(spacing: 12) {
             RoundedRectangle(cornerRadius: 2, style: .continuous)
                 .fill(curriculum.accent)
@@ -255,7 +255,7 @@ private struct WelcomeDetail: View {
                 Text("물리를 눈으로 보는 시뮬레이션 모음")
                     .font(.callout)
                     .foregroundStyle(Theme.mist)
-                Text("왼쪽에서 분류를 골라 시뮬을 열어 보세요. 계산기는 각 시뮬 화면 우상단에서 진입.")
+                Text("왼쪽에서 기능을 골라 시뮬을 열어 보세요. 계산기는 각 시뮬 화면 우상단에서 진입.")
                     .font(.footnote)
                     .foregroundStyle(Theme.mist)
                     .multilineTextAlignment(.center)
@@ -265,7 +265,7 @@ private struct WelcomeDetail: View {
             .padding()
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("환영 화면. 왼쪽 사이드바에서 분류를 선택하면 시뮬 목록이 나타납니다.")
+        .accessibilityLabel("환영 화면. 왼쪽 사이드바에서 기능을 선택하면 시뮬 목록이 나타납니다.")
     }
 }
 
