@@ -2,6 +2,12 @@ import SwiftUI
 import RealityKit
 import UIKit
 
+enum NBodyVariant: String, CaseIterable, Identifiable {
+    case solar = "태양계"
+    case threeBody = "3체"
+    var id: String { rawValue }
+}
+
 struct MechanicsViewport: View {
     let preset: Preset
 
@@ -9,9 +15,20 @@ struct MechanicsViewport: View {
     @State private var lastTick: TimeInterval? = nil
     @State private var running = true
     @State private var redrawTick: Int = 0
+    @State private var nBodyVariant: NBodyVariant = .solar
 
     var body: some View {
         VStack(spacing: 10) {
+            if preset.id == "nbody" {
+                Picker("", selection: $nBodyVariant) {
+                    ForEach(NBodyVariant.allCases) { v in
+                        Text(v.rawValue).tag(v)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .onChange(of: nBodyVariant) { _, _ in reset() }
+            }
+
             TimelineView(.animation(paused: !running)) { tl in
                 MechanicsRealityView(world: world)
                     .onChange(of: tl.date) { _, newDate in
@@ -73,7 +90,14 @@ struct MechanicsViewport: View {
         world.G = 1.0
         world.kCoulomb = 1.0
         world.time = 0
-        preset.load(world)
+        if preset.id == "nbody" {
+            switch nBodyVariant {
+            case .solar:     MechanicsPresets.solarSystem(world)
+            case .threeBody: MechanicsPresets.threeBody(world)
+            }
+        } else {
+            preset.load(world)
+        }
         lastTick = nil
         redrawTick &+= 1
     }
@@ -108,10 +132,10 @@ private struct MechanicsRealityView: View {
             content.add(light)
 
             let camera = PerspectiveCamera()
-            let extent = max(8.0, estimatedExtent())
-            let camPos = SIMD3<Float>(Float(extent * 1.2),
-                                      Float(extent * 0.6),
-                                      Float(extent * 1.6))
+            let extent = estimatedExtent()
+            let camPos = SIMD3<Float>(Float(extent * 0.9),
+                                      Float(extent * 0.5),
+                                      Float(extent * 1.3))
             camera.transform.translation = camPos
             camera.look(at: .zero, from: camPos, relativeTo: nil)
             content.add(camera)
@@ -158,6 +182,7 @@ private struct MechanicsRealityView: View {
         if let b = world.bounds {
             return max(b.max.x - b.min.x, b.max.y - b.min.y, b.max.z - b.min.z)
         }
-        return 1 + (world.bodies.map { abs($0.pos.x) + abs($0.pos.y) + abs($0.pos.z) }.max() ?? 5)
+        let maxR = world.bodies.compactMap { $0.pos.isFinite ? $0.pos.length : nil }.max() ?? 1
+        return max(2.0, maxR * 2.2)
     }
 }

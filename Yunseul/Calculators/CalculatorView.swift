@@ -69,29 +69,27 @@ private struct CalcHeader: View {
 struct CalcInputField: View {
     let title: String
     @Binding var value: Double
+    var range: ClosedRange<Double> = 0...100
     var unit: String = ""
+    var format: String = "%.2f"
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(title)
-                .font(.themeLabel)
-                .foregroundStyle(Theme.ink)
-            HStack(spacing: 8) {
-                TextField("", value: $value,
-                          format: .number.precision(.fractionLength(0...4)))
-                    .keyboardType(.decimalPad)
-                    .textFieldStyle(.roundedBorder)
-                    .font(.themeMono)
-                    .frame(maxWidth: 180)
-                if !unit.isEmpty {
-                    Text(unit)
-                        .font(.themeMono)
-                        .foregroundStyle(Theme.mist)
-                }
-                Spacer(minLength: 0)
+            HStack {
+                Text(title)
+                    .font(.themeLabel)
+                    .foregroundStyle(Theme.ink)
+                Spacer(minLength: 8)
+                Text(unit.isEmpty
+                     ? String(format: format, value)
+                     : "\(String(format: format, value)) \(unit)")
+                    .font(.themeMonoBold)
+                    .foregroundStyle(Theme.glow)
             }
+            Slider(value: $value, in: range)
+                .tint(Theme.glow)
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 2)
     }
 }
 struct CalcOutput: View {
@@ -137,9 +135,9 @@ struct FreeFallCalculator: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             CalcSection(title: "입력값") {
-                CalcInputField(title: "처음 높이 h₀", value: $h0, unit: "m")
-                CalcInputField(title: "처음 속도 v₀ (위 +)", value: $v0, unit: "m/s")
-                CalcInputField(title: "중력가속도 g", value: $g, unit: "m/s²")
+                CalcInputField(title: "처음 높이 h₀", value: $h0, range: 0...100, unit: "m")
+                CalcInputField(title: "처음 속도 v₀ (위 +)", value: $v0, range: -30...30, unit: "m/s")
+                CalcInputField(title: "중력가속도 g", value: $g, range: 1.62...24.79, unit: "m/s²")
             }
             PropertyDivider()
             CalcSection(title: "결과") {
@@ -180,10 +178,10 @@ struct ProjectileCalculator: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             CalcSection(title: "입력값") {
-                CalcInputField(title: "발사각 θ", value: $angleDeg, unit: "°")
-                CalcInputField(title: "초속력 v₀", value: $speed, unit: "m/s")
-                CalcInputField(title: "발사 높이 h₀", value: $h0, unit: "m")
-                CalcInputField(title: "중력가속도 g", value: $g, unit: "m/s²")
+                CalcInputField(title: "발사각 θ", value: $angleDeg, range: 0...90, unit: "°")
+                CalcInputField(title: "초속력 v₀", value: $speed, range: 0...100, unit: "m/s")
+                CalcInputField(title: "발사 높이 h₀", value: $h0, range: 0...100, unit: "m")
+                CalcInputField(title: "중력가속도 g", value: $g, range: 1.62...24.79, unit: "m/s²")
             }
             PropertyDivider()
             CalcSection(title: "결과") {
@@ -242,11 +240,11 @@ struct OhmCalculator: View {
                 .pickerStyle(.segmented)
             }
             CalcSection(title: "입력값") {
-                CalcInputField(title: "전압 V", value: $V, unit: "V")
+                CalcInputField(title: "전압 V", value: $V, range: 0...50, unit: "V")
                 CalcInputField(title: mode == .single ? "저항 R" : "저항 R₁",
-                               value: $R1, unit: "Ω")
+                               value: $R1, range: 0.5...50, unit: "Ω")
                 if mode != .single {
-                    CalcInputField(title: "저항 R₂", value: $R2, unit: "Ω")
+                    CalcInputField(title: "저항 R₂", value: $R2, range: 0.5...50, unit: "Ω")
                 }
             }
             PropertyDivider()
@@ -290,9 +288,9 @@ struct RefractionCalculator: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             CalcSection(title: "입력값") {
-                CalcInputField(title: "입사각 θ₁", value: $theta1Deg, unit: "°")
-                CalcInputField(title: "n₁ (입사 매질)", value: $n1)
-                CalcInputField(title: "n₂ (굴절 매질)", value: $n2)
+                CalcInputField(title: "입사각 θ₁", value: $theta1Deg, range: 0...89.9, unit: "°")
+                CalcInputField(title: "n₁ (입사 매질)", value: $n1, range: 1...3)
+                CalcInputField(title: "n₂ (굴절 매질)", value: $n2, range: 1...3)
             }
             PropertyDivider()
             CalcSection(title: "결과") {
@@ -330,12 +328,12 @@ struct LensCalculator: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             CalcSection(title: "입력값") {
-                CalcInputField(title: "초점거리 f (수렴렌즈 +, 발산렌즈 −)",
-                               value: $f, unit: "m")
-                CalcInputField(title: "물체 거리 p (>0)",
-                               value: $p, unit: "m")
-                CalcInputField(title: "물체 높이 h_o",
-                               value: $ho, unit: "m")
+                CalcInputField(title: "초점거리 f", value: $f,
+                               range: -10...10, unit: "m")
+                CalcInputField(title: "물체 거리 p", value: $p,
+                               range: 0.1...20, unit: "m")
+                CalcInputField(title: "물체 높이 h_o", value: $ho,
+                               range: 0.1...5, unit: "m")
             }
             PropertyDivider()
             CalcSection(title: "결과") {
@@ -375,9 +373,9 @@ struct PendulumCalculator: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             CalcSection(title: "입력값") {
-                CalcInputField(title: "줄 길이 L", value: $L, unit: "m")
-                CalcInputField(title: "중력가속도 g", value: $g, unit: "m/s²")
-                CalcInputField(title: "최대 각도 θ_max", value: $thetaDeg, unit: "°")
+                CalcInputField(title: "줄 길이 L", value: $L, range: 0.1...10, unit: "m")
+                CalcInputField(title: "중력가속도 g", value: $g, range: 1.62...24.79, unit: "m/s²")
+                CalcInputField(title: "최대 각도 θ_max", value: $thetaDeg, range: 1...170, unit: "°")
             }
             PropertyDivider()
             CalcSection(title: "결과") {
@@ -417,11 +415,11 @@ struct CollisionCalculator: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             CalcSection(title: "입력값") {
-                CalcInputField(title: "질량 m₁", value: $m1, unit: "kg")
-                CalcInputField(title: "초속 v₁", value: $v1, unit: "m/s")
-                CalcInputField(title: "질량 m₂", value: $m2, unit: "kg")
-                CalcInputField(title: "초속 v₂", value: $v2, unit: "m/s")
-                CalcInputField(title: "반발계수 e (0..1)", value: $e)
+                CalcInputField(title: "질량 m₁", value: $m1, range: 0.1...20, unit: "kg")
+                CalcInputField(title: "초속 v₁", value: $v1, range: -20...20, unit: "m/s")
+                CalcInputField(title: "질량 m₂", value: $m2, range: 0.1...20, unit: "kg")
+                CalcInputField(title: "초속 v₂", value: $v2, range: -20...20, unit: "m/s")
+                CalcInputField(title: "반발계수 e", value: $e, range: 0...1)
             }
             PropertyDivider()
             CalcSection(title: "결과 — 충돌 후") {
@@ -453,19 +451,19 @@ struct CollisionCalculator: View {
 }
 
 struct KeplerCalculator: View {
-    @State private var GM: Double = 3.986e14   // 지구 GM (m³/s²)
-    @State private var r: Double  = 6.78e6     // 저궤도 (m)
-    @State private var v: Double  = 7700       // m/s
+    @State private var GM: Double = 200
+    @State private var r: Double  = 5
+    @State private var v: Double  = 6
     @State private var gammaDeg: Double = 90
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            CalcSection(title: "입력값 (현재 위치·속도)") {
-                CalcInputField(title: "GM (중심체)", value: $GM, unit: "m³/s²")
-                CalcInputField(title: "현재 거리 r", value: $r, unit: "m")
-                CalcInputField(title: "현재 속력 v", value: $v, unit: "m/s")
-                CalcInputField(title: "v 와 r 사이 각도 γ (90° = 접선)",
-                               value: $gammaDeg, unit: "°")
+            CalcSection(title: "입력값 (시뮬 단위)") {
+                CalcInputField(title: "GM", value: $GM, range: 10...500)
+                CalcInputField(title: "현재 거리 r", value: $r, range: 0.5...20)
+                CalcInputField(title: "현재 속력 v", value: $v, range: 0...20)
+                CalcInputField(title: "v 와 r 사이 각 γ (90° = 접선)",
+                               value: $gammaDeg, range: 0...180, unit: "°")
             }
             PropertyDivider()
             CalcSection(title: "결과") {
@@ -476,16 +474,16 @@ struct KeplerCalculator: View {
                     let γ = gammaDeg * .pi / 180
                     let vTangential = v * sin(γ)
                     let vRadial     = v * cos(γ)
-                    let E = 0.5 * v * v - GM / r        // 비-에너지 (단위질량당)
+                    let E = 0.5 * v * v - GM / r
                     let escape = sqrt(2 * GM / r)
                     CalcOutput(label: "접선 v_t = v sinγ",
-                               value: String(format: "%.2f m/s", vTangential))
+                               value: String(format: "%.2f", vTangential))
                     CalcOutput(label: "반경 v_r = v cosγ",
-                               value: String(format: "%.2f m/s", vRadial))
+                               value: String(format: "%.2f", vRadial))
                     CalcOutput(label: "탈출속력 v_esc = √(2GM/r)",
-                               value: String(format: "%.2f m/s", escape))
+                               value: String(format: "%.2f", escape))
                     CalcOutput(label: "비-에너지 ε = ½v² − GM/r",
-                               value: String(format: "%.2e J/kg", E))
+                               value: String(format: "%.2f", E))
                     if E >= 0 {
                         CalcOutput(label: "궤도 종류", value: "탈출 (E ≥ 0) — 포물선/쌍곡선",
                                    emphasis: true)
@@ -497,17 +495,16 @@ struct KeplerCalculator: View {
                         let T = 2 * .pi * sqrt(pow(a, 3) / GM)
                         let rPeri = a * (1 - ecc)
                         let rApo  = a * (1 + ecc)
-                        CalcOutput(label: "장반경 a = −GM / (2ε)",
-                                   value: String(format: "%.2e m", a), emphasis: true)
-                        CalcOutput(label: "이심률 e (γ 반영)",
+                        CalcOutput(label: "장반경 a",
+                                   value: String(format: "%.2f", a), emphasis: true)
+                        CalcOutput(label: "이심률 e",
                                    value: String(format: "%.2f", ecc))
-                        CalcOutput(label: "공전주기 T = 2π √(a³/GM)",
-                                   value: String(format: "%.2f s  (%.2f h)", T, T / 3600),
-                                   emphasis: true)
-                        CalcOutput(label: "근일점 r_peri = a(1−e)",
-                                   value: String(format: "%.2e m", rPeri))
-                        CalcOutput(label: "원일점 r_apo  = a(1+e)",
-                                   value: String(format: "%.2e m", rApo))
+                        CalcOutput(label: "공전주기 T",
+                                   value: String(format: "%.2f", T), emphasis: true)
+                        CalcOutput(label: "근일점 r_peri",
+                                   value: String(format: "%.2f", rPeri))
+                        CalcOutput(label: "원일점 r_apo",
+                                   value: String(format: "%.2f", rApo))
                     }
                 }
             }
@@ -539,15 +536,15 @@ struct DopplerCalculator: View {
                 .pickerStyle(.segmented)
             }
             CalcSection(title: "입력값") {
-                CalcInputField(title: "원래 진동수 f", value: $f0, unit: "Hz")
-                CalcInputField(title: "음속 c", value: $c, unit: "m/s")
+                CalcInputField(title: "원래 진동수 f", value: $f0, range: 50...2000, unit: "Hz")
+                CalcInputField(title: "음속 c", value: $c, range: 100...500, unit: "m/s")
                 if mode != .observerOnly {
                     CalcInputField(title: "음원 속력 v_s (관측자 향함 +)",
-                                   value: $vs, unit: "m/s")
+                                   value: $vs, range: -300...300, unit: "m/s")
                 }
                 if mode != .sourceOnly {
                     CalcInputField(title: "관측자 속력 v_o (음원 향함 +)",
-                                   value: $vo, unit: "m/s")
+                                   value: $vo, range: -300...300, unit: "m/s")
                 }
             }
             PropertyDivider()
@@ -590,10 +587,10 @@ struct DoubleSlitCalculator: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             CalcSection(title: "입력값") {
-                CalcInputField(title: "파장 λ", value: $lambdaNm, unit: "nm")
-                CalcInputField(title: "슬릿 간격 d", value: $dUm, unit: "μm")
-                CalcInputField(title: "슬릿 폭 a", value: $aUm, unit: "μm")
-                CalcInputField(title: "막까지 거리 D", value: $D, unit: "m")
+                CalcInputField(title: "파장 λ", value: $lambdaNm, range: 380...780, unit: "nm")
+                CalcInputField(title: "슬릿 간격 d", value: $dUm, range: 10...500, unit: "μm")
+                CalcInputField(title: "슬릿 폭 a", value: $aUm, range: 1...100, unit: "μm")
+                CalcInputField(title: "막까지 거리 D", value: $D, range: 0.3...5, unit: "m")
             }
             PropertyDivider()
             CalcSection(title: "결과") {

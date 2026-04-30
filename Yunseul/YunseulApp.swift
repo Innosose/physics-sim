@@ -10,7 +10,6 @@ struct YunseulApp: App {
                 .preferredColorScheme(
                     (ThemeMode(rawValue: themeModeRaw) ?? .system).colorScheme)
                 .tint(Theme.glow)
-                .id(themeModeRaw)
         }
     }
 }

@@ -5,6 +5,7 @@ struct RootSplitView: View {
     @State private var detailSelection: DetailItem? = nil
     @State private var columnVisibility: NavigationSplitViewVisibility = .all
     @State private var showSettings: Bool = false
+    @State private var presentedCalculator: CalculatorTopic? = nil
 
     var body: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
@@ -18,6 +19,23 @@ struct RootSplitView: View {
         }
         .navigationSplitViewStyle(.balanced)
         .sheet(isPresented: $showSettings) { SettingsView() }
+        .sheet(item: $presentedCalculator) { topic in
+            NavigationStack {
+                CalculatorView(topic: topic)
+                    .environment(\.openSimulation, OpenSimulationAction { p in
+                        presentedCalculator = nil
+                        sidebarSelection = p.curriculum
+                        detailSelection = .preset(p)
+                    })
+                    .toolbar {
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("완료") { presentedCalculator = nil }
+                        }
+                    }
+            }
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
+        }
     }
 
     private var sidebar: some View {
@@ -50,7 +68,6 @@ struct RootSplitView: View {
             }
         }
         .listStyle(.sidebar)
-        .navigationTitle("윤슬")
         .navigationBarTitleDisplayMode(.inline)
         .scrollContentBackground(.hidden)
         .background(YunseulBackground(topGlow: Theme.glow.opacity(0.10)))
@@ -80,13 +97,7 @@ struct RootSplitView: View {
         case .preset(let p):
             WorldScene(preset: p)
                 .environment(\.openCalculator, OpenCalculatorAction { topic in
-                    detailSelection = .calculator(topic)
-                })
-        case .calculator(let topic):
-            CalculatorView(topic: topic)
-                .environment(\.openSimulation, OpenSimulationAction { p in
-                    sidebarSelection = p.curriculum
-                    detailSelection = .preset(p)
+                    presentedCalculator = topic
                 })
         case nil:
             Color.clear
@@ -97,12 +108,10 @@ struct RootSplitView: View {
 
 enum DetailItem: Hashable, Identifiable {
     case preset(Preset)
-    case calculator(CalculatorTopic)
 
     var id: String {
         switch self {
-        case .preset(let p):     return "preset:\(p.id)"
-        case .calculator(let t): return "calc:\(t.id)"
+        case .preset(let p): return "preset:\(p.id)"
         }
     }
 }
