@@ -17,15 +17,6 @@ enum Curriculum: String, CaseIterable, Identifiable, Hashable {
         }
     }
 
-    /// 시각 식별을 위한 **한글 한 글자 마크** — 아이콘 대신 타이포그래피로 정체성 표현.
-    var letterMark: String {
-        switch self {
-        case .middle: return "중"
-        case .high:   return "고"
-        case .free:   return "자"
-        }
-    }
-
     /// 강조색 — 학년이 올라갈수록 차분한 톤.
     var accent: Color {
         switch self {

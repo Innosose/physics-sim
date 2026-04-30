@@ -148,34 +148,6 @@ private struct ThemeCard: ViewModifier {
     }
 }
 
-// MARK: - 한글 글자 마크 (정체성 표현 — 아이콘 대체)
-
-/// 한글 한 글자 + 색 배경의 작은 정사각 마크.
-///
-/// 이전엔 SF Symbol 큰 글리프로 쓰던 정체성 표현(학년·카테고리)을 글자로 대체.
-/// 작은 보조 심볼은 따로 유지 (▶, ↻, › 등).
-struct LetterMark: View {
-    let mark: String
-    let tint: Color
-    var size: CGFloat = 38
-
-    var body: some View {
-        Text(mark)
-            .font(.system(size: size * 0.50, weight: .heavy, design: .rounded))
-            .foregroundStyle(tint)
-            .frame(width: size, height: size)
-            .background(
-                RoundedRectangle(cornerRadius: size * 0.22, style: .continuous)
-                    .fill(tint.opacity(0.16))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: size * 0.22, style: .continuous)
-                    .stroke(tint.opacity(0.30), lineWidth: 1)
-            )
-            .accessibilityHidden(true)        // 옆 라벨이 의미 전달
-    }
-}
-
 // MARK: - 윤슬 — 잔물결 라인 배경 (시뮬 뷰포트 용)
 
 /// 가로로 길게 누운 잔물결을 몇 줄 그려서 "수면" 같은 느낌을 준다.

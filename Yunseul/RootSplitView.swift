@@ -14,7 +14,7 @@ import SwiftUI
 /// - **Detail**: 선택된 시뮬 화면. 시뮬 안에서 계산기로 진입 가능 — 계산기는
 ///   별도 사이드바 항목이 아니라 시뮬에 딸린 "이론·계산" 도구로 자리잡음.
 ///
-/// 정체성은 한글 글자 마크(`LetterMark`) 로 표현하고, 작은 보조 심볼(▶·↻·›·🎓)
+/// 정체성은 학년·카테고리 강조색의 좌측 컬러 막대로 표현하고, 작은 보조 심볼(▶·↻·›·🎓)
 /// 만 SF Symbol 로 사용한다.
 struct RootSplitView: View {
     @State private var sidebarSelection: SidebarSection? = nil
@@ -179,8 +179,12 @@ private struct LogoOrFallback: View {
 private struct CurriculumRow: View {
     let curriculum: Curriculum
     var body: some View {
+        // 학년 강조색을 좌측의 가는 막대로 — 글자 마크 대체.
         HStack(spacing: 12) {
-            LetterMark(mark: curriculum.letterMark, tint: curriculum.accent, size: 38)
+            RoundedRectangle(cornerRadius: 2, style: .continuous)
+                .fill(curriculum.accent)
+                .frame(width: 3)
+                .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 Text(curriculum.rawValue)
                     .font(.body.weight(.semibold))
@@ -211,21 +215,10 @@ private struct SimList: View {
                         }
                     }
                 } header: {
-                    HStack(spacing: 8) {
-                        Text(cat.letterMark)
-                            .font(.system(size: 11, weight: .heavy, design: .rounded))
-                            .foregroundStyle(curriculum.accent)
-                            .frame(width: 16, height: 16)
-                            .background(
-                                RoundedRectangle(cornerRadius: 4)
-                                    .fill(curriculum.accent.opacity(0.16))
-                            )
-                            .accessibilityHidden(true)
-                        Text(cat.rawValue)
-                            .font(.themeHeader)
-                            .foregroundStyle(Theme.mist)
-                    }
-                    .textCase(nil)
+                    Text(cat.rawValue)
+                        .font(.themeHeader)
+                        .foregroundStyle(Theme.mist)
+                        .textCase(nil)
                 }
             }
         }
@@ -244,7 +237,10 @@ private struct SimRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            LetterMark(mark: item.category.letterMark, tint: accent, size: 36)
+            RoundedRectangle(cornerRadius: 2, style: .continuous)
+                .fill(accent)
+                .frame(width: 3)
+                .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.title)
                     .font(.body.weight(.semibold))

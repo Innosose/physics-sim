@@ -9,17 +9,6 @@ enum SimCategory: String, CaseIterable, Identifiable, Hashable {
     case sandbox  = "샌드박스"
 
     var id: String { rawValue }
-
-    /// 한글 한 글자 마크 — 아이콘 대신 타이포그래피로 정체성 표현.
-    var letterMark: String {
-        switch self {
-        case .mechanics:        return "역"
-        case .waveThermo:       return "파"
-        case .electromagnetism: return "전"
-        case .optics:           return "광"
-        case .sandbox:          return "샌"
-        }
-    }
 }
 
 /// 시뮬 메타데이터.
