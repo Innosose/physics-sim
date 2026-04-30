@@ -24,6 +24,9 @@ private struct MotionGraphView: View {
     @State private var v1: Double = 5
     @State private var v0: Double = 0
     @State private var a: Double  = 1.5
+    @State private var sV1: Double = 5
+    @State private var sV0: Double = 0
+    @State private var sA: Double  = 1.5
     @State private var elapsed: Double = 0
     @State private var lastTick: TimeInterval? = nil
     @State private var running: Bool = false
@@ -52,6 +55,7 @@ private struct MotionGraphView: View {
     private var playReset: some View {
         HStack(spacing: 8) {
             Button {
+                if !running { snapshot() }
                 running.toggle()
             } label: {
                 Label(running ? "일시정지" : "재생",
@@ -64,6 +68,7 @@ private struct MotionGraphView: View {
 
             Button {
                 elapsed = 0; lastTick = nil; running = false
+                snapshot()
             } label: {
                 Label("처음부터", systemImage: "arrow.counterclockwise")
                     .font(.callout.weight(.semibold))
@@ -72,6 +77,8 @@ private struct MotionGraphView: View {
             .buttonStyle(.glass)
         }
     }
+
+    private func snapshot() { sV1 = v1; sV0 = v0; sA = a }
 
     private func advance(to now: TimeInterval) {
         guard let last = lastTick else { lastTick = now; return }
@@ -100,8 +107,8 @@ private struct MotionGraphView: View {
         let track = CGRect(x: 0, y: 0, width: size.width, height: trackH)
         let plot  = CGRect(x: 0, y: trackH, width: size.width, height: plotH)
 
-        let x1 = v1 * t
-        let x2 = v0 * t + 0.5 * a * t * t
+        let x1 = sV1 * t
+        let x2 = sV0 * t + 0.5 * sA * t * t
 
         var line = Path()
         line.move(to: CGPoint(x: 16, y: track.midY))
@@ -118,13 +125,13 @@ private struct MotionGraphView: View {
                  with: .color(.orange))
 
         let tEnd = max(8.0, t * 1.05)
-        let yMax2 = max(20.0, max(v1 * tEnd, v0 * tEnd + 0.5 * a * tEnd * tEnd) * 1.1 + 1)
+        let yMax2 = max(20.0, max(sV1 * tEnd, sV0 * tEnd + 0.5 * sA * tEnd * tEnd) * 1.1 + 1)
         ctx.stroke(Path(roundedRect: plot.insetBy(dx: 12, dy: 12), cornerRadius: 8),
                    with: .color(Theme.ink.opacity(0.18)), lineWidth: 1)
         drawCurve(ctx, in: plot.insetBy(dx: 12, dy: 12), tEnd: tEnd, yMax: yMax2,
-                  fn: { v1 * $0 }, color: .cyan)
+                  fn: { sV1 * $0 }, color: .cyan)
         drawCurve(ctx, in: plot.insetBy(dx: 12, dy: 12), tEnd: tEnd, yMax: yMax2,
-                  fn: { v0 * $0 + 0.5 * a * $0 * $0 }, color: .orange)
+                  fn: { sV0 * $0 + 0.5 * sA * $0 * $0 }, color: .orange)
     }
 
     private func drawCurve(_ ctx: GraphicsContext, in r: CGRect, tEnd: Double,
@@ -149,12 +156,16 @@ private struct HeatTransferView: View {
     @State private var T2: Double = 20
     @State private var capRatio: Double = 1
     @State private var hA: Double = 1
+    @State private var sT1: Double = 80
+    @State private var sT2: Double = 20
+    @State private var sCapRatio: Double = 1
+    @State private var sHA: Double = 1
     @State private var elapsed: Double = 0
     @State private var lastTick: TimeInterval? = nil
     @State private var running: Bool = false
 
-    private var Teq: Double { (T1 + capRatio * T2) / (1 + capRatio) }
-    private var tau: Double { capRatio / (hA * (1 + capRatio)) }
+    private var Teq: Double { (sT1 + sCapRatio * sT2) / (1 + sCapRatio) }
+    private var tau: Double { sCapRatio / (sHA * (1 + sCapRatio)) }
 
     var body: some View {
         VStack(spacing: 8) {
@@ -181,6 +192,7 @@ private struct HeatTransferView: View {
     private var playReset: some View {
         HStack(spacing: 8) {
             Button {
+                if !running { snapshot() }
                 running.toggle()
             } label: {
                 Label(running ? "일시정지" : "재생",
@@ -193,6 +205,7 @@ private struct HeatTransferView: View {
 
             Button {
                 elapsed = 0; lastTick = nil; running = false
+                snapshot()
             } label: {
                 Label("처음부터", systemImage: "arrow.counterclockwise")
                     .font(.callout.weight(.semibold))
@@ -200,6 +213,10 @@ private struct HeatTransferView: View {
             }
             .buttonStyle(.glass)
         }
+    }
+
+    private func snapshot() {
+        sT1 = T1; sT2 = T2; sCapRatio = capRatio; sHA = hA
     }
 
     private func advance(to now: TimeInterval) {
@@ -228,8 +245,8 @@ private struct HeatTransferView: View {
         let topR = CGRect(x: 0, y: 0, width: size.width, height: topH)
         let plotR = CGRect(x: 0, y: topH, width: size.width, height: size.height - topH)
         let f = exp(-t / tau)
-        let cur1 = Teq + (T1 - Teq) * f
-        let cur2 = Teq + (T2 - Teq) * f
+        let cur1 = Teq + (sT1 - Teq) * f
+        let cur2 = Teq + (sT2 - Teq) * f
 
         let bw: CGFloat = 100, bh: CGFloat = 60
         let r1 = CGRect(x: topR.midX - bw - 16, y: topR.midY - bh / 2, width: bw, height: bh)
@@ -247,14 +264,14 @@ private struct HeatTransferView: View {
         ctx.stroke(Path(roundedRect: inner, cornerRadius: 8),
                    with: .color(Theme.ink.opacity(0.18)), lineWidth: 1)
         let tEnd = max(2 * tau, t * 1.1, 0.5)
-        let lo = min(0.0, T1, T2), hi = max(100.0, T1, T2)
+        let lo = min(0.0, sT1, sT2), hi = max(100.0, sT1, sT2)
         var p1 = Path(), p2 = Path()
         let n = 200
         for i in 0...n {
             let f0 = Double(i) / Double(n)
             let tt = f0 * tEnd
-            let v1 = Teq + (T1 - Teq) * exp(-tt / tau)
-            let v2 = Teq + (T2 - Teq) * exp(-tt / tau)
+            let v1 = Teq + (sT1 - Teq) * exp(-tt / tau)
+            let v2 = Teq + (sT2 - Teq) * exp(-tt / tau)
             let px = inner.minX + 4 + CGFloat(f0) * (inner.width - 8)
             let py1 = inner.maxY - 6 - CGFloat((v1 - lo) / (hi - lo)) * (inner.height - 12)
             let py2 = inner.maxY - 6 - CGFloat((v2 - lo) / (hi - lo)) * (inner.height - 12)
