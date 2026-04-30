@@ -131,33 +131,53 @@ enum MechanicsPresets {
         ]
     }
 
-    static func nBody(_ w: World) {
+    static func solarSystem(_ w: World) {
         w.pairwiseGravity = true
         w.G = 1.0
-        let sun = PhysicsBody(pos: .zero, mass: 100, radius: 0.5,
-                              color: Color(red: 1.00, green: 0.83, blue: 0.50),
-                              kind: .star)
-        var arr = [sun]
-        let radii = [2.0, 3.5, 5.0]
-        let colors: [Color] = [
-            Color(red: 0.55, green: 0.78, blue: 1.00),
-            Color(red: 0.85, green: 0.92, blue: 1.00),
-            Color(red: 1.00, green: 0.74, blue: 0.46),
+        let sun = PhysicsBody(pos: .zero, mass: 300, radius: 0.55,
+                              color: Color(red: 1.00, green: 0.78, blue: 0.30),
+                              pinned: true, kind: .star)
+        let planets: [(r: Double, size: Double, color: Color)] = [
+            (1.4, 0.08, Color(red: 0.78, green: 0.70, blue: 0.60)),
+            (2.2, 0.13, Color(red: 0.95, green: 0.80, blue: 0.45)),
+            (3.0, 0.14, Color(red: 0.30, green: 0.55, blue: 0.95)),
+            (3.9, 0.11, Color(red: 0.85, green: 0.40, blue: 0.20)),
+            (5.5, 0.30, Color(red: 0.88, green: 0.72, blue: 0.50)),
+            (7.5, 0.24, Color(red: 0.92, green: 0.85, blue: 0.62)),
         ]
-        for (i, r) in radii.enumerated() {
-            let v = (w.G * sun.mass / r).squareRoot()
-            let θ = Double(i) * 2.1
+        var arr: [PhysicsBody] = [sun]
+        for p in planets {
+            let v = (w.G * sun.mass / p.r).squareRoot()
             arr.append(PhysicsBody(
-                pos: Vec3(x: r * cos(θ), y: r * sin(θ), z: 0),
-                vel: Vec3(x: -v * sin(θ), y: v * cos(θ), z: 0),
-                mass: 0.5, radius: 0.18, color: colors[i],
+                pos: Vec3(x: p.r, y: 0, z: 0),
+                vel: Vec3(x: 0, y: v, z: 0),
+                mass: 0.5, radius: p.size, color: p.color,
                 kind: .planet))
         }
-        let totalMass = arr.reduce(0) { $0 + $1.mass }
-        let mom = arr.reduce(Vec3.zero) { $0 + $1.vel * $1.mass }
-        let dv = mom / totalMass
-        for i in arr.indices { arr[i].vel -= dv }
         w.bodies = arr
+    }
+
+    static func threeBody(_ w: World) {
+        w.pairwiseGravity = true
+        w.G = 1.0
+        let v12 = Vec3(x: 0.93240737 / 2, y: 0.86473146 / 2, z: 0)
+        let v3  = Vec3(x: -0.93240737, y: -0.86473146, z: 0)
+        let colors: [Color] = [
+            Color(red: 1.00, green: 0.78, blue: 0.30),
+            Color(red: 0.55, green: 0.78, blue: 1.00),
+            Color(red: 0.96, green: 0.94, blue: 0.86),
+        ]
+        w.bodies = [
+            PhysicsBody(pos: Vec3(x: -0.97000436, y:  0.24308753, z: 0),
+                        vel: v12, mass: 1, radius: 0.08, color: colors[0],
+                        kind: .star),
+            PhysicsBody(pos: Vec3(x:  0.97000436, y: -0.24308753, z: 0),
+                        vel: v12, mass: 1, radius: 0.08, color: colors[1],
+                        kind: .star),
+            PhysicsBody(pos: .zero,
+                        vel: v3,  mass: 1, radius: 0.08, color: colors[2],
+                        kind: .star),
+        ]
     }
 
     static func lorentz(_ w: World) {

@@ -164,12 +164,19 @@ enum PresetCatalog {
                kind: .mechanics3D,
                load: MechanicsPresets.freeCollision),
 
-        Preset(id: "freegravity",
-               title: "N체 중력",
+        Preset(id: "solarsystem",
+               title: "태양계",
                curriculum: .free, category: .sandbox,
                calculatorTopic: nil,
                kind: .mechanics3D,
-               load: MechanicsPresets.nBody),
+               load: MechanicsPresets.solarSystem),
+
+        Preset(id: "threebody",
+               title: "3체",
+               curriculum: .free, category: .sandbox,
+               calculatorTopic: nil,
+               kind: .mechanics3D,
+               load: MechanicsPresets.threeBody),
     ]
 
     static func preset(_ id: String) -> Preset {
