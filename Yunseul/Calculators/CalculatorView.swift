@@ -59,16 +59,15 @@ private struct CalcHeader: View {
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(Theme.ink)
                 Spacer(minLength: 0)
-                if let simId = topic.simulationId {
-                    let item = SimulationCatalog.item(simId)
+                if let preset = PresetCatalog.preset(forTopic: topic) {
                     Button {
-                        openSimulation(item)
+                        openSimulation(preset)
                     } label: {
                         Label("시뮬로 보기", systemImage: "play.rectangle")
                             .font(.caption.weight(.semibold))
                     }
                     .buttonStyle(.glass)
-                    .accessibilityLabel("이 계산기의 시뮬 — \(item.title) 열기")
+                    .accessibilityLabel("이 계산기의 시뮬 — \(preset.title) 열기")
                 }
             }
             Text(topic.formula)

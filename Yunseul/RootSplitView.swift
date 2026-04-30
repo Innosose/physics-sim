@@ -1,31 +1,20 @@
 import SwiftUI
 
-/// 앱의 최상위 화면 — `NavigationSplitView` 3-column.
+/// 앱의 최상위 화면 — 사이드바(기능) + content(시뮬 목록) + detail(시뮬 화면).
 ///
-/// HIG 근거:
-/// - *Sidebars* — "Use a sidebar to navigate between top-level collections of
-///   content in a hierarchical app." 기능(중학교·고등학교·샌드박스)이 그 케이스.
-/// - *Navigation* — iPad/Mac 에서 NavigationSplitView 권장. iPhone 에서는
-///   자동으로 stack 으로 collapse 되어 push 처럼 동작.
-///
-/// 컬럼:
-/// - **Sidebar**: 기능 (중학교·고등학교·샌드박스)
-/// - **Content**: 선택된 기능의 시뮬 목록
-/// - **Detail**: 선택된 시뮬 화면. 시뮬 안에서 계산기로 진입 가능 — 계산기는
-///   별도 사이드바 항목이 아니라 시뮬에 딸린 "이론·계산" 도구로 자리잡음.
-///
-/// 정체성은 기능·카테고리 강조색의 좌측 컬러 막대로 표현하고, 작은 보조 심볼(▶·↻·›·🎓)
-/// 만 SF Symbol 로 사용한다.
+/// 사이드바: 중학교·고등학교·샌드박스. 각 기능은 프리셋 묶음.
+/// 시뮬 화면은 단일 `WorldScene` 셸 — preset.kind 에 따라 viewport 가 mechanics
+/// (3D RealityKit) / optics / wave / circuit / graph 중 하나로 자동 분기.
+/// 계산기는 시뮬 우상단 버튼으로만 진입.
 struct RootSplitView: View {
-    @State private var sidebarSelection: SidebarSection? = nil
+    @State private var sidebarSelection: Curriculum? = nil
     @State private var detailSelection: DetailItem? = nil
     @State private var columnVisibility: NavigationSplitViewVisibility = .all
     @State private var showSettings: Bool = false
 
     var body: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
-            Sidebar(selection: $sidebarSelection,
-                    showSettings: $showSettings)
+            sidebar
                 .navigationSplitViewColumnWidth(min: 240, ideal: 280)
         } content: {
             contentColumn
@@ -37,84 +26,11 @@ struct RootSplitView: View {
         .sheet(isPresented: $showSettings) { SettingsView() }
     }
 
-    // MARK: - 컬럼
-
-    @ViewBuilder
-    private var contentColumn: some View {
-        switch sidebarSelection {
-        case .curriculum(let c):
-            SimList(curriculum: c, selection: $detailSelection)
-        case nil:
-            EmptyState(
-                title: "기능을 선택하세요",
-                message: "왼쪽 사이드바에서 기능을 골라 시뮬을 열어 보세요. 계산기는 각 시뮬 화면 우상단에서 진입할 수 있습니다."
-            )
-        }
-    }
-
-    @ViewBuilder
-    private var detailColumn: some View {
-        switch detailSelection {
-        case .simulation(let item):
-            SimulationCatalog.view(for: item.id)
-                .environment(\.simulationItem, item)
-                .environment(\.openCalculator, OpenCalculatorAction { topic in
-                    // 계산기로 진입 — sidebar 선택은 그대로 (시뮬의 기능 유지).
-                    detailSelection = .calculator(topic)
-                })
-                .navigationTitle(item.title)
-                .navigationBarTitleDisplayMode(.inline)
-        case .calculator(let topic):
-            CalculatorView(topic: topic)
-                .environment(\.openSimulation, OpenSimulationAction { item in
-                    // 짝이 되는 시뮬로 복귀 — sidebar 도 해당 시뮬의 기능으로 옮김.
-                    let c = SimulationCatalog.curriculum(of: item) ?? .free
-                    sidebarSelection = .curriculum(c)
-                    detailSelection = .simulation(item)
-                })
-        case nil:
-            WelcomeDetail()
-        }
-    }
-}
-
-// MARK: - 선택 모델
-
-/// 사이드바의 최상위 항목 — 기능만.
-enum SidebarSection: Hashable, Identifiable {
-    case curriculum(Curriculum)
-
-    var id: String {
-        switch self {
-        case .curriculum(let c): return "curriculum:\(c.rawValue)"
-        }
-    }
-}
-
-/// Detail 컬럼이 보여줄 대상.
-enum DetailItem: Hashable, Identifiable {
-    case simulation(SimulationItem)
-    case calculator(CalculatorTopic)
-
-    var id: String {
-        switch self {
-        case .simulation(let s): return "sim:\(s.id)"
-        case .calculator(let t): return "calc:\(t.id)"
-        }
-    }
-}
-
-// MARK: - Sidebar
-
-private struct Sidebar: View {
-    @Binding var selection: SidebarSection?
-    @Binding var showSettings: Bool
-
-    var body: some View {
-        List(selection: $selection) {
+    private var sidebar: some View {
+        List(selection: $sidebarSelection) {
             Section {
                 ForEach(Curriculum.allCases) { c in
-                    NavigationLink(value: SidebarSection.curriculum(c)) {
+                    NavigationLink(value: c) {
                         CurriculumRow(curriculum: c)
                     }
                 }
@@ -138,7 +54,55 @@ private struct Sidebar: View {
             }
         }
     }
+
+    @ViewBuilder
+    private var contentColumn: some View {
+        switch sidebarSelection {
+        case .some(let c):
+            PresetList(curriculum: c, selection: $detailSelection)
+        case nil:
+            EmptyState(
+                title: "기능을 선택하세요",
+                message: "왼쪽 사이드바에서 기능을 골라 시뮬을 열어 보세요. 계산기는 각 시뮬 화면 우상단에서 진입할 수 있습니다."
+            )
+        }
+    }
+
+    @ViewBuilder
+    private var detailColumn: some View {
+        switch detailSelection {
+        case .preset(let p):
+            WorldScene(preset: p)
+                .environment(\.openCalculator, OpenCalculatorAction { topic in
+                    detailSelection = .calculator(topic)
+                })
+        case .calculator(let topic):
+            CalculatorView(topic: topic)
+                .environment(\.openSimulation, OpenSimulationAction { p in
+                    sidebarSelection = p.curriculum
+                    detailSelection = .preset(p)
+                })
+        case nil:
+            WelcomeDetail()
+        }
+    }
 }
+
+// MARK: - 선택 모델
+
+enum DetailItem: Hashable, Identifiable {
+    case preset(Preset)
+    case calculator(CalculatorTopic)
+
+    var id: String {
+        switch self {
+        case .preset(let p):     return "preset:\(p.id)"
+        case .calculator(let t): return "calc:\(t.id)"
+        }
+    }
+}
+
+// MARK: - 사이드바 행
 
 private struct YunseulBrand: View {
     var body: some View {
@@ -159,7 +123,6 @@ private struct YunseulBrand: View {
 private struct CurriculumRow: View {
     let curriculum: Curriculum
     var body: some View {
-        // 기능 강조색을 좌측의 가는 막대로.
         HStack(spacing: 12) {
             RoundedRectangle(cornerRadius: 2, style: .continuous)
                 .fill(curriculum.accent)
@@ -178,20 +141,29 @@ private struct CurriculumRow: View {
     }
 }
 
-// MARK: - Content column (시뮬 목록)
+// MARK: - 시뮬 목록
 
-private struct SimList: View {
+private struct PresetList: View {
     let curriculum: Curriculum
     @Binding var selection: DetailItem?
 
     var body: some View {
-        let groups = SimulationCatalog.grouped(for: curriculum)
-        List(selection: $selection) {
-            ForEach(groups, id: \.0) { (cat, items) in
+        let groups = PresetCatalog.grouped(for: curriculum)
+        List(selection: Binding(
+            get: {
+                if case .preset(let p) = selection { return p }
+                return nil
+            },
+            set: { newValue in
+                if let p = newValue { selection = .preset(p) }
+                else                { selection = nil }
+            }
+        )) {
+            ForEach(groups, id: \.0) { (cat, presets) in
                 Section {
-                    ForEach(items) { item in
-                        NavigationLink(value: DetailItem.simulation(item)) {
-                            SimRow(item: item, accent: curriculum.accent)
+                    ForEach(presets) { p in
+                        NavigationLink(value: p) {
+                            PresetRow(preset: p, accent: curriculum.accent)
                         }
                     }
                 } header: {
@@ -210,8 +182,8 @@ private struct SimList: View {
     }
 }
 
-private struct SimRow: View {
-    let item: SimulationItem
+private struct PresetRow: View {
+    let preset: Preset
     let accent: Color
 
     var body: some View {
@@ -221,14 +193,14 @@ private struct SimRow: View {
                 .frame(width: 3)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
-                Text(item.title)
+                Text(preset.title)
                     .font(.body.weight(.semibold))
                     .foregroundStyle(Theme.ink)
                 HStack(spacing: 4) {
                     Image(systemName: "graduationcap.fill")
                         .imageScale(.small)
                         .accessibilityHidden(true)
-                    Text(item.curriculum)
+                    Text(preset.curriculumLabel)
                         .font(.caption2.weight(.semibold))
                         .lineLimit(1)
                 }
@@ -238,7 +210,7 @@ private struct SimRow: View {
         }
         .padding(.vertical, 4)
         .accessibilityElement(children: .combine)
-        .accessibilityHint("열기 — \(item.curriculum)")
+        .accessibilityHint("열기 — \(preset.curriculumLabel)")
     }
 }
 

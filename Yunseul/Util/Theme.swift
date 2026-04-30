@@ -122,6 +122,16 @@ private struct ThemeCard: ViewModifier {
     }
 }
 
+/// 가는 분할선 — 계산기 입력/결과 사이에 사용.
+struct PropertyDivider: View {
+    var body: some View {
+        Rectangle()
+            .fill(Theme.divider)
+            .frame(height: 1)
+            .padding(.vertical, 4)
+    }
+}
+
 // MARK: - 그라데이션 배경 (앱 전체 공용)
 
 /// 앱 전체에서 쓰는 윤슬 그라데이션 배경. 라이트/다크 자동 전환.
