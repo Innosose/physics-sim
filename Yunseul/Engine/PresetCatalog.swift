@@ -11,7 +11,7 @@ enum PresetCatalog {
                curriculumLabel: "중3 과학 · 운동과 에너지",
                blurb: "공의 위치와 속도는 시간의 1·2차 함수. 위로 던지면 v=0 인 최고점에서 내려옴.",
                calculatorTopic: .freefall,
-               kind: .mechanics,
+               kind: .mechanics2D,
                load: MechanicsPresets.freeFall),
 
         Preset(id: "motiongraph",
@@ -56,7 +56,7 @@ enum PresetCatalog {
                curriculumLabel: "중3 / 물리Ⅰ · 운동량과 충돌",
                blurb: "운동량은 항상 보존, 운동에너지는 e=1 일 때만 보존.",
                calculatorTopic: .collision,
-               kind: .mechanics,
+               kind: .mechanics2D,
                load: MechanicsPresets.collision1D),
 
         // ─── 고등학교 ───
@@ -66,7 +66,7 @@ enum PresetCatalog {
                curriculumLabel: "물리Ⅰ · 등가속도 운동",
                blurb: "공기 저항이 있을 때와 없을 때의 자취 비교. 3D 시점 자유 회전.",
                calculatorTopic: .projectile,
-               kind: .mechanics,
+               kind: .mechanics2D,
                load: MechanicsPresets.projectile),
 
         Preset(id: "pendulum",
@@ -75,7 +75,7 @@ enum PresetCatalog {
                curriculumLabel: "물리Ⅰ / 물리Ⅱ · 진자·역학적 진동",
                blurb: "강체 거리 구속 — 작은-각이면 단순조화, 큰 진폭이면 비선형 효과.",
                calculatorTopic: .pendulum,
-               kind: .mechanics,
+               kind: .mechanics2D,
                load: MechanicsPresets.pendulum),
 
         Preset(id: "spring",
@@ -84,7 +84,7 @@ enum PresetCatalog {
                curriculumLabel: "물리Ⅱ · 역학적 진동",
                blurb: "감쇠비 ζ — 소·임계·과감쇠. 구동 진동수 ω_d 가 ω₀ 근처면 공명.",
                calculatorTopic: nil,
-               kind: .mechanics,
+               kind: .mechanics2D,
                load: MechanicsPresets.spring),
 
         Preset(id: "kepler",
@@ -93,7 +93,7 @@ enum PresetCatalog {
                curriculumLabel: "물리Ⅰ · 만유인력과 행성 운동",
                blurb: "역제곱 중심력. 접선속력에 따라 원·타원·포물선·쌍곡선.",
                calculatorTopic: .kepler,
-               kind: .mechanics,
+               kind: .mechanics2D,
                load: MechanicsPresets.kepler),
 
         Preset(id: "wavesum",
@@ -120,7 +120,7 @@ enum PresetCatalog {
                curriculumLabel: "물리Ⅱ · 열역학",
                blurb: "딱딱한 원판들의 충돌만으로 속력 분포가 맥스웰–볼츠만 모양으로 수렴.",
                calculatorTopic: nil,
-               kind: .mechanics,
+               kind: .mechanics2D,
                load: { w in
                    w.gravity = .zero
                    w.hardSphereCollisions = true
@@ -157,7 +157,7 @@ enum PresetCatalog {
                curriculumLabel: "물리Ⅱ · 전기장과 가우스 법칙",
                blurb: "양·음 점전하 배치가 만드는 전기력선. 양에서 음으로.",
                calculatorTopic: nil,
-               kind: .mechanics,
+               kind: .mechanics2D,
                load: MechanicsPresets.eField),
 
         Preset(id: "lorentz",
@@ -166,7 +166,7 @@ enum PresetCatalog {
                curriculumLabel: "물리Ⅱ · 자기장과 운동",
                blurb: "F = q(E + v×B). B 만 있으면 원운동, E 도 있으면 E×B 표류.",
                calculatorTopic: nil,
-               kind: .mechanics,
+               kind: .mechanics2D,
                load: MechanicsPresets.lorentz),
 
         Preset(id: "rlc",
@@ -203,7 +203,7 @@ enum PresetCatalog {
                curriculumLabel: "물리Ⅰ · 운동량 보존 (확장)",
                blurb: "재질·질량·반발계수가 다른 입자 N개의 동시 충돌.",
                calculatorTopic: nil,
-               kind: .mechanics,
+               kind: .mechanics3D,
                load: MechanicsPresets.freeCollision),
 
         Preset(id: "freegravity",
@@ -212,7 +212,7 @@ enum PresetCatalog {
                curriculumLabel: "물리Ⅰ · 만유인력 (다체)",
                blurb: "별과 행성을 자유롭게 배치하고 궤도를 본다.",
                calculatorTopic: nil,
-               kind: .mechanics,
+               kind: .mechanics3D,
                load: MechanicsPresets.nBody),
     ]
 

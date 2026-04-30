@@ -77,7 +77,9 @@ struct WorldScene: View {
     @ViewBuilder
     private var viewport: some View {
         switch preset.kind {
-        case .mechanics:
+        case .mechanics2D:
+            Mechanics2DViewport(preset: preset)
+        case .mechanics3D:
             MechanicsViewport(preset: preset)
         case .optics(let scene):
             OpticsViewport(scene: scene)
