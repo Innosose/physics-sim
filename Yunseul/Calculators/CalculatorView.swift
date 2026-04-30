@@ -6,7 +6,9 @@ struct CalculatorView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
-                CalcHeader(topic: topic)
+                if let preset = PresetCatalog.preset(forTopic: topic) {
+                    CalcSimButton(preset: preset)
+                }
 
                 Group {
                     switch topic {
@@ -35,35 +37,19 @@ struct CalculatorView: View {
         .navigationBarTitleDisplayMode(.inline)
     }
 }
-private struct CalcHeader: View {
-    let topic: CalculatorTopic
+private struct CalcSimButton: View {
+    let preset: Preset
     @Environment(\.openSimulation) private var openSimulation
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            Text(topic.formula)
-                .font(.system(.footnote, design: .monospaced).weight(.medium))
-                .foregroundStyle(Theme.ink)
-                .lineSpacing(3)
-                .textSelection(.enabled)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 10)
-                .background(
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(Theme.crest.opacity(0.55))
-                )
-
-            if let preset = PresetCatalog.preset(forTopic: topic) {
-                Button {
-                    openSimulation(preset)
-                } label: {
-                    Image(systemName: "play.rectangle")
-                        .font(.title3)
-                }
-                .buttonStyle(.glass)
-            }
+        Button {
+            openSimulation(preset)
+        } label: {
+            Label("시뮬레이션 열기", systemImage: "play.rectangle")
+                .font(.callout.weight(.semibold))
+                .frame(maxWidth: .infinity)
         }
+        .buttonStyle(.glass)
     }
 }
 struct CalcInputField: View {
