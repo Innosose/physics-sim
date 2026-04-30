@@ -221,15 +221,28 @@ private struct DopplerView: View {
         let scale = size.width / CGFloat(span)
         let cy = size.height / 2
 
-        let cur = -span / 4 + sourceSpeed * t
+        let xStart = -span / 4
+        let xWall = span / 2 - 30          // 오른쪽 벽 안쪽
+        let tStop = sourceSpeed > 0 ? (xWall - xStart) / sourceSpeed : .infinity
+        let curT = min(t, tStop)
+        let cur = xStart + sourceSpeed * curT
+
+        // 오른쪽 벽 표시.
+        let wallPx = CGFloat(xWall + span / 2) * scale
+        var wall = Path()
+        wall.move(to: CGPoint(x: wallPx, y: cy - 30))
+        wall.addLine(to: CGPoint(x: wallPx, y: cy + 30))
+        ctx.stroke(wall, with: .color(Theme.ink.opacity(0.5)), lineWidth: 2)
+
+        // 파면들 — 음원 정지 후에도 이미 방출된 파면은 계속 퍼져나감.
         let period = 1 / freq
         let tMax = span / soundSpeed * 1.4
         let kMin = max(0, Int(((t - tMax) / period).rounded(.up)))
-        let kMax = Int((t / period).rounded(.down))
+        let kMax = Int((curT / period).rounded(.down))
         if kMax >= kMin {
             for k in kMin...kMax {
                 let te = Double(k) * period
-                let xs = -span / 4 + sourceSpeed * te
+                let xs = xStart + sourceSpeed * te
                 let radius = soundSpeed * (t - te)
                 if radius < 0 { continue }
                 let center = CGPoint(x: CGFloat(xs + span / 2) * scale, y: cy)
