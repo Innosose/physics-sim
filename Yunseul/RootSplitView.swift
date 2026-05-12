@@ -1,7 +1,19 @@
 import SwiftUI
 
+enum SidebarItem: Hashable, Identifiable {
+    case curriculum(Curriculum)
+    case calculator
+
+    var id: String {
+        switch self {
+        case .curriculum(let c): return c.rawValue
+        case .calculator: return "calculator"
+        }
+    }
+}
+
 struct RootSplitView: View {
-    @State private var sidebarSelection: Curriculum? = nil
+    @State private var sidebarItem: SidebarItem? = nil
     @State private var detailSelection: DetailItem? = nil
     @State private var columnVisibility: NavigationSplitViewVisibility = .all
     @State private var showSettings: Bool = false
@@ -18,13 +30,14 @@ struct RootSplitView: View {
             detailColumn
         }
         .navigationSplitViewStyle(.balanced)
+        .onChange(of: sidebarItem) { _, _ in detailSelection = nil }
         .sheet(isPresented: $showSettings) { SettingsView() }
         .sheet(item: $presentedCalculator) { topic in
             NavigationStack {
                 CalculatorView(topic: topic)
                     .environment(\.openSimulation, OpenSimulationAction { p in
                         presentedCalculator = nil
-                        sidebarSelection = p.curriculum
+                        sidebarItem = .curriculum(p.curriculum)
                         detailSelection = .preset(p)
                     })
                     .toolbar {
@@ -39,10 +52,10 @@ struct RootSplitView: View {
     }
 
     private var sidebar: some View {
-        List(selection: $sidebarSelection) {
+        List(selection: $sidebarItem) {
             Section {
                 ForEach(Curriculum.allCases) { c in
-                    NavigationLink(value: c) {
+                    NavigationLink(value: SidebarItem.curriculum(c)) {
                         HStack(spacing: 12) {
                             RoundedRectangle(cornerRadius: 2, style: .continuous)
                                 .fill(c.accent)
@@ -66,6 +79,26 @@ struct RootSplitView: View {
                 .padding(.vertical, 6)
                 .textCase(nil)
             }
+
+            Section {
+                NavigationLink(value: SidebarItem.calculator) {
+                    HStack(spacing: 12) {
+                        RoundedRectangle(cornerRadius: 2, style: .continuous)
+                            .fill(Theme.glow)
+                            .frame(width: 3)
+                        Text("계산기")
+                            .font(.body.weight(.semibold))
+                            .foregroundStyle(Theme.ink)
+                    }
+                    .padding(.vertical, 4)
+                }
+            } header: {
+                Text("도구")
+                    .font(.themeHeader)
+                    .foregroundStyle(Theme.mist)
+                    .padding(.vertical, 6)
+                    .textCase(nil)
+            }
         }
         .listStyle(.sidebar)
         .navigationBarTitleDisplayMode(.inline)
@@ -82,9 +115,11 @@ struct RootSplitView: View {
 
     @ViewBuilder
     private var contentColumn: some View {
-        switch sidebarSelection {
-        case .some(let c):
+        switch sidebarItem {
+        case .curriculum(let c):
             PresetList(curriculum: c, selection: $detailSelection)
+        case .calculator:
+            CalculatorTopicList(presentedCalculator: $presentedCalculator)
         case nil:
             Color.clear
                 .background(YunseulBackground(topGlow: Theme.glow.opacity(0.10)))
@@ -159,6 +194,52 @@ private struct PresetList: View {
         .scrollContentBackground(.hidden)
         .background(YunseulBackground(topGlow: curriculum.accent.opacity(0.10)))
         .navigationTitle(curriculum.rawValue)
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+private struct CalculatorTopicList: View {
+    @Binding var presentedCalculator: CalculatorTopic?
+
+    private var grouped: [(String, [CalculatorTopic])] {
+        let order = ["역학", "전자기", "파동·광학"]
+        var dict: [String: [CalculatorTopic]] = [:]
+        for t in CalculatorTopic.allCases { dict[t.section, default: []].append(t) }
+        return order.compactMap { s in dict[s].map { (s, $0) } }
+    }
+
+    var body: some View {
+        List {
+            ForEach(grouped, id: \.0) { (section, topics) in
+                Section {
+                    ForEach(topics) { topic in
+                        Button {
+                            presentedCalculator = topic
+                        } label: {
+                            HStack(spacing: 12) {
+                                RoundedRectangle(cornerRadius: 2, style: .continuous)
+                                    .fill(Theme.glow)
+                                    .frame(width: 3)
+                                Text(topic.rawValue)
+                                    .font(.body.weight(.semibold))
+                                    .foregroundStyle(Theme.ink)
+                            }
+                            .padding(.vertical, 4)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                } header: {
+                    Text(section)
+                        .font(.themeHeader)
+                        .foregroundStyle(Theme.mist)
+                        .textCase(nil)
+                }
+            }
+        }
+        .listStyle(.insetGrouped)
+        .scrollContentBackground(.hidden)
+        .background(YunseulBackground(topGlow: Theme.glow.opacity(0.10)))
+        .navigationTitle("계산기")
         .navigationBarTitleDisplayMode(.inline)
     }
 }
