@@ -32,7 +32,7 @@ struct CalculatorView: View {
             .frame(maxWidth: 720)
         }
         .frame(maxWidth: .infinity)
-        .background(YunseulBackground(topGlow: Theme.glow.opacity(0.06)))
+        .background(ImunDeBackground(topGlow: Theme.glow.opacity(0.06)))
         .navigationTitle(topic.rawValue)
         .navigationBarTitleDisplayMode(.inline)
     }

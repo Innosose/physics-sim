@@ -30,6 +30,7 @@ struct RootSplitView: View {
             detailColumn
         }
         .navigationSplitViewStyle(.balanced)
+        .preferredCompactColumn(.sidebar)
         .onChange(of: sidebarItem) { _, _ in detailSelection = nil }
         .sheet(isPresented: $showSettings) { SettingsView() }
         .sheet(item: $presentedCalculator) { topic in
@@ -69,10 +70,10 @@ struct RootSplitView: View {
                 }
             } header: {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("윤슬")
+                    Text("이문데")
                         .font(.title.bold())
                         .foregroundStyle(Theme.ink)
-                    Text("물리를 눈으로 보다")
+                    Text("이런 문제 데이터베이스")
                         .font(.caption)
                         .foregroundStyle(Theme.mist)
                 }
@@ -101,9 +102,10 @@ struct RootSplitView: View {
             }
         }
         .listStyle(.sidebar)
+        .navigationTitle("이문데")
         .navigationBarTitleDisplayMode(.inline)
         .scrollContentBackground(.hidden)
-        .background(YunseulBackground(topGlow: Theme.glow.opacity(0.10)))
+        .background(ImunDeBackground(topGlow: Theme.glow.opacity(0.10)))
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button { showSettings = true } label: {
@@ -122,7 +124,7 @@ struct RootSplitView: View {
             CalculatorTopicList(presentedCalculator: $presentedCalculator)
         case nil:
             Color.clear
-                .background(YunseulBackground(topGlow: Theme.glow.opacity(0.10)))
+                .background(ImunDeBackground(topGlow: Theme.glow.opacity(0.10)))
         }
     }
 
@@ -135,8 +137,7 @@ struct RootSplitView: View {
                     presentedCalculator = topic
                 })
         case nil:
-            Color.clear
-                .background(YunseulBackground(topGlow: Theme.glow.opacity(0.10)))
+            WelcomeView()
         }
     }
 }
@@ -150,6 +151,68 @@ enum DetailItem: Hashable, Identifiable {
         }
     }
 }
+
+// MARK: - Welcome
+
+private struct WelcomeView: View {
+    var body: some View {
+        ZStack {
+            ImunDeBackground(topGlow: Theme.glow.opacity(0.12))
+            VStack(spacing: 20) {
+                VStack(spacing: 6) {
+                    Text("이문데")
+                        .font(.system(size: 48, weight: .bold, design: .rounded))
+                        .foregroundStyle(Theme.ink)
+                    Text("이런 문제 데이터베이스")
+                        .font(.title3)
+                        .foregroundStyle(Theme.mist)
+                }
+                Rectangle()
+                    .fill(Theme.glow)
+                    .frame(width: 40, height: 2)
+                    .cornerRadius(1)
+                VStack(spacing: 8) {
+                    ForEach([
+                        ("중학교", "역학·빛·회로·열", Color(red: 0.30, green: 0.74, blue: 0.85)),
+                        ("고등학교", "물리Ⅰ·Ⅱ 전 범위", Color(red: 0.55, green: 0.45, blue: 0.95)),
+                        ("샌드박스", "자유 시뮬레이션", Color(red: 0.98, green: 0.86, blue: 0.40)),
+                    ], id: \.0) { item in
+                        HStack(spacing: 12) {
+                            RoundedRectangle(cornerRadius: 2, style: .continuous)
+                                .fill(item.2)
+                                .frame(width: 3, height: 28)
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(item.0)
+                                    .font(.callout.weight(.semibold))
+                                    .foregroundStyle(Theme.ink)
+                                Text(item.1)
+                                    .font(.caption)
+                                    .foregroundStyle(Theme.mist)
+                            }
+                            Spacer()
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(Theme.surface.opacity(0.4))
+                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .stroke(Theme.stroke, lineWidth: 1)
+                        )
+                    }
+                }
+                .frame(maxWidth: 320)
+                Text("← 왼쪽에서 학년을 선택하세요")
+                    .font(.footnote)
+                    .foregroundStyle(Theme.mist.opacity(0.7))
+            }
+            .padding(24)
+        }
+        .ignoresSafeArea()
+    }
+}
+
+// MARK: - Preset list
 
 private struct PresetList: View {
     let curriculum: Curriculum
@@ -192,11 +255,13 @@ private struct PresetList: View {
         }
         .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
-        .background(YunseulBackground(topGlow: curriculum.accent.opacity(0.10)))
+        .background(ImunDeBackground(topGlow: curriculum.accent.opacity(0.10)))
         .navigationTitle(curriculum.rawValue)
         .navigationBarTitleDisplayMode(.inline)
     }
 }
+
+// MARK: - Calculator topic list
 
 private struct CalculatorTopicList: View {
     @Binding var presentedCalculator: CalculatorTopic?
@@ -238,7 +303,7 @@ private struct CalculatorTopicList: View {
         }
         .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
-        .background(YunseulBackground(topGlow: Theme.glow.opacity(0.10)))
+        .background(ImunDeBackground(topGlow: Theme.glow.opacity(0.10)))
         .navigationTitle("계산기")
         .navigationBarTitleDisplayMode(.inline)
     }

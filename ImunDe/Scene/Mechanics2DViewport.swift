@@ -14,6 +14,9 @@ struct Mechanics2DViewport: View {
     @State private var running = false
     @State private var redrawTick: Int = 0
     @State private var nBodyVariant: NBodyVariant = .solar
+    @State private var canvasSize: CGSize = .zero
+
+    private var tapEnabled: Bool { preset.id == "freecollide" }
 
     var body: some View {
         VStack(spacing: 10) {
@@ -43,6 +46,24 @@ struct Mechanics2DViewport: View {
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .stroke(Theme.stroke, lineWidth: 1)
             )
+            .onGeometryChange(for: CGSize.self) { $0.size } action: { canvasSize = $0 }
+            .onTapGesture { location in
+                guard tapEnabled else { return }
+                spawnParticle(at: location)
+            }
+            .overlay(alignment: .bottomTrailing) {
+                if tapEnabled {
+                    Text("탭 → 입자 추가")
+                        .font(.caption2)
+                        .foregroundStyle(Theme.mist.opacity(0.7))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Theme.surface.opacity(0.5))
+                        .clipShape(Capsule())
+                        .padding(10)
+                        .allowsHitTesting(false)
+                }
+            }
 
             controls
         }
@@ -117,6 +138,31 @@ struct Mechanics2DViewport: View {
         lastTick = nil
         running = false
         redrawTick &+= 1
+    }
+
+    private func spawnParticle(at screenPt: CGPoint) {
+        let size = canvasSize
+        guard size.width > 0, size.height > 0 else { return }
+        let extent = computeExtent()
+        let worldW = max(0.001, extent.x * 2)
+        let worldH = max(0.001, extent.y * 2)
+        let scale = min(size.width / worldW, size.height / worldH) * 0.9
+        let cx = size.width / 2
+        let cy = size.height / 2
+        let wx = Double(screenPt.x - cx) / Double(scale) + extent.center.x
+        let wy = -Double(screenPt.y - cy) / Double(scale) + extent.center.y
+        if let b = world.bounds {
+            guard wx > b.min.x && wx < b.max.x && wy > b.min.y && wy < b.max.y else { return }
+        }
+        let palette: [Color] = [.red, .orange, .yellow, .green, .cyan, .blue, .purple, .pink, .mint, .teal]
+        let color = palette[world.bodies.count % palette.count]
+        let r = Double.random(in: 0.06...0.13)
+        let speed = Double.random(in: 0.3...0.8)
+        let angle = Double.random(in: 0...(2 * .pi))
+        world.bodies.append(PhysicsBody(
+            pos: Vec3(x: wx, y: wy, z: 0),
+            vel: Vec3(x: speed * cos(angle), y: speed * sin(angle), z: 0),
+            mass: .random(in: 0.8...2.5), radius: r, color: color))
     }
 
     private func advance(to now: TimeInterval) {

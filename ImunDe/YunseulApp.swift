@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct YunseulApp: App {
+struct ImunDeApp: App {
     @AppStorage("themeMode") private var themeModeRaw: String = ThemeMode.system.rawValue
 
     var body: some Scene {

@@ -17,21 +17,6 @@ enum MechanicsPresets {
         ]
     }
 
-    static func motionGraph(_ w: World) {
-        w.gravity = .zero
-        w.bounds = Bounds(min: Vec3(x: 0, y: -1, z: -2),
-                          max: Vec3(x: 60, y: 4, z: 2),
-                          restitution: 0)
-        var c1 = PhysicsBody(pos: Vec3(x: 0, y: 0.5, z: 0.6),
-                             vel: Vec3(x: 5, y: 0, z: 0),
-                             mass: 1, radius: 0.3, color: .cyan)
-        c1.kind = .particle
-        let c2 = PhysicsBody(pos: Vec3(x: 0, y: 0.5, z: -0.6),
-                             vel: Vec3(x: 0, y: 0, z: 0),
-                             mass: 1, radius: 0.3, color: .orange)
-        w.bodies = [c1, c2]
-    }
-
     static func projectile(_ w: World) {
         let θ = 55.0 * .pi / 180
         let v0 = 22.0
@@ -216,7 +201,4 @@ enum MechanicsPresets {
         ]
     }
 
-    static func heatTransfer(_ w: World) {
-        w.bodies = []
-    }
 }

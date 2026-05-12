@@ -15,7 +15,7 @@ enum PresetCatalog {
                curriculum: .middle, category: .mechanics,
                calculatorTopic: nil,
                kind: .graph,
-               load: MechanicsPresets.motionGraph),
+               load: { _ in }),
 
         Preset(id: "reflection",
                title: "빛의 반사·굴절",
@@ -36,7 +36,7 @@ enum PresetCatalog {
                curriculum: .middle, category: .waveThermo,
                calculatorTopic: nil,
                kind: .graph,
-               load: MechanicsPresets.heatTransfer),
+               load: { _ in }),
 
         Preset(id: "collision1d",
                title: "1차원 충돌",
@@ -172,8 +172,8 @@ enum PresetCatalog {
                load: MechanicsPresets.solarSystem),
     ]
 
-    static func preset(_ id: String) -> Preset {
-        all.first { $0.id == id }!
+    static func preset(_ id: String) -> Preset? {
+        all.first { $0.id == id }
     }
 
     static func curriculum(of preset: Preset) -> Curriculum { preset.curriculum }

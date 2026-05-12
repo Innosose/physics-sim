@@ -97,7 +97,7 @@ struct PropertyDivider: View {
     }
 }
 
-struct YunseulBackground: View {
+struct ImunDeBackground: View {
     var topGlow: Color = Theme.glow.opacity(0.10)
 
     var body: some View {
