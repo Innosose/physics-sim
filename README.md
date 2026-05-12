@@ -1,35 +1,104 @@
-# 온누리 (Onnuri)
+# 윤슬 (Yunseul)
 
-> "온 세상" 을 뜻하는 순우리말. 초등 / 중등 / 고등 교육과정과 자유 샌드박스를
-> 한데 모은 SwiftUI 물리 시뮬 앱 — iOS 26 · iPadOS 26 · macOS 26 (Liquid Glass).
+> "햇빛·달빛에 어린 잔물결" 을 뜻하는 순우리말. **중·고등학생** 과 자유
+> 샌드박스를 위한 SwiftUI 물리 시뮬 앱 — **iOS 26 / iPadOS 26 전용**.
 
-외부 의존성 없음. SwiftUI 의 `Canvas`, `TimelineView`, `glassEffect`, 그리고
-`buttonStyle(.glass)` 만 사용.
+깊은 밤바다(다크) 또는 잔잔한 새벽 수면(라이트) 위에 떠 있는 금빛 결을
+모티프로 한 고유한 디자인 시스템.
 
-## 시작화면 → 학년별 카탈로그
+## 디자인 원칙
+
+- **글자로 정체성** — SVG 도, 큰 SF Symbol 도 안 쓴다. 학년·카테고리 표시는
+  한글 글자(중·고·자 / 역·파·전·광·샌) + 색 배경의 작은 정사각 마크 (`LetterMark`).
+- **심볼은 포인트로만** — 작고 기능적인 심볼(▶·↻·›·🎓 등) 은 그대로 사용.
+- **3D 보기** — `포물선 운동` 부터 RealityKit `RealityView` 로 3D 시점 지원
+  (드래그 = 궤도 회전, 핀치 = 줌). 우상단 `2D / 3D` Picker 로 전환.
+- **계산 정확도 우선** — 모든 결과 출력은 **소수점 둘째 자리에서 반올림**
+  (`%.2f` 통일, 172 곳). 닫힌 해는 3D 표현의 편의성에 도움이 되지만 절대
+  규칙은 아니다. 닫힌 해 부재 영역 (다체 중력 등) 은 작은 dt 의 수치 적분
+  사용 — 시간이 더 걸려도 정확.
+- **계산 종류 배지** — 시뮬 ConceptCard 우상단:
+  - 🟢 *닫힌 해* — Spring · RLC · Lorentz · Kepler · Pendulum (Jacobi cn) ·
+    HeatTransfer 모두 분석해 직접 평가
+  - 🟣 *이벤트 기반* — 충돌 사이 등속 + 충돌 시 닫힌 해 임펄스 (KineticGas, FreeCollision)
+  - 🟠 *수치* — Velocity-Verlet 다체 (FreeGravity)
+- **궤도 미감** — N체 중력·케플러 시뮬은 검은 우주 배경 + 따뜻한 금빛/청
+  글로우 트레일 (외광 6px + 중간 3px + 코어 1px 의 3겹 stroke). 별 본체는
+  흰 코어 + 색 헤일로.
+- **라이트 / 다크 / 시스템** — 모든 색 토큰은 `Color.adaptive(light:dark:)`
+  로 정의. Settings 에서 사용자가 선택.
+
+## 디자인 토큰 (다크 / 라이트 자동)
+
+| 토큰 | 다크 | 라이트 | 용도 |
+|------|------|--------|------|
+| `void / deep / surface / crest` | 짙은 남빛 4단계 | 옅은 안개 4단계 | 바닥·패널·헤더 |
+| **`glow`** | `#E0B574` | `#C78D2E` 황금빛 | 주 액션 |
+| **`accent`** | `#66D4C0` | `#33A695` 청록 | 슬라이더 트랙·보조 |
+| `pulse / confirm / danger` | 자수정 / 박하 / 산호 | 같은 톤 (어두운 계열) | 선택·보존·위험 |
+| `ink / mist` | 상아 / 안개 푸른 회색 | 짙은 남빛 / 중간 회색 | 본문·보조 텍스트 |
+| `decorationLine` | 흰색 | 검정 | 별·잔물결 등 장식 라인 |
+
+비주얼 시그니처:
+
+- **시뮬 뷰포트**: `RippleField` (잔잔한 수평 잔물결, 금빛 라인).
+- **사이드바·환영 화면**: `StarField` (별자리 + 큰 별 두 개).
+- **카드**: Liquid Glass 위에 `surface` 톤. 좌상단에 작은 금빛 마커 점.
+- **표제 아래**: 짧은 금빛 잔물결 (`RippleAccent`).
+- **로고**: `Resources/Assets.xcassets/AppLogo.imageset/` 슬롯 — 사용자가
+  직접 만든 이미지 추가. 비어 있으면 작은 금빛 점으로 fallback.
+
+## 화면 구조 — 계층형 (`NavigationSplitView`)
 
 ```
-            온누리
-   ──────────────────────
-       [ 초등학교 ]
-       [ 중학교  ]
-       [ 고등학교 ]
-
-       자유 시뮬레이션
+┌──────────────┬──────────────────┬─────────────────────┐
+│  ◉ YUNSEUL   │  중학교           │   포물선 운동        │
+│   윤슬   ⚙   │  운동과 에너지     │   ┌─ Concept ────┐  │
+│   ~~~~~      │  [역] 자유낙하    │   │ 🎓 물리Ⅰ      │  │
+│              │  [역] 등속 vs …   │   │ y = …         │  │
+│  [중] 중학교 ●│  …              │   └──────────────┘  │
+│  [고] 고등학교│                  │   ◀ viewport ▶      │
+│  [자] 자유   │                  │   [ 슬라이더 …]    │
+└──────────────┴──────────────────┴─────────────────────┘
+   sidebar       content              detail
 ```
 
-큰 타일 셋이 학년별 카탈로그로, 그 아래 작은 텍스트가 자유 샌드박스로 들어간다.
+- **Sidebar**: [학년 섹션] 윤슬 헤더 + 중·고·자유  +  [도구 섹션] 계산기.
+  우상단 ⚙ 로 Settings.
+- **Content**: 시뮬 목록 (학년 선택 시) 또는 계산기 토픽 목록.
+- **Detail**: 선택된 시뮬 / 계산기 화면. 미선택 시 환영 화면.
 
-## 수록 시뮬레이션
+## 계산기 (값 입력 → 닫힌 해 결과)
 
-### 초등학교 (3–6학년 과학)
-| 시뮬 | 다루는 개념 |
-|------|------|
-| 자석의 인력과 반발 | 같은 극끼리 밀고 다른 극끼리 당김 (역제곱 모형) |
-| 지렛대 | 받침점에서 거리 × 무게 — 토크 균형 |
-| 부력 | 잠긴 부피 비율 = 밀도 비율 |
-| 빛과 그림자 | 점광원과 닮음 삼각형 |
-| 그네 (진자) | 줄 길이와 주기 (단순화 UI) |
+학생이 숙제 풀 때 빠르게 쓰는 도구. 사이드바 [도구] 섹션에서 진입,
+역학·전자기·파동·광학 셋으로 그룹.
+
+### 역학
+| 토픽 | 입력 | 출력 |
+|------|------|------|
+| 자유낙하 | h₀, v₀, g | t_apex, y_apex, t_ground, v_impact, ½v² |
+| 포물선 운동 | θ, v₀, h₀, g | T, R, H, t_apex, v_impact |
+| 단진자 주기 | L, g, θ_max | T₀, T(θ_max) (멱급수 5차), 보정비, ω₀ |
+| 1차원 충돌 | m₁, v₁, m₂, v₂, e | v₁′, v₂′, p 보존, ΔKE, 분류 |
+| 케플러 매개변수 | GM, r, v | a, e, T, 근/원일점, v_esc |
+
+### 전자기
+| 토픽 | 입력 | 출력 |
+|------|------|------|
+| 옴의 법칙 | V, R₁, R₂ + 단일/직렬/병렬 | R_eq, I, P, V_각, I_각 |
+
+### 파동·광학
+| 토픽 | 입력 | 출력 |
+|------|------|------|
+| 도플러 효과 | f, c, v_s, v_o | f′, T′, 변화 비율, 음정(cents), 마하 수 |
+| 스넬의 법칙 | θ₁, n₁, n₂ | θ₂, 임계각, 전반사 여부 |
+| 얇은 렌즈 | f, p, h_o | q, m, h_i, 실/허·정/도립·확/축 |
+| 이중 슬릿 | λ, d, a, D | Δy, 회절 영점, 보강 무늬 수, θ₁ |
+
+모든 결과는 **닫힌 해** — 입력 즉시 계산. 단진자 주기는 멱급수
+*1 + θ²/16 + 11θ⁴/3072 + 173θ⁶/737280* (170° 까지 < 1% 오차).
+
+## 수록 시뮬레이션 (총 20개)
 
 ### 중학교 (1–3학년 과학)
 | 시뮬 | 다루는 개념 |
@@ -55,64 +124,59 @@
 | 자기장 속 하전입자 | 사이클로트론, E×B 표류 |
 | 직렬 RLC | 공명 ω₀ = 1/√(LC), 위상 |
 | 이중 슬릿 | 간섭 ⊗ 회절의 합성 |
-| 얇은 렌즈 결상 | 1/f = 1/p + 1/q, 광선 작도 (수렴/발산 모두) |
+| 얇은 렌즈 결상 | 1/f = 1/p + 1/q, 광선 작도 |
 
 ### 자유 시뮬레이션 (샌드박스)
 | 시뮬 | 다루는 개념 |
 |------|------|
-| 자유 충돌 박스 | 재질(강철·고무·점토·얼음)별 e·ρ, 다체 동시 충돌. 박스 안 어디든 탭하면 입자 생성. |
-| N체 중력 | Velocity-Verlet 으로 에너지·각운동량 보존. 태양–행성 / 이중성 / Chenciner–Montgomery 8자 / 8체 무작위 프리셋. |
+| 자유 충돌 박스 | 재질별 e·ρ. 박스 안 어디든 탭하면 새 입자 생성. |
+| N체 중력 | Velocity-Verlet 으로 에너지·각운동량 보존. |
 
-## 정확성 원칙
+## 교육과정 연계 (`ConceptCard`)
 
-> 보이는 것은 시각효과가 들어간 근사라도, **계산 결과는 정확하다.**
+GeoGebra 의 "이론 영역" 처럼, 시뮬을 열면 properties 패널 가장 위에
+**무엇을 다루는 단원인지** 와 **핵심 공식**이 한 카드로 박혀 있다.
 
-- 등가속도 운동(자유낙하·등속/등가속도 그래프)은 닫힌 해를 사용 (수치오차 0).
-- 충돌은 법선 임펄스 J = (1+e)·μ·v·n̂ 으로 운동량을 매 충돌에서 정확히 보존.
-- 다체 중력은 velocity-Verlet (symplectic) — 에너지가 장기간 ε 범위에서 진동.
-- 회로·렌즈·슬넬·도플러는 닫힌 해.
-- 옴의 법칙·열용량 비례식·임피던스 등은 모두 정확한 분석식.
-
-각 시뮬의 우측 패널에 보존되는 양(총 운동량 / 운동에너지 / 각운동량 / 에너지)을
-실시간으로 표시해서 "정말 보존되는지" 직접 확인할 수 있다.
+- 한국 교육과정과 매핑된 단원 태그 (예: *중3 과학 · 운동과 에너지*).
+- 공식은 모노스페이스 박스 + 금빛 보더 + 텍스트 선택 가능.
+- 학년 카탈로그의 시뮬 행에도 같은 태그가 작은 칩으로 미리 보임.
 
 ## 빌드 & 실행
-
-`.xcodeproj` 는 저장소에 포함하지 않고 [XcodeGen](https://github.com/yonaskolb/XcodeGen) 으로 생성한다.
 
 ```sh
 brew install xcodegen
 xcodegen generate
-open Onnuri.xcodeproj
+open Yunseul.xcodeproj
 ```
-
-직접 만들고 싶으면: Xcode → File ▸ New ▸ Project ▸ App (Multiplatform).
-Bundle ID `app.onnuri.Onnuri`, Interface SwiftUI, Language Swift. 기본 생성된
-`ContentView.swift`, `OnnuriApp.swift` 를 지우고 `Onnuri/` 안의 모든 `.swift`
-와 `Resources/Assets.xcassets` 를 끌어다 넣는다.
 
 ### 시스템 요구사항
 
-- Xcode 17 이상
-- iOS 26 / iPadOS 26 / macOS 26 (Tahoe) 이상
+- Xcode 17 이상 (iOS 26 SDK 포함)
+- iOS 26 / iPadOS 26 이상
 
 ## 코드 구조
 
 ```
-Onnuri/
-├── OnnuriApp.swift               @main
-├── StartView.swift               시작화면 (학년 선택 + 자유 링크)
-├── CurriculumView.swift          학년별 시뮬 목록
+Yunseul/
+├── YunseulApp.swift              @main — 외관(다크/라이트/시스템) 적용
+├── RootSplitView.swift           NavigationSplitView 3-column
+├── SettingsView.swift            외관 선택 + 앱 정보
 ├── Util/
 │   ├── Vec2.swift                2D 벡터
 │   ├── CanvasMap.swift           월드(미터) ↔ 픽셀 변환
-│   ├── SimChrome.swift           공통 레이아웃·컨트롤
-│   └── LiquidGlass.swift         iOS 26 glassEffect 헬퍼
+│   ├── SimChrome.swift           viewport + ConceptCard + properties
+│   └── Theme.swift               adaptive 팔레트 + LetterMark + 장식 뷰
 ├── Models/
-│   ├── Curriculum.swift          교육과정 enum + 색·아이콘
-│   └── SimulationCatalog.swift   ID → View 매핑 + 학년별 목록
-├── Simulations/                  24 개 시뮬 화면
-└── Resources/Assets.xcassets
+│   ├── Curriculum.swift          학년 enum
+│   ├── CalculatorTopic.swift     계산기 토픽 enum
+│   └── SimulationCatalog.swift   ID → View 매핑 + 학년별 목록 + 환경값
+├── Simulations/                  20 개 시뮬 화면
+├── Calculators/
+│   └── CalculatorView.swift      5 개 계산기 + 공통 컴포넌트
+└── Resources/Assets.xcassets/
+    ├── AppIcon.appiconset
+    ├── AccentColor.colorset
+    └── AppLogo.imageset          ← 사용자 로고 슬롯
 ```
 
 ## 라이선스

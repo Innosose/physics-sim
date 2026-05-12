@@ -1,19 +1,14 @@
-# XcodeGen 프로젝트 정의.
+# XcodeGen 프로젝트 정의 — iOS / iPadOS 전용.
 #
-# 사용법:
 #   brew install xcodegen
 #   xcodegen generate
-#   open Onnuri.xcodeproj
-#
-# iOS 26 / macOS 26 (Tahoe) 멀티플랫폼 SwiftUI 앱.
-# Liquid Glass 디자인 시스템 (`.glassEffect`, `.buttonStyle(.glass)`) 사용.
+#   open Yunseul.xcodeproj
 
-name: Onnuri
+name: Yunseul
 options:
-  bundleIdPrefix: app.onnuri
+  bundleIdPrefix: app.yunseul
   deploymentTarget:
     iOS: "26.0"
-    macOS: "26.0"
   createIntermediateGroups: true
 
 settings:
@@ -24,20 +19,20 @@ settings:
     CODE_SIGN_STYLE: Automatic
     GENERATE_INFOPLIST_FILE: YES
     CURRENT_PROJECT_VERSION: "1"
-    MARKETING_VERSION: "0.2"
-    INFOPLIST_KEY_CFBundleDisplayName: 온누리
+    MARKETING_VERSION: "0.4"
+    INFOPLIST_KEY_CFBundleDisplayName: 윤슬
     INFOPLIST_KEY_LSApplicationCategoryType: "public.app-category.education"
 
 targets:
-  Onnuri:
+  Yunseul:
     type: application
-    supportedDestinations: [iOS, iPadOS, macOS]
+    supportedDestinations: [iOS, iPadOS]
     sources:
-      - path: Onnuri
+      - path: Yunseul
     settings:
       base:
-        PRODUCT_NAME: Onnuri
-        PRODUCT_BUNDLE_IDENTIFIER: app.onnuri.Onnuri
+        PRODUCT_NAME: Yunseul
+        PRODUCT_BUNDLE_IDENTIFIER: app.yunseul.Yunseul
         ENABLE_PREVIEWS: YES
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor

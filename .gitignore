@@ -6,7 +6,7 @@ physics_sim
 build/
 
 # Xcode / Swift
-Onnuri.xcodeproj/
+Yunseul.xcodeproj/
 DerivedData/
 *.xcworkspace/xcuserdata/
 *.xcodeproj/xcuserdata/
