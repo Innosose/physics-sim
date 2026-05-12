@@ -25,7 +25,7 @@ private struct WaveSumView: View {
     @State private var oppose: Bool = false
     @State private var elapsed: Double = 0
     @State private var lastTick: TimeInterval? = nil
-    @State private var running: Bool = false
+    @State private var running: Bool = true
 
     var body: some View {
         VStack(spacing: 8) {

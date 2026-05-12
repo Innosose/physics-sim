@@ -163,6 +163,7 @@ struct Mechanics2DViewport: View {
             pos: Vec3(x: wx, y: wy, z: 0),
             vel: Vec3(x: speed * cos(angle), y: speed * sin(angle), z: 0),
             mass: .random(in: 0.8...2.5), radius: r, color: color))
+        if !running { running = true }
     }
 
     private func advance(to now: TimeInterval) {
