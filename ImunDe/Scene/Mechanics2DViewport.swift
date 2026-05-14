@@ -277,32 +277,36 @@ struct Mechanics2DViewport: View {
     @ViewBuilder
     private var dataSection: some View {
         if energyOn || graphsOn {
-            VStack(spacing: 6) {
-                if energyOn {
-                    TimelineView(.animation) { _ in
-                        Canvas { ctx, size in
-                            drawEnergyChart(ctx: ctx,
-                                             in: CGRect(origin: .zero, size: size))
+            // 인접한 두 glass shape (간격 6pt) — GlassEffectContainer 로
+            // 묶어 morphing in/out 과 단일 sampling pass 보장.
+            GlassEffectContainer(spacing: 6) {
+                VStack(spacing: 6) {
+                    if energyOn {
+                        TimelineView(.animation) { _ in
+                            Canvas { ctx, size in
+                                drawEnergyChart(ctx: ctx,
+                                                 in: CGRect(origin: .zero, size: size))
+                            }
                         }
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 96)
+                        .glassEffect(.regular,
+                                      in: RoundedRectangle(cornerRadius: 10,
+                                                           style: .continuous))
                     }
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 96)
-                    .glassEffect(.regular,
-                                  in: RoundedRectangle(cornerRadius: 10,
-                                                       style: .continuous))
-                }
-                if graphsOn {
-                    TimelineView(.animation) { _ in
-                        Canvas { ctx, size in
-                            drawMotionChart(ctx: ctx,
-                                             in: CGRect(origin: .zero, size: size))
+                    if graphsOn {
+                        TimelineView(.animation) { _ in
+                            Canvas { ctx, size in
+                                drawMotionChart(ctx: ctx,
+                                                 in: CGRect(origin: .zero, size: size))
+                            }
                         }
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 128)
+                        .glassEffect(.regular,
+                                      in: RoundedRectangle(cornerRadius: 10,
+                                                           style: .continuous))
                     }
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 128)
-                    .glassEffect(.regular,
-                                  in: RoundedRectangle(cornerRadius: 10,
-                                                       style: .continuous))
                 }
             }
             .transition(.opacity.combined(with: .move(edge: .top)))
@@ -319,7 +323,7 @@ struct Mechanics2DViewport: View {
         if let t = text {
             Text(t)
                 .font(.caption2)
-                .foregroundStyle(Theme.mist.opacity(0.9))
+                .foregroundStyle(reduceTransparency ? Theme.ink : Theme.mist.opacity(0.9))
                 .padding(.horizontal, 10).padding(.vertical, 4)
                 .glassEffect(.regular, in: Capsule())
                 .padding(10)
@@ -468,7 +472,7 @@ struct Mechanics2DViewport: View {
                 Label(String(format: "%.2fx", live),
                       systemImage: "arrow.up.left.and.down.right.magnifyingglass")
                     .font(.caption2.weight(.medium).monospacedDigit())
-                    .foregroundStyle(Theme.glow)
+                    .foregroundStyle(reduceTransparency ? Theme.ink : Theme.glow)
                     .padding(.horizontal, 10).padding(.vertical, 4)
                     .glassEffect(.regular.interactive(), in: Capsule())
             }
@@ -778,7 +782,7 @@ struct Mechanics2DViewport: View {
         if autoStopped {
             Text("정지됨")
                 .font(.caption2.weight(.semibold))
-                .foregroundStyle(Theme.mist)
+                .foregroundStyle(reduceTransparency ? Theme.ink : Theme.mist)
                 .padding(.horizontal, 10).padding(.vertical, 3)
                 .glassEffect(.regular, in: Capsule())
                 .padding(.leading, 8).padding(.bottom, 8)
