@@ -67,6 +67,7 @@ struct Mechanics2DViewport: View {
     @GestureState private var isPointerActive: Bool = false
     @GestureState private var isPinching: Bool = false
     @State private var longPressProgress: Double = 0
+    @State private var pointerWorldPos: Vec3? = nil
     @AppStorage("hasDraggedBody") private var hasDraggedBody = false
     @Environment(\.colorScheme) private var colorScheme
 
@@ -145,6 +146,8 @@ struct Mechanics2DViewport: View {
             .overlay(alignment: .bottomTrailing) { hintLabel }
             .overlay(alignment: .bottom) { transportBar }
             .overlay(alignment: .bottomLeading) { settledBadge }
+            .overlay(alignment: .topLeading) { coordStatusBar }
+            .overlay(alignment: .bottomTrailing) { scaleBar }
             .overlay { inspectorAccessibilityMirror }
 
             dataSection
@@ -222,6 +225,8 @@ struct Mechanics2DViewport: View {
             dragMode = classifyHit(at: v.startLocation)
             if case .body = dragMode, !hasDraggedBody { hasDraggedBody = true }
         }
+        // 커서 월드좌표 — 상태바에 표시. CAD/COMSOL 표준 컨벤션.
+        pointerWorldPos = screenToWorld(v.location)
 
         let dx = v.location.x - dragStart.x
         let dy = v.location.y - dragStart.y
@@ -279,6 +284,7 @@ struct Mechanics2DViewport: View {
             handleTap(at: dragStart)
         }
         cancelActiveDrag()
+        pointerWorldPos = nil
     }
 
     private func classifyHit(at p: CGPoint) -> DragMode {
@@ -306,6 +312,7 @@ struct Mechanics2DViewport: View {
         dragMode = .none
         didMoveBeyondSlop = false
         longPressProgress = 0
+        pointerWorldPos = nil
     }
 
     @ViewBuilder
@@ -624,6 +631,72 @@ struct Mechanics2DViewport: View {
             }
             .buttonStyle(.plain)
             .padding(10)
+        }
+    }
+
+    /// 커서 월드좌표 표시 — 손가락이 캔버스 위에 있는 동안만 노출.
+    /// CAD/COMSOL 표준 — 사용자가 정확한 위치 식별을 위해 필요. 작은
+    /// 화면이므로 좌측 하단 단일 라인으로 압축 (sketch/Origin 처럼).
+    @ViewBuilder
+    private var coordStatusBar: some View {
+        if let p = pointerWorldPos, p.isFinite {
+            Text("x \(SciFormat.fixed(p.x, places: 2))   y \(SciFormat.fixed(p.y, places: 2))")
+                .font(.caption2.weight(.medium).monospacedDigit())
+                .foregroundStyle(Theme.ink)
+                .padding(.horizontal, 8).padding(.vertical, 3)
+                .background(
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .fill(Theme.surface.opacity(0.88))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                .stroke(Theme.stroke, lineWidth: 0.5)
+                        )
+                )
+                .padding(.leading, 8).padding(.top, 8)
+                .allowsHitTesting(false)
+                .transition(.opacity)
+        }
+    }
+
+    /// 척도 바 — 캔버스 우상단 / 미니맵 아래에 표시. round-number 1·2·5
+    /// 시퀀스 (지도학 표준) 로 현재 zoom 에 맞는 길이를 골라 그림.
+    @ViewBuilder
+    private var scaleBar: some View {
+        let s = viewScale() * pinchDelta
+        if s > 0, canvasSize.width > 0 {
+            // 화면상 약 60pt 가까운 round 길이 선택.
+            let targetPx: CGFloat = 60
+            let rawMeters = Double(targetPx / s)
+            let pow10 = pow(10, floor(log10(rawMeters)))
+            let normalized = rawMeters / pow10
+            let stepped: Double = (normalized < 1.5) ? 1.0
+                                : (normalized < 3.5) ? 2.0
+                                : (normalized < 7.5) ? 5.0 : 10.0
+            let lengthM = stepped * pow10
+            let lengthPx = CGFloat(lengthM) * s
+            HStack(spacing: 4) {
+                ZStack(alignment: .leading) {
+                    Rectangle().fill(Theme.ink).frame(width: lengthPx, height: 1.5)
+                    Rectangle().fill(Theme.ink).frame(width: 1.5, height: 6)
+                    Rectangle().fill(Theme.ink).frame(width: 1.5, height: 6)
+                        .offset(x: lengthPx - 1.5)
+                }
+                .frame(width: lengthPx, height: 6)
+                Text(SciFormat.withUnit(lengthM, unit: "m", digits: 2))
+                    .font(.caption2.weight(.medium).monospacedDigit())
+                    .foregroundStyle(Theme.ink)
+            }
+            .padding(.horizontal, 8).padding(.vertical, 4)
+            .background(
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .fill(Theme.surface.opacity(0.82))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .stroke(Theme.stroke, lineWidth: 0.5)
+                    )
+            )
+            .padding(.trailing, 8).padding(.bottom, 56)  // transportBar 위
+            .allowsHitTesting(false)
         }
     }
 
