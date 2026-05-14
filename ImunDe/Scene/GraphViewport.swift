@@ -42,12 +42,16 @@ private struct MotionGraphView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            VStack(alignment: .leading, spacing: 8) {
-                slider("v₁ (등속)", value: $v1, range: 0...10, unit: "m/s")
-                slider("v₀ (등가속 초기)", value: $v0, range: 0...10, unit: "m/s")
-                slider("a (가속도)", value: $a, range: -3...4, unit: "m/s²")
-                playReset
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 8) {
+                    slider("v₁ (등속)", value: $v1, range: 0...10, unit: "m/s")
+                    slider("v₀ (등가속 초기)", value: $v0, range: 0...10, unit: "m/s")
+                    slider("a (가속도)", value: $a, range: -3...4, unit: "m/s²")
+                    playReset
+                }
             }
+            .scrollBounceBehavior(.basedOnSize)
+            .frame(maxHeight: 220)
         }
         .padding(8)
     }
@@ -206,13 +210,17 @@ private struct HeatTransferView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            VStack(alignment: .leading, spacing: 8) {
-                slider("T₁", value: $T1, range: 0...100, unit: "°C")
-                slider("T₂", value: $T2, range: 0...100, unit: "°C")
-                slider("열용량 비", value: $capRatio, range: 0.1...5, unit: "")
-                slider("h·A", value: $hA, range: 0.1...5, unit: "")
-                playReset
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 8) {
+                    slider("T₁", value: $T1, range: 0...100, unit: "°C")
+                    slider("T₂", value: $T2, range: 0...100, unit: "°C")
+                    slider("열용량 비", value: $capRatio, range: 0.1...5, unit: "")
+                    slider("h·A", value: $hA, range: 0.1...5, unit: "")
+                    playReset
+                }
             }
+            .scrollBounceBehavior(.basedOnSize)
+            .frame(maxHeight: 240)
         }
         .padding(8)
     }

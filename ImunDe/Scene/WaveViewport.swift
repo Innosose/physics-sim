@@ -48,20 +48,24 @@ private struct WaveSumView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            VStack(alignment: .leading, spacing: 8) {
-                PaperPicker(selection: $axis,
-                             options: Axis.allCases) { $0.rawValue }
-                slider("f₁", value: $f1, range: 0.1...4, unit: "Hz")
-                slider("f₂", value: $f2, range: 0.1...4, unit: "Hz")
-                ChipToggle(title: "두 번째 파 반대 진행 (정상파)",
-                            systemImage: "arrow.left.arrow.right",
-                            isOn: oppose,
-                            alignment: .leading) {
-                    oppose.toggle()
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 8) {
+                    PaperPicker(selection: $axis,
+                                 options: Axis.allCases) { $0.rawValue }
+                    slider("f₁", value: $f1, range: 0.1...4, unit: "Hz")
+                    slider("f₂", value: $f2, range: 0.1...4, unit: "Hz")
+                    ChipToggle(title: "두 번째 파 반대 진행 (정상파)",
+                                systemImage: "arrow.left.arrow.right",
+                                isOn: oppose,
+                                alignment: .leading) {
+                        oppose.toggle()
+                    }
+                    .disabled(axis == .time)
+                    playReset
                 }
-                .disabled(axis == .time)
-                playReset
             }
+            .scrollBounceBehavior(.basedOnSize)
+            .frame(maxHeight: 240)
         }
         .padding(8)
     }
@@ -246,25 +250,29 @@ private struct DopplerView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            HStack(spacing: 14) {
-                Text(String(format: "f′ 다가올 때 %.2f Hz", derived.fAhead))
-                    .font(.caption.monospacedDigit().weight(.semibold))
-                    .foregroundStyle(Theme.ink)
-                Text(String(format: "멀어질 때 %.2f Hz", derived.fBehind))
-                    .font(.caption.monospacedDigit().weight(.semibold))
-                    .foregroundStyle(Theme.ink)
-                Text(String(format: "M=%.2f", derived.mach))
-                    .font(.caption.monospacedDigit().weight(.semibold))
-                    .foregroundStyle(Theme.ink)
-                Spacer()
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 14) {
+                        Text(String(format: "f′ 다가올 때 %.2f Hz", derived.fAhead))
+                            .font(.caption.monospacedDigit().weight(.semibold))
+                            .foregroundStyle(Theme.ink)
+                        Text(String(format: "멀어질 때 %.2f Hz", derived.fBehind))
+                            .font(.caption.monospacedDigit().weight(.semibold))
+                            .foregroundStyle(Theme.ink)
+                        Text(String(format: "M=%.2f", derived.mach))
+                            .font(.caption.monospacedDigit().weight(.semibold))
+                            .foregroundStyle(Theme.ink)
+                        Spacer()
+                    }
+                    .padding(.horizontal, 4)
+                    slider("v_s", value: $sourceSpeed, range: 0...400, unit: "m/s")
+                    slider("c", value: $soundSpeed, range: 100...400, unit: "m/s")
+                    slider("f", value: $freq, range: 0.5...4, unit: "Hz")
+                    playReset
+                }
             }
-            .padding(.horizontal, 4)
-            VStack(alignment: .leading, spacing: 8) {
-                slider("v_s", value: $sourceSpeed, range: 0...400, unit: "m/s")
-                slider("c", value: $soundSpeed, range: 100...400, unit: "m/s")
-                slider("f", value: $freq, range: 0.5...4, unit: "Hz")
-                playReset
-            }
+            .scrollBounceBehavior(.basedOnSize)
+            .frame(maxHeight: 240)
         }
         .padding(8)
     }

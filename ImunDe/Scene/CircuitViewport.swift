@@ -37,13 +37,18 @@ private struct SimpleCircuitView: View {
     var body: some View {
         VStack(spacing: 8) {
             Canvas { ctx, size in draw(ctx: ctx, size: size) }
-            VStack(alignment: .leading, spacing: 8) {
-                PaperPicker(selection: $mode,
-                             options: Mode.allCases) { $0.rawValue }
-                slider("V", value: $emf, range: 1...30, unit: "V")
-                slider("R₁", value: $R1, range: 0.5...30, unit: "Ω")
-                slider("R₂", value: $R2, range: 0.5...30, unit: "Ω")
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 8) {
+                    PaperPicker(selection: $mode,
+                                 options: Mode.allCases) { $0.rawValue }
+                    slider("V", value: $emf, range: 1...30, unit: "V")
+                    slider("R₁", value: $R1, range: 0.5...30, unit: "Ω")
+                    slider("R₂", value: $R2, range: 0.5...30, unit: "Ω")
+                }
             }
+            .scrollBounceBehavior(.basedOnSize)
+            .frame(maxHeight: 220)
         }
         .padding(8)
     }
@@ -150,13 +155,18 @@ private struct RLCView: View {
     var body: some View {
         VStack(spacing: 8) {
             Canvas { ctx, size in draw(ctx: ctx, size: size) }
-            VStack(alignment: .leading, spacing: 8) {
-                slider("R", value: $R, range: 0.1...30, unit: "Ω")
-                slider("L", value: $L, range: 0.05...3, unit: "H")
-                slider("C", value: $C, range: 0.0005...0.05, unit: "F")
-                slider("V₀", value: $V0, range: 0.1...30, unit: "V")
-                slider("ω", value: $omega, range: 0.5...100, unit: "rad/s")
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 8) {
+                    slider("R", value: $R, range: 0.1...30, unit: "Ω")
+                    slider("L", value: $L, range: 0.05...3, unit: "H")
+                    slider("C", value: $C, range: 0.0005...0.05, unit: "F")
+                    slider("V₀", value: $V0, range: 0.1...30, unit: "V")
+                    slider("ω", value: $omega, range: 0.5...100, unit: "rad/s")
+                }
             }
+            .scrollBounceBehavior(.basedOnSize)
+            .frame(maxHeight: 240)
         }
         .padding(8)
     }
@@ -240,11 +250,15 @@ private struct FaradayView: View {
                     }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            VStack(alignment: .leading, spacing: 8) {
-                fSlider("N (코일 감은 수)", value: $nTurns, range: 20...500, unit: "회")
-                fSlider("진동 속도 ω", value: $speed, range: 0.2...5, unit: "rad/s")
-                faradayPlayReset
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 8) {
+                    fSlider("N (코일 감은 수)", value: $nTurns, range: 20...500, unit: "회")
+                    fSlider("진동 속도 ω", value: $speed, range: 0.2...5, unit: "rad/s")
+                    faradayPlayReset
+                }
             }
+            .scrollBounceBehavior(.basedOnSize)
+            .frame(maxHeight: 220)
         }
         .padding(8)
     }
@@ -387,12 +401,16 @@ private struct SolenoidView: View {
         VStack(spacing: 8) {
             Canvas { ctx, size in draw(ctx: ctx, size: size) }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-            VStack(alignment: .leading, spacing: 8) {
-                sSlider("n (권선수/m)", value: $nPerM, range: 100...2000, fmt: "%.0f /m")
-                sSlider("I (전류)",    value: $current, range: 0.1...10,   fmt: "%.1f A")
-                sSlider("길이 L",      value: $soleL,   range: 1...5,       fmt: "%.1f m")
-                sSlider("반지름 R",    value: $soleR,   range: 0.3...1.5,   fmt: "%.2f m")
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 8) {
+                    sSlider("n (권선수/m)", value: $nPerM, range: 100...2000, fmt: "%.0f /m")
+                    sSlider("I (전류)",    value: $current, range: 0.1...10,   fmt: "%.1f A")
+                    sSlider("길이 L",      value: $soleL,   range: 1...5,       fmt: "%.1f m")
+                    sSlider("반지름 R",    value: $soleR,   range: 0.3...1.5,   fmt: "%.2f m")
+                }
             }
+            .scrollBounceBehavior(.basedOnSize)
+            .frame(maxHeight: 220)
         }
         .padding(8)
     }

@@ -880,7 +880,8 @@ struct Mechanics2DViewport: View {
         Sketchy.circle(center: p, radius: pr + 5, ctx: ctx,
                         color: Theme.glow, lineWidth: 1.4, passes: 2, jitter: 0.04)
 
-        let panelW: CGFloat = 132, panelH: CGFloat = 86
+        let panelW: CGFloat = max(112, min(132, r.width * 0.34))
+        let panelH: CGFloat = max(74, min(86, r.height * 0.28))
 
         // Place to the side opposite of the body's screen position so we
         // stay inside the canvas. Then nudge away from other open panels.
@@ -975,8 +976,8 @@ struct Mechanics2DViewport: View {
     }
 
     private func drawEnergyPanel(ctx: GraphicsContext, in r: CGRect) {
-        let panelW: CGFloat = min(220, r.width * 0.4)
-        let panelH: CGFloat = 92
+        let panelW = max(150, min(220, r.width * 0.42))
+        let panelH = max(74, min(96, r.height * 0.30))
         let panel = CGRect(x: r.maxX - panelW - 8, y: r.minY + 8,
                            width: panelW, height: panelH)
         ctx.fill(Path(roundedRect: panel, cornerRadius: 8),
@@ -1232,8 +1233,8 @@ struct Mechanics2DViewport: View {
     }
 
     private func drawGraphsPanel(ctx: GraphicsContext, in r: CGRect) {
-        let panelW: CGFloat = min(228, r.width * 0.46)
-        let panelH: CGFloat = 148
+        let panelW = max(160, min(228, r.width * 0.50))
+        let panelH = max(108, min(150, r.height * 0.42))
         let panel = CGRect(x: r.minX + 8,
                            y: r.maxY - panelH - 8,
                            width: panelW, height: panelH)

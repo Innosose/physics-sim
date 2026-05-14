@@ -236,9 +236,9 @@ extension ButtonStyle where Self == ChipPressStyle {
 struct PaperSlider: View {
     @Binding var value: Double
     let range: ClosedRange<Double>
-    var height: CGFloat = 28
+    var height: CGFloat = 24
 
-    init(value: Binding<Double>, in range: ClosedRange<Double>, height: CGFloat = 28) {
+    init(value: Binding<Double>, in range: ClosedRange<Double>, height: CGFloat = 24) {
         self._value = value
         self.range = range
         self.height = height

@@ -39,8 +39,15 @@ private struct ReflectionView: View {
     var body: some View {
         VStack(spacing: 8) {
             Canvas { ctx, size in draw(ctx: ctx, size: size) }
-            derivedRow
-            controls
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 8) {
+                    derivedRow
+                    controls
+                }
+            }
+            .scrollBounceBehavior(.basedOnSize)
+            .frame(maxHeight: 220)
         }
         .padding(8)
     }
@@ -166,17 +173,22 @@ private struct LensView: View {
     var body: some View {
         VStack(spacing: 8) {
             Canvas { ctx, size in draw(ctx: ctx, size: size) }
-            derivedRow
-            VStack(alignment: .leading, spacing: 8) {
-                ChipToggle(title: "발산 렌즈 (f<0)",
-                            systemImage: "arrow.left.arrow.right",
-                            isOn: diverging,
-                            alignment: .leading) {
-                    diverging.toggle()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 8) {
+                    derivedRow
+                    ChipToggle(title: "발산 렌즈 (f<0)",
+                                systemImage: "arrow.left.arrow.right",
+                                isOn: diverging,
+                                alignment: .leading) {
+                        diverging.toggle()
+                    }
+                    slider("|f|", value: $f, range: 0.5...6, unit: "m")
+                    slider("p", value: $p, range: 0.3...10, unit: "m")
                 }
-                slider("|f|", value: $f, range: 0.5...6, unit: "m")
-                slider("p", value: $p, range: 0.3...10, unit: "m")
             }
+            .scrollBounceBehavior(.basedOnSize)
+            .frame(maxHeight: 220)
         }
         .padding(8)
     }
@@ -286,25 +298,30 @@ private struct DoubleSlitView: View {
     var body: some View {
         VStack(spacing: 8) {
             Canvas { ctx, size in draw(ctx: ctx, size: size) }
-            HStack(spacing: 14) {
-                Text(String(format: "Δy = %.2f mm", derived.deltaY * 1000))
-                    .font(.caption.monospacedDigit().weight(.semibold))
-                    .foregroundStyle(Theme.ink)
-                Text(String(format: "y_a = %.2f mm", derived.yA * 1000))
-                    .font(.caption.monospacedDigit().weight(.semibold))
-                    .foregroundStyle(Theme.ink)
-                Spacer()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 14) {
+                        Text(String(format: "Δy = %.2f mm", derived.deltaY * 1000))
+                            .font(.caption.monospacedDigit().weight(.semibold))
+                            .foregroundStyle(Theme.ink)
+                        Text(String(format: "y_a = %.2f mm", derived.yA * 1000))
+                            .font(.caption.monospacedDigit().weight(.semibold))
+                            .foregroundStyle(Theme.ink)
+                        Spacer()
+                    }
+                    .padding(.horizontal, 4)
+                    PaperPicker(selection: $mode,
+                                 options: Mode.allCases) { $0.rawValue }
+                    slider("λ", value: $lambdaNm, range: 380...780, unit: "nm")
+                    slider("d", value: $dUm, range: 10...200, unit: "μm")
+                        .disabled(mode == .single)
+                    slider("a", value: $aUm, range: 2...30, unit: "μm")
+                    slider("D", value: $D, range: 0.3...3, unit: "m")
+                }
             }
-            .padding(.horizontal, 4)
-            VStack(alignment: .leading, spacing: 8) {
-                PaperPicker(selection: $mode,
-                             options: Mode.allCases) { $0.rawValue }
-                slider("λ", value: $lambdaNm, range: 380...780, unit: "nm")
-                slider("d", value: $dUm, range: 10...200, unit: "μm")
-                    .disabled(mode == .single)
-                slider("a", value: $aUm, range: 2...30, unit: "μm")
-                slider("D", value: $D, range: 0.3...3, unit: "m")
-            }
+            .scrollBounceBehavior(.basedOnSize)
+            .frame(maxHeight: 240)
         }
         .padding(8)
     }
