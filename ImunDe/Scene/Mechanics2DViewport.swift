@@ -1236,11 +1236,28 @@ struct Mechanics2DViewport: View {
                          jitter: s.rigid ? 0.7 : 0.4)
         }
 
+        let grabbedID: UUID? = {
+            if case .body(let id) = dragMode { return id }
+            return nil
+        }()
+
         for body in world.bodies {
             guard body.pos.isFinite else { continue }
             let p = mapPoint(body.pos, scale: scale, cx: cx, cy: cy, ext: extent.center)
             let pr = max(2, CGFloat(body.radius) * scale)
             guard pr.isFinite else { continue }
+
+            // Grab feedback — 사용자가 잡고 있으면 옅은 cream halo 를
+            // body 뒤에 깔고 진한 accent ring 을 위에 두름.
+            let isGrabbed = (grabbedID == body.id)
+            if isGrabbed {
+                let haloR = pr + 8
+                ctx.fill(
+                    Path(ellipseIn: CGRect(x: p.x - haloR, y: p.y - haloR,
+                                            width: haloR * 2, height: haloR * 2)),
+                    with: .color(Theme.glow.opacity(0.22)))
+            }
+
             // 연필 톤 — 옅은 색연필 칠 위에 sketchy 잉크 윤곽.
             ctx.fill(
                 Path(ellipseIn: CGRect(x: p.x - pr, y: p.y - pr,
@@ -1249,6 +1266,11 @@ struct Mechanics2DViewport: View {
             Sketchy.circle(center: p, radius: pr, ctx: ctx,
                             color: Theme.ink, lineWidth: 1.3, passes: 2,
                             jitter: 0.025)
+
+            if isGrabbed {
+                Sketchy.circle(center: p, radius: pr + 4, ctx: ctx,
+                                color: Theme.glow, lineWidth: 2.4)
+            }
         }
 
         if vectorsOn {
