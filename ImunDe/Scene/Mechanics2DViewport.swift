@@ -57,8 +57,8 @@ struct Mechanics2DViewport: View {
     @State private var didMoveBeyondSlop: Bool = false
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-    private let pointerTapSlop: CGFloat = 8.0
-    private let pointerLongPress: TimeInterval = 0.45
+    private let pointerTapSlop: CGFloat = 10.0   // UIKit allowableMovement 기본
+    private let pointerLongPress: TimeInterval = 0.5  // Apple HIG / UILongPress 기본
     @State private var initialExtent: CGSize = CGSize(width: 5, height: 5)
     @State private var maxObservedExtent: CGSize = .zero
     @GestureState private var pinchDelta: CGFloat = 1.0
@@ -102,7 +102,14 @@ struct Mechanics2DViewport: View {
                     .stroke(Theme.stroke, lineWidth: 1)
             )
             .onGeometryChange(for: CGSize.self) { $0.size } action: { newSize in
-                if canvasSize != newSize { cancelActiveDrag() }
+                // 키보드/safe-area 애니메이션이 sub-pixel 변동을 만들기 때문에
+                // 1pt 이상 변화일 때만 — 그리고 드래그 활성일 때만 — cancel.
+                let active: Bool = { if case .none = dragMode { false } else { true } }()
+                if active {
+                    let dw = abs(canvasSize.width - newSize.width)
+                    let dh = abs(canvasSize.height - newSize.height)
+                    if dw > 1 || dh > 1 { cancelActiveDrag() }
+                }
                 canvasSize = newSize
             }
             .gesture(pointerGesture)
@@ -150,7 +157,11 @@ struct Mechanics2DViewport: View {
         .onAppear { reset() }
         .onChange(of: preset.id) { _, _ in reset() }
         .onChange(of: scenePhase) { _, phase in
-            if phase != .active { cancelActiveDrag() }
+            // .inactive (알림 배너 / Control Center pulldown) 만으로는
+            // cancel 하지 않음 — drag 진행 중에 잠깐 inactive 가 되는 경우
+            // 사용자가 의도한 게 아닌데 끊긴다. .background 가 진짜
+            // dismissal signal.
+            if phase == .background { cancelActiveDrag() }
         }
         // @GestureState `isPointerActive` 가 false 로 떨어질 때는 시스템이
         // 제스처를 취소했거나 (Control Center pulldown, 인터럽트 등)
@@ -206,7 +217,12 @@ struct Mechanics2DViewport: View {
             break  // 아직 tap 후보
         case .body(let id):
             guard let idx = world.bodies.firstIndex(where: { $0.id == id })
-            else { return }
+            else {
+                // 드래그 중에 해당 body 가 제거된 경우 (다른 경로의 reset
+                // 등) — 무한히 .body(deadId) 로 머물지 않도록 cleanup.
+                cancelActiveDrag()
+                return
+            }
             if running { running = false }
             let target = screenToWorld(v.location)
             world.bodies[idx].pos = constrainDragPosition(id: id, target: target)
