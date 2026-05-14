@@ -25,12 +25,38 @@ private struct ReflectionView: View {
     @State private var n1: Double = 1.0
     @State private var n2: Double = 1.5
 
+    private var derived: (theta2: Double?, thetaC: Double?) {
+        let θ1 = incidenceDeg * .pi / 180
+        let s2 = n1 * sin(θ1) / n2
+        let θ2 = abs(s2) <= 1 ? asin(s2) * 180 / .pi : nil
+        let θc = n1 > n2 ? asin(n2 / n1) * 180 / .pi : nil
+        return (θ2, θc)
+    }
+
     var body: some View {
         VStack(spacing: 8) {
             Canvas { ctx, size in draw(ctx: ctx, size: size) }
+            derivedRow
             controls
         }
         .padding(8)
+    }
+
+    private var derivedRow: some View {
+        let d = derived
+        let parts: [String] = [
+            d.theta2.map { String(format: "θ₂ = %.2f°", $0) } ?? "θ₂ = 전반사",
+            d.thetaC.map { String(format: "θ_c = %.2f°", $0) } ?? "θ_c = 없음",
+        ]
+        return HStack(spacing: 14) {
+            ForEach(parts, id: \.self) { p in
+                Text(p)
+                    .font(.caption.monospacedDigit().weight(.semibold))
+                    .foregroundStyle(Theme.ink)
+            }
+            Spacer()
+        }
+        .padding(.horizontal, 4)
     }
 
     private var controls: some View {
@@ -125,10 +151,19 @@ private struct LensView: View {
         let denom = p - fSigned
         return abs(denom) < 1e-9 ? .infinity * (denom >= 0 ? 1 : -1) : p * fSigned / denom
     }
+    private var magnification: Double { q.isFinite ? -q / p : .nan }
+    private var imageKind: String {
+        guard q.isFinite else { return "∞ (상 없음)" }
+        let real = q > 0, inverted = magnification < 0, enlarged = abs(magnification) > 1
+        return (real ? "실상" : "허상") + "·" +
+               (inverted ? "도립" : "정립") + "·" +
+               (enlarged ? "확대" : "축소")
+    }
 
     var body: some View {
         VStack(spacing: 8) {
             Canvas { ctx, size in draw(ctx: ctx, size: size) }
+            derivedRow
             VStack(alignment: .leading, spacing: 8) {
                 Toggle("발산 렌즈 (f<0)", isOn: $diverging)
                     .font(.caption)
@@ -137,6 +172,24 @@ private struct LensView: View {
             }
         }
         .padding(8)
+    }
+
+    private var derivedRow: some View {
+        HStack(spacing: 14) {
+            Text(q.isFinite ? String(format: "q = %+.2f m", q) : "q = ∞")
+                .font(.caption.monospacedDigit().weight(.semibold))
+                .foregroundStyle(Theme.ink)
+            Text(magnification.isFinite
+                 ? String(format: "m = %+.2f", magnification)
+                 : "m = ∞")
+                .font(.caption.monospacedDigit().weight(.semibold))
+                .foregroundStyle(Theme.ink)
+            Text(imageKind)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Theme.ink)
+            Spacer()
+        }
+        .padding(.horizontal, 4)
     }
 
     private func slider(_ title: String, value: Binding<Double>,
@@ -214,9 +267,28 @@ private struct DoubleSlitView: View {
     @State private var D: Double        = 1.5
     @State private var mode: Mode       = .both
 
+    private var derived: (deltaY: Double, yA: Double) {
+        let λ = lambdaNm * 1e-9
+        let d = dUm * 1e-6
+        let a = aUm * 1e-6
+        let dy = λ * D / max(d, 1e-12)
+        let ya = λ * D / max(a, 1e-12)
+        return (dy, ya)
+    }
+
     var body: some View {
         VStack(spacing: 8) {
             Canvas { ctx, size in draw(ctx: ctx, size: size) }
+            HStack(spacing: 14) {
+                Text(String(format: "Δy = %.2f mm", derived.deltaY * 1000))
+                    .font(.caption.monospacedDigit().weight(.semibold))
+                    .foregroundStyle(Theme.ink)
+                Text(String(format: "y_a = %.2f mm", derived.yA * 1000))
+                    .font(.caption.monospacedDigit().weight(.semibold))
+                    .foregroundStyle(Theme.ink)
+                Spacer()
+            }
+            .padding(.horizontal, 4)
             VStack(alignment: .leading, spacing: 8) {
                 PaperPicker(selection: $mode,
                              options: Mode.allCases) { $0.rawValue }

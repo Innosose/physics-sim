@@ -208,6 +208,14 @@ private struct DopplerView: View {
     }
     private var sourceAtWall: Bool { elapsed >= tStop }
 
+    private var derived: (fAhead: Double, fBehind: Double, mach: Double) {
+        // 정지 관측자에 대해 음원이 다가올 때 / 멀어질 때
+        let denomAhead = max(soundSpeed - sourceSpeed, 1e-9)
+        let fAhead = freq * soundSpeed / denomAhead
+        let fBehind = freq * soundSpeed / (soundSpeed + sourceSpeed)
+        return (fAhead, fBehind, sourceSpeed / soundSpeed)
+    }
+
     var body: some View {
         VStack(spacing: 8) {
             TimelineView(.animation) { tl in
@@ -219,6 +227,19 @@ private struct DopplerView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            HStack(spacing: 14) {
+                Text(String(format: "f′ 다가올 때 %.2f Hz", derived.fAhead))
+                    .font(.caption.monospacedDigit().weight(.semibold))
+                    .foregroundStyle(Theme.ink)
+                Text(String(format: "멀어질 때 %.2f Hz", derived.fBehind))
+                    .font(.caption.monospacedDigit().weight(.semibold))
+                    .foregroundStyle(Theme.ink)
+                Text(String(format: "M=%.2f", derived.mach))
+                    .font(.caption.monospacedDigit().weight(.semibold))
+                    .foregroundStyle(Theme.ink)
+                Spacer()
+            }
+            .padding(.horizontal, 4)
             VStack(alignment: .leading, spacing: 8) {
                 slider("v_s", value: $sourceSpeed, range: 0...400, unit: "m/s")
                 slider("c", value: $soundSpeed, range: 100...400, unit: "m/s")

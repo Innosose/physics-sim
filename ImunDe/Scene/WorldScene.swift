@@ -2,30 +2,18 @@ import SwiftUI
 
 struct WorldScene: View {
     let preset: Preset
-    @Environment(\.openCalculator) private var openCalculator
 
     var body: some View {
         ZStack {
             ImunDeBackground(topGlow: Theme.glow.opacity(0.06))
             VStack(spacing: 8) {
-                if let topic = preset.calculatorTopic {
-                    ConceptCard(topic: topic)
+                if preset.formula != nil {
+                    ConceptCard(preset: preset)
                 }
                 viewport
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
-        }
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                if let topic = preset.calculatorTopic {
-                    Button {
-                        openCalculator(topic)
-                    } label: {
-                        Image(systemName: "function")
-                    }
-                }
-            }
         }
         .navigationTitle(preset.title)
         .navigationBarTitleDisplayMode(.inline)
@@ -51,7 +39,7 @@ struct WorldScene: View {
 // MARK: - ConceptCard
 
 struct ConceptCard: View {
-    let topic: CalculatorTopic
+    let preset: Preset
     @State private var expanded = false
 
     var body: some View {
@@ -60,7 +48,7 @@ struct ConceptCard: View {
                 withAnimation(.spring(duration: 0.25)) { expanded.toggle() }
             } label: {
                 HStack(spacing: 8) {
-                    Text(topic.curriculum)
+                    Text(preset.curriculumLabel ?? "")
                         .font(.caption2.weight(.semibold))
                         .foregroundStyle(Theme.mist)
                     Spacer(minLength: 4)
@@ -72,8 +60,8 @@ struct ConceptCard: View {
             }
             .buttonStyle(.plain)
 
-            if expanded {
-                Text(topic.formula)
+            if expanded, let formula = preset.formula {
+                Text(formula)
                     .font(.system(.callout, design: .serif))
                     .foregroundStyle(Theme.ink)
                     .textSelection(.enabled)

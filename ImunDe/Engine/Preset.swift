@@ -5,10 +5,37 @@ struct Preset: Identifiable, Hashable, @unchecked Sendable {
     let title: String
     let curriculum: Curriculum
     let category: SimCategory
-    let calculatorTopic: CalculatorTopic?
     let kind: Kind
     let load: (World) -> Void
     var subtitle: String { Preset.descriptions[id] ?? "" }
+    var formula: String? { Preset.formulas[id] }
+    var curriculumLabel: String? { Preset.curriculumLabels[id] }
+
+    private static let formulas: [String: String] = [
+        "freefall":    "y(t) = h₀ + v₀ t − ½ g t²",
+        "projectile":  "x(t) = v₀ cosθ · t,    y(t) = h₀ + v₀ sinθ · t − ½ g t²",
+        "pendulum":    "T₀ = 2π √(L/g),    T(θ_max) ≈ T₀·(1 + θ²/16 + 11θ⁴/3072 + …)",
+        "collision1d": "v₁′ = ((m₁ − e m₂)·v₁ + (1+e)·m₂·v₂) / (m₁+m₂)",
+        "kepler":      "a = −GM / (2E),    E = ½v² − GM/r,    T = 2π √(a³/GM)",
+        "circuit":     "V = I R,    P = V I = I² R = V² / R",
+        "doppler":     "f′ = f · (c + v_o) / (c − v_s)",
+        "reflection":  "n₁ sinθ₁ = n₂ sinθ₂,    sinθ_c = n₂ / n₁",
+        "lens":        "1/f = 1/p + 1/q,    m = − q / p",
+        "doubleslit":  "Δy = λ D / d,    회절 영점: y_a = λ D / a",
+    ]
+
+    private static let curriculumLabels: [String: String] = [
+        "freefall":    "중3 / 물리Ⅰ · 운동과 에너지",
+        "projectile":  "물리Ⅰ · 등가속도 운동",
+        "pendulum":    "물리Ⅰ / 물리Ⅱ · 단진자",
+        "collision1d": "중3 / 물리Ⅰ · 운동량과 충돌",
+        "kepler":      "물리Ⅰ · 만유인력과 행성 운동",
+        "circuit":     "중2 / 물리Ⅱ · 전기",
+        "doppler":     "물리Ⅰ · 파동",
+        "reflection":  "중1 / 물리Ⅰ · 빛과 파동",
+        "lens":        "중1 / 물리Ⅰ · 빛의 굴절·렌즈",
+        "doubleslit":  "물리Ⅰ · 빛의 간섭과 회절",
+    ]
 
     private static let descriptions: [String: String] = [
         "freefall":    "중력만으로 떨어지는 물체의 위치·속도 변화",

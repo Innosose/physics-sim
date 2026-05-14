@@ -6,91 +6,78 @@ enum PresetCatalog {
         Preset(id: "freefall",
                title: "자유낙하·연직 던지기",
                curriculum: .middle, category: .mechanics,
-               calculatorTopic: .freefall,
                kind: .mechanics2D,
                load: MechanicsPresets.freeFall),
 
         Preset(id: "motiongraph",
                title: "등속 vs 등가속도",
                curriculum: .middle, category: .mechanics,
-               calculatorTopic: nil,
                kind: .graph,
                load: { _ in }),
 
         Preset(id: "reflection",
                title: "빛의 반사·굴절",
                curriculum: .middle, category: .optics,
-               calculatorTopic: .refraction,
                kind: .optics(.reflection),
                load: { _ in }),
 
         Preset(id: "circuit",
                title: "직렬·병렬 회로",
                curriculum: .middle, category: .electromagnetism,
-               calculatorTopic: .ohm,
                kind: .circuit(.circuit),
                load: { _ in }),
 
         Preset(id: "heat",
                title: "열전달과 평형",
                curriculum: .middle, category: .waveThermo,
-               calculatorTopic: nil,
                kind: .graph,
                load: { _ in }),
 
         Preset(id: "collision1d",
                title: "1차원 충돌",
                curriculum: .middle, category: .mechanics,
-               calculatorTopic: .collision,
                kind: .mechanics2D,
                load: MechanicsPresets.collision1D),
 
         Preset(id: "projectile",
                title: "포물선 운동",
                curriculum: .high, category: .mechanics,
-               calculatorTopic: .projectile,
                kind: .mechanics2D,
                load: MechanicsPresets.projectile),
 
         Preset(id: "pendulum",
                title: "단진자",
                curriculum: .high, category: .mechanics,
-               calculatorTopic: .pendulum,
                kind: .mechanics2D,
                load: MechanicsPresets.pendulum),
 
         Preset(id: "spring",
                title: "감쇠·구동 진동자",
                curriculum: .high, category: .mechanics,
-               calculatorTopic: nil,
                kind: .mechanics2D,
                load: MechanicsPresets.spring),
 
         Preset(id: "kepler",
                title: "케플러 궤도",
                curriculum: .high, category: .mechanics,
-               calculatorTopic: .kepler,
                kind: .mechanics2D,
                load: MechanicsPresets.kepler),
 
         Preset(id: "wavesum",
                title: "파동의 중첩",
                curriculum: .high, category: .waveThermo,
-               calculatorTopic: nil,
                kind: .wave(.waveSum),
                load: { _ in }),
 
         Preset(id: "doppler",
                title: "도플러 효과",
                curriculum: .high, category: .waveThermo,
-               calculatorTopic: .doppler,
                kind: .wave(.doppler),
                load: { _ in }),
 
         Preset(id: "kinetic",
                title: "기체 분자 운동",
                curriculum: .high, category: .waveThermo,
-               calculatorTopic: nil,
                kind: .mechanics2D,
                load: { w in
                    w.integrator = .euler
@@ -126,63 +113,54 @@ enum PresetCatalog {
         Preset(id: "efield",
                title: "전기력선",
                curriculum: .high, category: .electromagnetism,
-               calculatorTopic: nil,
                kind: .mechanics2D,
                load: MechanicsPresets.eField),
 
         Preset(id: "lorentz",
                title: "자기장 속 하전입자",
                curriculum: .high, category: .electromagnetism,
-               calculatorTopic: nil,
                kind: .mechanics2D,
                load: MechanicsPresets.lorentz),
 
         Preset(id: "rlc",
                title: "직렬 RLC 회로",
                curriculum: .high, category: .electromagnetism,
-               calculatorTopic: nil,
                kind: .circuit(.rlc),
                load: { _ in }),
 
         Preset(id: "faraday",
                title: "패러데이 전자기 유도",
                curriculum: .high, category: .electromagnetism,
-               calculatorTopic: nil,
                kind: .circuit(.faraday),
                load: { _ in }),
 
         Preset(id: "solenoid",
                title: "솔레노이드 자기장",
                curriculum: .high, category: .electromagnetism,
-               calculatorTopic: nil,
                kind: .circuit(.solenoid),
                load: { _ in }),
 
         Preset(id: "doubleslit",
                title: "이중 슬릿",
                curriculum: .high, category: .optics,
-               calculatorTopic: .slit,
                kind: .optics(.doubleSlit),
                load: { _ in }),
 
         Preset(id: "lens",
                title: "얇은 렌즈 결상",
                curriculum: .high, category: .optics,
-               calculatorTopic: .lens,
                kind: .optics(.lens),
                load: { _ in }),
 
         Preset(id: "freecollide",
                title: "자유 충돌 박스",
                curriculum: .free, category: .sandbox,
-               calculatorTopic: nil,
                kind: .mechanics2D,
                load: MechanicsPresets.freeCollision),
 
         Preset(id: "nbody",
                title: "N체 중력",
                curriculum: .free, category: .sandbox,
-               calculatorTopic: nil,
                kind: .mechanics2D,
                load: MechanicsPresets.solarSystem),
     ]
@@ -206,7 +184,4 @@ enum PresetCatalog {
         }
     }
 
-    static func preset(forTopic t: CalculatorTopic) -> Preset? {
-        all.first { $0.calculatorTopic == t }
-    }
 }

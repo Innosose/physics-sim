@@ -94,6 +94,7 @@ struct Mechanics2DViewport: View {
                 hintLabel
             }
 
+            presetDerivedRow
             toggleRow
             presetParameterRow
             timeScaleRow
@@ -196,6 +197,92 @@ struct Mechanics2DViewport: View {
                 )
         }
         .buttonStyle(.chipPress)
+    }
+
+    @ViewBuilder
+    private var presetDerivedRow: some View {
+        if let text = derivedValueText() {
+            HStack {
+                Text(text)
+                    .font(.caption.monospacedDigit().weight(.semibold))
+                    .foregroundStyle(Theme.ink)
+                Spacer()
+            }
+            .padding(.horizontal, 4)
+        }
+    }
+
+    private func derivedValueText() -> String? {
+        switch preset.id {
+        case "freefall":
+            guard let bob = world.bodies.first(where: { !$0.pinned }),
+                  bob.pos.isFinite, bob.vel.isFinite else { return nil }
+            let y = bob.pos.y, vy = bob.vel.y
+            let g = -world.gravity.y
+            guard g > 0 else { return nil }
+            let disc = vy * vy + 2 * g * y
+            guard disc >= 0 else { return nil }
+            let tHit = (vy + disc.squareRoot()) / g
+            let vHit = disc.squareRoot()
+            return String(format: "남은 비행 %.2fs   충돌 속도 %.2f m/s", tHit, vHit)
+
+        case "projectile":
+            guard let proj = world.bodies.first(where: { !$0.pinned }),
+                  proj.pos.isFinite, proj.vel.isFinite else { return nil }
+            let y = proj.pos.y, vx = proj.vel.x, vy = proj.vel.y
+            let g = -world.gravity.y
+            guard g > 0 else { return nil }
+            let disc = vy * vy + 2 * g * y
+            guard disc >= 0 else { return nil }
+            let tHit = (vy + disc.squareRoot()) / g
+            let xPredict = proj.pos.x + vx * tHit
+            return String(format: "남은 시간 %.2fs   예상 사거리 %.2f m", tHit, xPredict)
+
+        case "pendulum":
+            guard let pivot = world.bodies.first(where: { $0.pinned }),
+                  let bob   = world.bodies.first(where: { !$0.pinned }),
+                  pivot.pos.isFinite, bob.pos.isFinite else { return nil }
+            let L = (bob.pos - pivot.pos).length
+            let g = -world.gravity.y
+            guard g > 0, L > 1e-6 else { return nil }
+            let T0 = 2 * .pi * (L / g).squareRoot()
+            let dx = bob.pos.x - pivot.pos.x
+            let dy = pivot.pos.y - bob.pos.y
+            let θ = atan2(dx, dy)
+            let θ2 = θ * θ, θ4 = θ2 * θ2
+            let corr = 1 + θ2 / 16 + 11 * θ4 / 3072
+            return String(format: "T₀ = %.3fs   T(θ) = %.3fs", T0, T0 * corr)
+
+        case "collision1d":
+            let nonPinned = world.bodies.filter { !$0.pinned }
+            guard nonPinned.count >= 2 else { return nil }
+            let p = nonPinned.map { $0.mass * $0.vel.x }.reduce(0, +)
+            let ke = nonPinned.map { 0.5 * $0.mass * $0.vel.lengthSquared }.reduce(0, +)
+            return String(format: "운동량 p = %.2f   운동에너지 KE = %.2f", p, ke)
+
+        case "kepler", "nbody":
+            guard let star = world.bodies.first(where: { $0.kind == .star || $0.pinned }),
+                  let planet = world.bodies.first(where: { !$0.pinned && $0.kind != .star }),
+                  star.pos.isFinite, planet.pos.isFinite else { return nil }
+            let mu = world.G * star.mass
+            let dr = planet.pos - star.pos
+            let r = dr.length
+            let v = planet.vel.length
+            guard r > 1e-6 else { return nil }
+            let E = 0.5 * v * v - mu / r
+            if E >= 0 {
+                return "탈출 궤도 (E ≥ 0)"
+            }
+            let a = -mu / (2 * E)
+            let h = abs(dr.x * planet.vel.y - dr.y * planet.vel.x)
+            let eSq = max(0, 1 + 2 * E * h * h / (mu * mu))
+            let e = eSq.squareRoot()
+            let T = 2 * .pi * (a * a * a / mu).squareRoot()
+            return String(format: "a=%.2f  e=%.3f  T=%.2f", a, e, T)
+
+        default:
+            return nil
+        }
     }
 
     @ViewBuilder
