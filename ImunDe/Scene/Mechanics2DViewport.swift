@@ -526,22 +526,23 @@ struct Mechanics2DViewport: View {
             // 라이브 — 다음 충돌부터 새 반발계수 적용
             world.restitution = v
         }
-        .onChange(of: freefallH0) { _, _ in reset() }
-        .onChange(of: freefallV0) { _, _ in reset() }
-        .onChange(of: freefallG)  { _, _ in reset() }
-        .onChange(of: projectileV0)    { _, _ in reset() }
-        .onChange(of: projectileAngle) { _, _ in reset() }
-        .onChange(of: projectileH0)    { _, _ in reset() }
-        .onChange(of: projectileG)     { _, _ in reset() }
-        .onChange(of: pendulumL)      { _, _ in reset() }
-        .onChange(of: pendulumTheta0) { _, _ in reset() }
-        .onChange(of: pendulumG)      { _, _ in reset() }
-        .onChange(of: collisionM1) { _, _ in reset() }
-        .onChange(of: collisionM2) { _, _ in reset() }
-        .onChange(of: collisionV1) { _, _ in reset() }
-        .onChange(of: collisionV2) { _, _ in reset() }
-        .onChange(of: springK) { _, _ in reset() }
-        .onChange(of: springM) { _, _ in reset() }
+        // Single .onChange covering every preset's init-condition slider —
+        // 17개 개별 onChange 체인은 Swift type-checker가 timeout 시켜서
+        // joined signature 하나로 묶었다.
+        .onChange(of: paramResetSignature) { _, _ in reset() }
+    }
+
+    /// Concatenation of every slider whose change should trigger reset().
+    /// Excludes lorentzB and collisionE (live-applied above).
+    private var paramResetSignature: String {
+        let parts: [Double] = [
+            freefallH0, freefallV0, freefallG,
+            projectileV0, projectileAngle, projectileH0, projectileG,
+            pendulumL, pendulumTheta0, pendulumG,
+            collisionM1, collisionM2, collisionV1, collisionV2,
+            springK, springM,
+        ]
+        return parts.map { String($0) }.joined(separator: "|")
     }
 
     private func paramSlider(_ title: String, value: Binding<Double>,
