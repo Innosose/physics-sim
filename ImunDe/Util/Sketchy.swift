@@ -248,6 +248,12 @@ struct PaperSlider: View {
     let range: ClosedRange<Double>
     var height: CGFloat = 28
 
+    init(value: Binding<Double>, in range: ClosedRange<Double>, height: CGFloat = 28) {
+        self._value = value
+        self.range = range
+        self.height = height
+    }
+
     private var fraction: Double {
         let span = range.upperBound - range.lowerBound
         guard span > 1e-12 else { return 0 }
