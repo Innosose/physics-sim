@@ -61,9 +61,9 @@ struct Mechanics2DViewport: View {
             ZStack {
                 TimelineView(.animation) { tl in
                     Canvas { ctx, size in
+                        let _ = colorScheme  // closure capture → re-render on theme change
                         draw(ctx: ctx, size: size)
                     }
-                    .id(colorScheme)
                     .onChange(of: tl.date) { _, newDate in
                         advance(to: newDate.timeIntervalSinceReferenceDate)
                     }
@@ -609,7 +609,7 @@ struct Mechanics2DViewport: View {
         world.G = 1.0
         world.kCoulomb = 1.0
         world.trailEnabled = false
-        world.trailMax = 60
+        world.trailMax = 48
         world.time = 0
         if preset.id == "nbody" {
             switch nBodyVariant {
@@ -915,7 +915,9 @@ struct Mechanics2DViewport: View {
             drawEFieldLines(ctx: ctx, scale: scale, cx: cx, cy: cy, ext: extent.center)
         }
 
-        // 연필 자취 — 단일 sketchy 폴리라인.
+        // 자취 — 오래된 점은 흐릿하고 가늘게, 최근 점은 진하고 굵게.
+        // 길이를 균일하게 그리지 않고 자연스럽게 fade out 시켜 화면을
+        // 너무 가리지 않도록.
         if world.trailEnabled {
             for body in world.bodies {
                 guard let pts = world.trails[body.id], pts.count > 1 else { continue }
@@ -923,8 +925,21 @@ struct Mechanics2DViewport: View {
                     guard p.isFinite else { return nil }
                     return mapPoint(p, scale: scale, cx: cx, cy: cy, ext: extent.center)
                 }
-                Sketchy.polyline(screenPts, ctx: ctx, color: body.color,
-                                 lineWidth: 1.4, passes: 1, jitter: 0.35)
+                let n = screenPts.count
+                guard n > 1 else { continue }
+                for i in 1..<n {
+                    let t = Double(i) / Double(n - 1)        // 0 (oldest) → 1 (newest)
+                    let alpha = pow(t, 1.4) * 0.85
+                    let width = 0.4 + 1.2 * CGFloat(t)
+                    var path = Path()
+                    path.move(to: screenPts[i - 1])
+                    path.addLine(to: screenPts[i])
+                    ctx.stroke(path,
+                               with: .color(body.color.opacity(alpha)),
+                               style: StrokeStyle(lineWidth: width,
+                                                  lineCap: .round,
+                                                  lineJoin: .round))
+                }
             }
         }
 

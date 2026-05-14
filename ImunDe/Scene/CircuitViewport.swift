@@ -15,7 +15,6 @@ struct CircuitViewport: View {
             }
             CharcoalGrain().allowsHitTesting(false)
         }
-        .id(colorScheme)
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
@@ -33,10 +32,14 @@ private struct SimpleCircuitView: View {
     @State private var emf: Double = 12
     @State private var R1: Double = 4
     @State private var R2: Double = 6
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         VStack(spacing: 8) {
-            Canvas { ctx, size in draw(ctx: ctx, size: size) }
+            Canvas { ctx, size in
+                let _ = colorScheme
+                draw(ctx: ctx, size: size)
+            }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 8) {
@@ -147,12 +150,16 @@ private struct RLCView: View {
     @State private var C: Double = 0.005
     @State private var V0: Double = 10
     @State private var omega: Double = 20
+    @Environment(\.colorScheme) private var colorScheme
 
     private var omega0: Double { 1 / (L * C).squareRoot() }
 
     var body: some View {
         VStack(spacing: 8) {
-            Canvas { ctx, size in draw(ctx: ctx, size: size) }
+            Canvas { ctx, size in
+                let _ = colorScheme
+                draw(ctx: ctx, size: size)
+            }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 8) {
@@ -389,12 +396,16 @@ private struct SolenoidView: View {
     @State private var current: Double = 2.0
     @State private var soleL: Double = 3.0
     @State private var soleR: Double = 0.9
+    @Environment(\.colorScheme) private var colorScheme
 
     private var B0mT: Double { 4 * .pi * 1e-7 * nPerM * current * 1000 }
 
     var body: some View {
         VStack(spacing: 8) {
-            Canvas { ctx, size in draw(ctx: ctx, size: size) }
+            Canvas { ctx, size in
+                let _ = colorScheme
+                draw(ctx: ctx, size: size)
+            }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 8) {

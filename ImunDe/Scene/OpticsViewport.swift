@@ -14,7 +14,6 @@ struct OpticsViewport: View {
             }
             CharcoalGrain().allowsHitTesting(false)
         }
-        .id(colorScheme)
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
@@ -27,6 +26,7 @@ private struct ReflectionView: View {
     @State private var incidenceDeg: Double = 30
     @State private var n1: Double = 1.0
     @State private var n2: Double = 1.5
+    @Environment(\.colorScheme) private var colorScheme
 
     private var derived: (theta2: Double?, thetaC: Double?) {
         let θ1 = incidenceDeg * .pi / 180
@@ -38,7 +38,10 @@ private struct ReflectionView: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            Canvas { ctx, size in draw(ctx: ctx, size: size) }
+            Canvas { ctx, size in
+                let _ = colorScheme
+                draw(ctx: ctx, size: size)
+            }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 8) {
@@ -153,6 +156,7 @@ private struct LensView: View {
     @State private var f: Double = 2.0
     @State private var p: Double = 5.0
     @State private var diverging: Bool = false
+    @Environment(\.colorScheme) private var colorScheme
 
     private var fSigned: Double { diverging ? -abs(f) : abs(f) }
     private var q: Double {
@@ -170,7 +174,10 @@ private struct LensView: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            Canvas { ctx, size in draw(ctx: ctx, size: size) }
+            Canvas { ctx, size in
+                let _ = colorScheme
+                draw(ctx: ctx, size: size)
+            }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 8) {
@@ -281,6 +288,7 @@ private struct DoubleSlitView: View {
     @State private var aUm: Double      = 8
     @State private var D: Double        = 1.5
     @State private var mode: Mode       = .both
+    @Environment(\.colorScheme) private var colorScheme
 
     private var derived: (deltaY: Double, yA: Double) {
         let λ = lambdaNm * 1e-9
@@ -293,7 +301,10 @@ private struct DoubleSlitView: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            Canvas { ctx, size in draw(ctx: ctx, size: size) }
+            Canvas { ctx, size in
+                let _ = colorScheme
+                draw(ctx: ctx, size: size)
+            }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 8) {

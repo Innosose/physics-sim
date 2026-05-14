@@ -14,7 +14,6 @@ struct GraphViewport: View {
             }
             CharcoalGrain().allowsHitTesting(false)
         }
-        .id(colorScheme)
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 14, style: .continuous)

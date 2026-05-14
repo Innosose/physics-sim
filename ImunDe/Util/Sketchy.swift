@@ -119,9 +119,11 @@ enum Sketchy {
 struct CharcoalGrain: View {
     var density: Double = 0.0012     // dots per pixel
     var seed: UInt64 = 0xC0FFEE_C0FFEE
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         Canvas { ctx, size in
+            let _ = colorScheme  // re-render on theme change
             var rng = SeededGenerator(seed
                 ^ UInt64(size.width.bitPattern)
                 ^ UInt64(size.height.bitPattern))
