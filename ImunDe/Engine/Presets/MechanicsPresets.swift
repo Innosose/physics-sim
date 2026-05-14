@@ -135,25 +135,28 @@ enum MechanicsPresets {
         w.G = 1.0
         w.trailEnabled = true
         w.trailMax = 400
-        let sun = PhysicsBody(pos: .zero, mass: 300, radius: 0.55,
+        var sun = PhysicsBody(pos: .zero, mass: 300, radius: 0.55,
                               color: Color(red: 1.00, green: 0.78, blue: 0.30),
                               pinned: true, kind: .star)
-        let planets: [(r: Double, size: Double, color: Color)] = [
-            (1.4, 0.08, Color(red: 0.78, green: 0.70, blue: 0.60)),
-            (2.2, 0.13, Color(red: 0.95, green: 0.80, blue: 0.45)),
-            (3.0, 0.14, Color(red: 0.30, green: 0.55, blue: 0.95)),
-            (3.9, 0.11, Color(red: 0.85, green: 0.40, blue: 0.20)),
-            (5.5, 0.30, Color(red: 0.88, green: 0.72, blue: 0.50)),
-            (7.5, 0.24, Color(red: 0.92, green: 0.85, blue: 0.62)),
+        sun.name = "태양"
+        let planets: [(name: String, r: Double, size: Double, color: Color)] = [
+            ("수성", 1.4, 0.08, Color(red: 0.78, green: 0.70, blue: 0.60)),
+            ("금성", 2.2, 0.13, Color(red: 0.95, green: 0.80, blue: 0.45)),
+            ("지구", 3.0, 0.14, Color(red: 0.30, green: 0.55, blue: 0.95)),
+            ("화성", 3.9, 0.11, Color(red: 0.85, green: 0.40, blue: 0.20)),
+            ("목성", 5.5, 0.30, Color(red: 0.88, green: 0.72, blue: 0.50)),
+            ("토성", 7.5, 0.24, Color(red: 0.92, green: 0.85, blue: 0.62)),
         ]
         var arr: [PhysicsBody] = [sun]
         for p in planets {
             let v = (w.G * sun.mass / p.r).squareRoot()
-            arr.append(PhysicsBody(
+            var body = PhysicsBody(
                 pos: Vec3(x: p.r, y: 0, z: 0),
                 vel: Vec3(x: 0, y: v, z: 0),
                 mass: 0.5, radius: p.size, color: p.color,
-                kind: .planet))
+                kind: .planet)
+            body.name = p.name
+            arr.append(body)
         }
         w.bodies = arr
     }
@@ -171,17 +174,17 @@ enum MechanicsPresets {
             Color(red: 0.55, green: 0.78, blue: 1.00),
             Color(red: 0.96, green: 0.94, blue: 0.86),
         ]
-        w.bodies = [
-            PhysicsBody(pos: Vec3(x: -0.97000436, y:  0.24308753, z: 0),
-                        vel: v12, mass: 1, radius: 0.08, color: colors[0],
-                        kind: .star),
-            PhysicsBody(pos: Vec3(x:  0.97000436, y: -0.24308753, z: 0),
-                        vel: v12, mass: 1, radius: 0.08, color: colors[1],
-                        kind: .star),
-            PhysicsBody(pos: .zero,
-                        vel: v3,  mass: 1, radius: 0.08, color: colors[2],
-                        kind: .star),
-        ]
+        var b1 = PhysicsBody(pos: Vec3(x: -0.97000436, y:  0.24308753, z: 0),
+                             vel: v12, mass: 1, radius: 0.08, color: colors[0],
+                             kind: .star)
+        var b2 = PhysicsBody(pos: Vec3(x:  0.97000436, y: -0.24308753, z: 0),
+                             vel: v12, mass: 1, radius: 0.08, color: colors[1],
+                             kind: .star)
+        var b3 = PhysicsBody(pos: .zero,
+                             vel: v3,  mass: 1, radius: 0.08, color: colors[2],
+                             kind: .star)
+        b1.name = "A"; b2.name = "B"; b3.name = "C"
+        w.bodies = [b1, b2, b3]
     }
 
     static func lorentz(_ w: World) {

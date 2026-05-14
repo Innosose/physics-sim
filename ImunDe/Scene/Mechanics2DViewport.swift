@@ -1,4 +1,7 @@
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 enum NBodyVariant: String, CaseIterable, Identifiable {
     case solar = "태양계"
@@ -17,8 +20,14 @@ struct Mechanics2DViewport: View {
     @State private var canvasSize: CGSize = .zero
     @State private var vectorsOn: Bool = false
     @State private var energyOn: Bool = false
+    @State private var trailsOn: Bool = false
     @State private var dragBodyId: UUID? = nil
+    @State private var timeScale: Double = 1.0
+    @State private var inspectedId: UUID? = nil
+    @State private var energyHistory: [World.EnergyBreakdown] = []
+    @AppStorage("hasDraggedBody") private var hasDraggedBody = false
 
+    private let energyHistMax = 240
     private var tapEnabled: Bool { preset.id == "freecollide" }
 
     var body: some View {
@@ -56,14 +65,23 @@ struct Mechanics2DViewport: View {
                     .onEnded { _ in dragBodyId = nil }
             )
             .onTapGesture { location in
-                guard tapEnabled else { return }
-                spawnParticle(at: location)
+                handleTap(at: location)
             }
+            .gesture(
+                LongPressGesture(minimumDuration: 0.45)
+                    .sequenced(before: DragGesture(minimumDistance: 0))
+                    .onEnded { value in
+                        if case .second(true, let drag?) = value {
+                            handleLongPress(at: drag.startLocation)
+                        }
+                    }
+            )
             .overlay(alignment: .bottomTrailing) {
                 hintLabel
             }
 
             toggleRow
+            timeScaleRow
             controls
         }
         .onAppear { reset() }
@@ -73,8 +91,8 @@ struct Mechanics2DViewport: View {
     @ViewBuilder
     private var hintLabel: some View {
         let text: String? = {
-            if !running && dragBodyId == nil && hasMovableBody { return "일시정지 중 — 입자를 끌어 위치 변경" }
-            if tapEnabled { return "탭 → 입자 추가" }
+            if tapEnabled { return "탭 → 입자 추가 · 길게 누르면 삭제" }
+            if !hasDraggedBody && hasMovableBody { return "입자를 끌어 위치 변경" }
             return nil
         }()
         if let t = text {
@@ -93,47 +111,90 @@ struct Mechanics2DViewport: View {
 
     private var toggleRow: some View {
         HStack(spacing: 8) {
-            Button { vectorsOn.toggle() } label: {
-                Label("벡터", systemImage: "arrow.up.right")
-                    .font(.caption.weight(.medium))
-                    .frame(maxWidth: .infinity)
+            chipToggle("벡터", systemImage: "arrow.up.right", on: vectorsOn) {
+                vectorsOn.toggle(); haptic(.light)
             }
-            .buttonStyle(.glass)
-            .tint(vectorsOn ? Theme.glow : Theme.mist)
+            chipToggle("에너지", systemImage: "chart.bar.fill", on: energyOn) {
+                energyOn.toggle(); haptic(.light)
+            }
+            chipToggle("자취", systemImage: "scribble", on: trailsOn) {
+                trailsOn.toggle(); haptic(.light)
+                world.trailEnabled = trailsOn
+                if !trailsOn { world.trails.removeAll() }
+            }
+        }
+    }
 
-            Button { energyOn.toggle() } label: {
-                Label("에너지", systemImage: "chart.bar.fill")
-                    .font(.caption.weight(.medium))
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.glass)
-            .tint(energyOn ? Theme.glow : Theme.mist)
+    private func chipToggle(_ title: String, systemImage: String, on: Bool,
+                             action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Label(title, systemImage: systemImage)
+                .font(.caption.weight(.medium))
+                .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.glass)
+        .tint(on ? Theme.glow : Theme.mist)
+    }
+
+    private var timeScaleRow: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "timer")
+                .font(.caption2)
+                .foregroundStyle(Theme.mist)
+            Slider(value: $timeScale, in: 0.25...4).tint(Theme.glow)
+            Text(String(format: "%.2fx", timeScale))
+                .font(.caption2.monospacedDigit())
+                .foregroundStyle(Theme.glow)
+                .frame(width: 46, alignment: .trailing)
         }
     }
 
     private var controls: some View {
         HStack(spacing: 8) {
-            Button {
-                if !running && allBodiesAtRest() { reset() }
-                running.toggle()
-            } label: {
-                Label(running ? "일시정지" : "재생",
-                      systemImage: running ? "pause.fill" : "play.fill")
-                    .font(.callout.weight(.semibold))
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.glassProminent)
-            .tint(Theme.glow)
-
-            Button {
-                reset()
-            } label: {
-                Label("처음부터", systemImage: "arrow.counterclockwise")
-                    .font(.callout.weight(.semibold))
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.glass)
+            playButton
+            stepButton
+            resetButton
         }
+    }
+
+    private var playButton: some View {
+        Button {
+            if !running && allBodiesAtRest() { reset() }
+            running.toggle()
+            haptic(.medium)
+        } label: {
+            Label(running ? "일시정지" : "재생",
+                  systemImage: running ? "pause.fill" : "play.fill")
+                .font(.callout.weight(.semibold))
+                .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.glassProminent)
+        .tint(Theme.glow)
+    }
+
+    private var stepButton: some View {
+        Button {
+            stepOnce()
+            haptic(.light)
+        } label: {
+            Label("1프레임", systemImage: "forward.frame.fill")
+                .font(.callout.weight(.semibold))
+                .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.glass)
+        .disabled(running)
+    }
+
+    private var resetButton: some View {
+        Button {
+            reset()
+            haptic(.medium)
+        } label: {
+            Label("처음부터", systemImage: "arrow.counterclockwise")
+                .font(.callout.weight(.semibold))
+                .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.glass)
     }
 
     private func allBodiesAtRest() -> Bool {
@@ -178,7 +239,35 @@ struct Mechanics2DViewport: View {
         }
         lastTick = nil
         running = false
+        inspectedId = nil
+        energyHistory.removeAll()
+        trailsOn = world.trailEnabled
         redrawTick &+= 1
+    }
+
+    private func stepOnce() {
+        let dt = (1.0 / 60.0) * timeScale
+        let sub = 8
+        let h = dt / Double(sub)
+        for _ in 0..<sub { world.step(dt: h) }
+        recordEnergy()
+        if world.bodies.contains(where: { !$0.pos.isFinite || !$0.vel.isFinite }) {
+            reset()
+        }
+    }
+
+    private func recordEnergy() {
+        guard energyOn else { return }
+        energyHistory.append(world.energyBreakdown())
+        if energyHistory.count > energyHistMax {
+            energyHistory.removeFirst(energyHistory.count - energyHistMax)
+        }
+    }
+
+    private func haptic(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
+        #if canImport(UIKit)
+        UIImpactFeedbackGenerator(style: style).impactOccurred()
+        #endif
     }
 
     private func viewScale() -> CGFloat {
@@ -195,6 +284,28 @@ struct Mechanics2DViewport: View {
         let wx = Double((pt.x - cx) / scale) + extent.center.x
         let wy = -Double((pt.y - cy) / scale) + extent.center.y
         return Vec3(x: wx, y: wy, z: 0)
+    }
+
+    private func handleTap(at screenPt: CGPoint) {
+        if let id = pickBody(at: screenPt, requireMovable: false) {
+            inspectedId = (inspectedId == id) ? nil : id
+            haptic(.light)
+            return
+        }
+        if tapEnabled {
+            spawnParticle(at: screenPt)
+            return
+        }
+        inspectedId = nil
+    }
+
+    private func handleLongPress(at screenPt: CGPoint) {
+        guard tapEnabled,
+              let id = pickBody(at: screenPt, requireMovable: true),
+              let idx = world.bodies.firstIndex(where: { $0.id == id }) else { return }
+        world.bodies.remove(at: idx)
+        if inspectedId == id { inspectedId = nil }
+        haptic(.medium)
     }
 
     private func spawnParticle(at screenPt: CGPoint) {
@@ -218,22 +329,42 @@ struct Mechanics2DViewport: View {
     private func handleDrag(at screenPt: CGPoint, start: CGPoint) {
         guard !running, canvasSize.width > 0 else { return }
         if dragBodyId == nil {
-            dragBodyId = pickBody(at: start)
+            dragBodyId = pickBody(at: start, requireMovable: true)
+            if dragBodyId != nil {
+                if !hasDraggedBody { hasDraggedBody = true }
+                haptic(.light)
+            }
         }
         guard let id = dragBodyId,
               let idx = world.bodies.firstIndex(where: { $0.id == id }) else { return }
-        let newPos = screenToWorld(screenPt)
-        world.bodies[idx].pos = newPos
-        world.bodies[idx].vel = .zero
+        let target = screenToWorld(screenPt)
+        world.bodies[idx].pos = constrainDragPosition(id: id, target: target)
+        if !running { world.bodies[idx].vel = .zero }
+        inspectedId = id
     }
 
-    private func pickBody(at screenPt: CGPoint) -> UUID? {
+    private func constrainDragPosition(id: UUID, target: Vec3) -> Vec3 {
+        for s in world.springs where s.rigid {
+            let otherId: UUID? = s.aId == id ? s.bId : (s.bId == id ? s.aId : nil)
+            guard let oid = otherId,
+                  let other = world.bodies.first(where: { $0.id == oid }),
+                  other.pinned else { continue }
+            let d = target - other.pos
+            let dist = d.length
+            guard dist > 1e-9 else { return target }
+            return other.pos + d * (s.restLength / dist)
+        }
+        return target
+    }
+
+    private func pickBody(at screenPt: CGPoint, requireMovable: Bool) -> UUID? {
         let worldPt = screenToWorld(screenPt)
         let scale = max(viewScale(), 1)
         let minHit = 22.0 / Double(scale)
         var bestId: UUID? = nil
         var bestDist = Double.infinity
-        for body in world.bodies where !body.pinned {
+        for body in world.bodies {
+            if requireMovable && body.pinned { continue }
             let d = (body.pos - worldPt).length
             let hit = max(body.radius * 1.6, minHit)
             if d < hit && d < bestDist {
@@ -247,12 +378,14 @@ struct Mechanics2DViewport: View {
     private func advance(to now: TimeInterval) {
         guard let last = lastTick else { lastTick = now; return }
         guard running else { lastTick = now; return }
-        var dt = now - last
-        if dt > 0.05 { dt = 0.05 }
+        var dt = (now - last) * timeScale
+        let dtCap = 0.05 * max(timeScale, 1)
+        if dt > dtCap { dt = dtCap }
         lastTick = now
         let sub = 8
         let h = dt / Double(sub)
         for _ in 0..<sub { world.step(dt: h) }
+        recordEnergy()
         if world.bodies.contains(where: {
             !$0.pos.isFinite || !$0.vel.isFinite
         }) {
@@ -355,8 +488,72 @@ struct Mechanics2DViewport: View {
         if vectorsOn {
             drawVectors(ctx: ctx, scale: scale, cx: cx, cy: cy, ext: extent.center)
         }
+        drawBodyLabels(ctx: ctx, scale: scale, cx: cx, cy: cy, ext: extent.center)
         if energyOn {
             drawEnergyPanel(ctx: ctx, in: CGRect(origin: .zero, size: size))
+        }
+        if let id = inspectedId,
+           let body = world.bodies.first(where: { $0.id == id }) {
+            drawInspector(ctx: ctx, in: CGRect(origin: .zero, size: size),
+                          body: body, scale: scale, cx: cx, cy: cy, ext: extent.center)
+        }
+    }
+
+    private func drawBodyLabels(ctx: GraphicsContext, scale: CGFloat,
+                                 cx: CGFloat, cy: CGFloat, ext: CGPoint) {
+        for body in world.bodies {
+            guard let name = body.name, body.pos.isFinite else { continue }
+            let p = mapPoint(body.pos, scale: scale, cx: cx, cy: cy, ext: ext)
+            let pr = max(2, CGFloat(body.radius) * scale)
+            ctx.draw(
+                Text(name).font(.caption2.weight(.medium))
+                    .foregroundStyle(Theme.mist.opacity(0.9)),
+                at: CGPoint(x: p.x, y: p.y - pr - 8))
+        }
+    }
+
+    private func drawInspector(ctx: GraphicsContext, in r: CGRect,
+                                body: PhysicsBody, scale: CGFloat,
+                                cx: CGFloat, cy: CGFloat, ext: CGPoint) {
+        let accels = world.accelerations()
+        let idx = world.bodies.firstIndex(where: { $0.id == body.id }) ?? 0
+        let a = idx < accels.count ? accels[idx] : .zero
+        let ke = body.pinned ? 0 : 0.5 * body.mass * body.vel.lengthSquared
+        let lines: [String] = [
+            body.name ?? (body.kind.rawValue),
+            String(format: "m = %.2f", body.mass),
+            String(format: "|v| = %.3f", body.vel.length),
+            String(format: "|a| = %.3f", a.length),
+            String(format: "KE = %.3f", ke),
+        ]
+
+        let p = mapPoint(body.pos, scale: scale, cx: cx, cy: cy, ext: ext)
+        let pr = max(2, CGFloat(body.radius) * scale)
+        // 본체 강조 링
+        ctx.stroke(Path(ellipseIn: CGRect(x: p.x - pr - 4, y: p.y - pr - 4,
+                                          width: pr * 2 + 8, height: pr * 2 + 8)),
+                   with: .color(Theme.glow.opacity(0.9)),
+                   style: StrokeStyle(lineWidth: 1.5, dash: [3, 3]))
+
+        let panelW: CGFloat = 132, panelH: CGFloat = 86
+        var pX = p.x + pr + 10
+        var pY = p.y - panelH / 2
+        // 가장자리에 닿지 않게
+        pX = min(pX, r.maxX - panelW - 6)
+        pX = max(pX, r.minX + 6)
+        pY = min(pY, r.maxY - panelH - 6)
+        pY = max(pY, r.minY + 6)
+        let panel = CGRect(x: pX, y: pY, width: panelW, height: panelH)
+        ctx.fill(Path(roundedRect: panel, cornerRadius: 8),
+                 with: .color(Theme.deep.opacity(0.88)))
+        ctx.stroke(Path(roundedRect: panel, cornerRadius: 8),
+                   with: .color(Theme.glow.opacity(0.6)), lineWidth: 1)
+        for (i, line) in lines.enumerated() {
+            let font: Font = i == 0 ? .caption.weight(.bold) : .caption2.monospacedDigit()
+            let color: Color = i == 0 ? Theme.glow : Theme.mist
+            ctx.draw(Text(line).font(font).foregroundStyle(color),
+                     at: CGPoint(x: panel.minX + 8, y: panel.minY + 10 + CGFloat(i) * 14),
+                     anchor: .leading)
         }
     }
 
@@ -410,51 +607,68 @@ struct Mechanics2DViewport: View {
     }
 
     private func drawEnergyPanel(ctx: GraphicsContext, in r: CGRect) {
-        let e = world.energyBreakdown()
-        let total = e.kinetic + e.potential
-        let scale = max(abs(e.kinetic), abs(e.potential), abs(total), 0.001)
-
-        let panelW: CGFloat = 138, panelH: CGFloat = 64
+        let panelW: CGFloat = min(220, r.width * 0.4)
+        let panelH: CGFloat = 92
         let panel = CGRect(x: r.maxX - panelW - 8, y: r.minY + 8,
                            width: panelW, height: panelH)
         ctx.fill(Path(roundedRect: panel, cornerRadius: 8),
-                 with: .color(Theme.deep.opacity(0.78)))
+                 with: .color(Theme.deep.opacity(0.82)))
         ctx.stroke(Path(roundedRect: panel, cornerRadius: 8),
                    with: .color(Theme.stroke), lineWidth: 1)
 
-        let entries: [(String, Double, Color)] = [
-            ("KE", e.kinetic, .green),
-            ("PE", e.potential, .orange),
-            ("ΣE", total, .yellow),
+        let e = world.energyBreakdown()
+        let total = e.total
+        // 헤더
+        ctx.draw(Text(String(format: "KE %.2f  PE %+.2f  ΣE %+.2f",
+                              e.kinetic, e.potential, total))
+                    .font(.caption2.monospacedDigit().weight(.semibold))
+                    .foregroundStyle(Theme.glow),
+                 at: CGPoint(x: panel.midX, y: panel.minY + 10))
+
+        let plot = panel.insetBy(dx: 8, dy: 8)
+            .offsetBy(dx: 0, dy: 6)
+        let plotR = CGRect(x: plot.minX, y: plot.minY + 6,
+                           width: plot.width, height: plot.height - 6)
+        ctx.stroke(Path(roundedRect: plotR, cornerRadius: 4),
+                   with: .color(Theme.ink.opacity(0.25)), lineWidth: 0.6)
+
+        guard energyHistory.count > 1 else {
+            ctx.draw(Text("재생 중 에너지 추이 기록")
+                        .font(.caption2).foregroundStyle(Theme.mist.opacity(0.6)),
+                     at: CGPoint(x: plotR.midX, y: plotR.midY))
+            return
+        }
+
+        let allValues = energyHistory.flatMap { [$0.kinetic, $0.potential, $0.total] }
+        let lo = allValues.min() ?? 0
+        let hi = allValues.max() ?? 1
+        let span = max(hi - lo, 0.001)
+
+        // 0 기준선
+        if lo < 0 && hi > 0 {
+            let zeroY = plotR.maxY - CGFloat((0 - lo) / span) * plotR.height
+            var z = Path()
+            z.move(to: CGPoint(x: plotR.minX, y: zeroY))
+            z.addLine(to: CGPoint(x: plotR.maxX, y: zeroY))
+            ctx.stroke(z, with: .color(Theme.ink.opacity(0.3)),
+                       style: StrokeStyle(lineWidth: 0.5, dash: [2, 2]))
+        }
+
+        let entries: [(KeyPath<World.EnergyBreakdown, Double>, Color)] = [
+            (\.kinetic, .green),
+            (\.potential, .orange),
+            (\.total,    .yellow),
         ]
-        let labelW: CGFloat = 22, valueW: CGFloat = 46
-        let barW = panel.width - labelW - valueW - 12
-        for (i, item) in entries.enumerated() {
-            let y = panel.minY + 8 + CGFloat(i) * 18
-            ctx.draw(Text(item.0).font(.caption2.weight(.bold))
-                        .foregroundStyle(Theme.mist),
-                     at: CGPoint(x: panel.minX + 4 + labelW / 2, y: y + 5))
-            let bg = CGRect(x: panel.minX + 4 + labelW, y: y + 2,
-                            width: barW, height: 6)
-            ctx.stroke(Path(roundedRect: bg, cornerRadius: 2),
-                       with: .color(Theme.ink.opacity(0.35)), lineWidth: 0.6)
-            // 0 마크
-            var zero = Path()
-            zero.move(to: CGPoint(x: bg.midX, y: bg.minY))
-            zero.addLine(to: CGPoint(x: bg.midX, y: bg.maxY))
-            ctx.stroke(zero, with: .color(Theme.ink.opacity(0.3)), lineWidth: 0.6)
-            // 부호 막대 (중앙 기준)
-            let frac = max(-1.0, min(1.0, item.1 / scale))
-            let halfW = bg.width / 2
-            let fillW = CGFloat(abs(frac)) * halfW
-            let fillX = frac >= 0 ? bg.midX : bg.midX - fillW
-            ctx.fill(Path(roundedRect: CGRect(x: fillX, y: bg.minY,
-                                               width: fillW, height: bg.height),
-                          cornerRadius: 2),
-                     with: .color(item.2.opacity(0.8)))
-            ctx.draw(Text(String(format: "%+.2f", item.1))
-                        .font(.caption2.monospacedDigit()).foregroundStyle(Theme.glow),
-                     at: CGPoint(x: panel.maxX - valueW / 2 - 4, y: y + 5))
+        for (kp, color) in entries {
+            var path = Path()
+            for (i, e) in energyHistory.enumerated() {
+                let f = CGFloat(i) / CGFloat(max(energyHistMax - 1, 1))
+                let px = plotR.minX + f * plotR.width
+                let py = plotR.maxY - CGFloat((e[keyPath: kp] - lo) / span) * plotR.height
+                if i == 0 { path.move(to: CGPoint(x: px, y: py)) }
+                else      { path.addLine(to: CGPoint(x: px, y: py)) }
+            }
+            ctx.stroke(path, with: .color(color), lineWidth: 1.2)
         }
     }
 

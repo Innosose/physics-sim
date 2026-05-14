@@ -10,6 +10,7 @@ struct PhysicsBody: Identifiable {
     var color: Color = .yellow
     var pinned: Bool = false
     var kind: Kind = .particle
+    var name: String? = nil
 
     enum Kind: String, Hashable {
         case particle, planet, star, charge, photon, anchor
