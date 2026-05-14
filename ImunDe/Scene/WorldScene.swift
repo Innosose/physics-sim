@@ -74,9 +74,10 @@ struct ConceptCard: View {
 
             if expanded {
                 Text(topic.formula)
-                    .font(.system(size: 12, design: .monospaced))
+                    .font(.system(.callout, design: .serif))
                     .foregroundStyle(Theme.ink)
                     .textSelection(.enabled)
+                    .lineSpacing(4)
                     .padding(10)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(

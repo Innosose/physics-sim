@@ -20,9 +20,16 @@ struct WaveViewport: View {
 }
 
 private struct WaveSumView: View {
+    enum Axis: String, CaseIterable, Identifiable {
+        case space = "공간 x"
+        case time  = "시간 t (맥놀이)"
+        var id: String { rawValue }
+    }
+
     @State private var f1: Double = 1.0
     @State private var f2: Double = 1.1
     @State private var oppose: Bool = false
+    @State private var axis: Axis = .space
     @State private var elapsed: Double = 0
     @State private var lastTick: TimeInterval? = nil
     @State private var running: Bool = true
@@ -39,9 +46,15 @@ private struct WaveSumView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             VStack(alignment: .leading, spacing: 8) {
+                Picker("축", selection: $axis) {
+                    ForEach(Axis.allCases) { a in Text(a.rawValue).tag(a) }
+                }
+                .pickerStyle(.segmented)
                 slider("f₁", value: $f1, range: 0.1...4, unit: "Hz")
                 slider("f₂", value: $f2, range: 0.1...4, unit: "Hz")
-                Toggle("두 번째 파 반대 진행 (정상파)", isOn: $oppose).font(.caption)
+                Toggle("두 번째 파 반대 진행 (정상파)", isOn: $oppose)
+                    .font(.caption)
+                    .disabled(axis == .time)
                 playReset
             }
         }
@@ -107,12 +120,19 @@ private struct WaveSumView: View {
                           sign: Double, color: Color) {
         var path = Path()
         let n = 400
-        let xMax = 12.0
         let amplitudePx = r.height * 0.4
         for i in 0...n {
             let f = Double(i) / Double(n)
-            let x = f * xMax
-            let y = amp * sin(x - sign * omega * t)
+            let y: Double
+            if axis == .space {
+                let x = f * 12.0
+                y = amp * sin(x - sign * omega * t)
+            } else {
+                // 한 점(x=0)에서 시간에 따른 진폭
+                let timeWindow = 6.0
+                let tau = t - timeWindow * (1 - f)
+                y = amp * sin(-omega * tau)
+            }
             let px = r.minX + CGFloat(f) * r.width
             let py = r.midY - CGFloat(y) * amplitudePx / 1.5
             if i == 0 { path.move(to: CGPoint(x: px, y: py)) }
@@ -124,21 +144,52 @@ private struct WaveSumView: View {
     private func drawSum(_ ctx: GraphicsContext, in r: CGRect, t: Double) {
         var path = Path()
         let n = 600
-        let xMax = 12.0
         let s2: Double = oppose ? -1 : 1
         let ω1 = 2 * .pi * f1
         let ω2 = 2 * .pi * f2
         let amp = r.height * 0.45
         for i in 0...n {
             let f = Double(i) / Double(n)
-            let x = f * xMax
-            let y = sin(x - ω1 * t) + sin(x - s2 * ω2 * t)
+            let y: Double
+            if axis == .space {
+                let x = f * 12.0
+                y = sin(x - ω1 * t) + sin(x - s2 * ω2 * t)
+            } else {
+                let timeWindow = 6.0
+                let tau = t - timeWindow * (1 - f)
+                y = sin(-ω1 * tau) + sin(-ω2 * tau)
+            }
             let px = r.minX + CGFloat(f) * r.width
             let py = r.midY - CGFloat(y) * amp / 3
             if i == 0 { path.move(to: CGPoint(x: px, y: py)) }
             else      { path.addLine(to: CGPoint(x: px, y: py)) }
         }
         ctx.stroke(path, with: .color(.yellow), lineWidth: 1.8)
+
+        if axis == .time && abs(f1 - f2) > 0.001 && !oppose {
+            // 맥놀이 포락선
+            let beat = abs(f1 - f2)
+            let avg = (f1 + f2) / 2
+            let timeWindow = 6.0
+            var envUp = Path(), envDn = Path()
+            for i in 0...n {
+                let f = Double(i) / Double(n)
+                let tau = t - timeWindow * (1 - f)
+                let env = 2 * abs(cos(.pi * beat * tau))
+                _ = avg
+                let px = r.minX + CGFloat(f) * r.width
+                let pyUp = r.midY - CGFloat(env) * amp / 3
+                let pyDn = r.midY + CGFloat(env) * amp / 3
+                if i == 0 { envUp.move(to: CGPoint(x: px, y: pyUp))
+                            envDn.move(to: CGPoint(x: px, y: pyDn)) }
+                else      { envUp.addLine(to: CGPoint(x: px, y: pyUp))
+                            envDn.addLine(to: CGPoint(x: px, y: pyDn)) }
+            }
+            ctx.stroke(envUp, with: .color(.yellow.opacity(0.35)),
+                       style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
+            ctx.stroke(envDn, with: .color(.yellow.opacity(0.35)),
+                       style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
+        }
     }
 }
 
@@ -187,8 +238,7 @@ private struct DopplerView: View {
                 }
                 running.toggle()
             } label: {
-                Label(running ? "일시정지" : "재생",
-                      systemImage: running ? "pause.fill" : "play.fill")
+                Label(playLabel, systemImage: playIcon)
                     .font(.callout.weight(.semibold))
                     .frame(maxWidth: .infinity)
             }
@@ -204,6 +254,17 @@ private struct DopplerView: View {
             }
             .buttonStyle(.glass)
         }
+    }
+
+    private var playLabel: String {
+        if running { return "일시정지" }
+        if sourceAtWall { return "다시 재생" }
+        return "재생"
+    }
+    private var playIcon: String {
+        if running { return "pause.fill" }
+        if sourceAtWall { return "arrow.clockwise" }
+        return "play.fill"
     }
 
     private func advance(to now: TimeInterval) {

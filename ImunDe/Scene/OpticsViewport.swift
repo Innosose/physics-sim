@@ -175,17 +175,30 @@ private struct LensView: View {
 }
 
 private struct DoubleSlitView: View {
+    enum Mode: String, CaseIterable, Identifiable {
+        case both    = "이중 슬릿"
+        case single  = "단일 슬릿"
+        case compare = "비교"
+        var id: String { rawValue }
+    }
+
     @State private var lambdaNm: Double = 550
     @State private var dUm: Double      = 50
     @State private var aUm: Double      = 8
     @State private var D: Double        = 1.5
+    @State private var mode: Mode       = .both
 
     var body: some View {
         VStack(spacing: 8) {
             Canvas { ctx, size in draw(ctx: ctx, size: size) }
             VStack(alignment: .leading, spacing: 8) {
+                Picker("모드", selection: $mode) {
+                    ForEach(Mode.allCases) { m in Text(m.rawValue).tag(m) }
+                }
+                .pickerStyle(.segmented)
                 slider("λ", value: $lambdaNm, range: 380...780, unit: "nm")
                 slider("d", value: $dUm, range: 10...200, unit: "μm")
+                    .disabled(mode == .single)
                 slider("a", value: $aUm, range: 2...30, unit: "μm")
                 slider("D", value: $D, range: 0.3...3, unit: "m")
             }
@@ -216,40 +229,72 @@ private struct DoubleSlitView: View {
         let λ = lambdaNm * 1e-9
         let d = dUm * 1e-6
         let a = aUm * 1e-6
-        let yMax = λ * D / d * 5
+        let yMax = λ * D / max(d, 1e-9) * 5
         let n = 600
-        var samples: [(Double, Double)] = []
-        var Imax = 0.001
-        for k in 0...n {
-            let f = Double(k) / Double(n)
-            let y = -yMax + 2 * yMax * f
+
+        func intensities(_ y: Double) -> (combined: Double, singleOnly: Double) {
             let θ = atan2(y, D)
             let kλ = .pi * d / λ * sin(θ)
             let aλ = .pi * a / λ * sin(θ)
             let single = abs(aλ) < 1e-9 ? 1.0 : pow(sin(aλ) / aλ, 2)
             let interf = pow(cos(kλ), 2)
-            let I = single * interf
-            samples.append((y, I)); Imax = max(Imax, I)
+            return (single * interf, single)
         }
-        let color = wavelengthColor(lambdaNm)
 
-        for (y, I) in samples {
+        var combined: [(Double, Double)] = []
+        var singleOnly: [(Double, Double)] = []
+        var combMax = 0.001, singMax = 0.001
+        for k in 0...n {
+            let f = Double(k) / Double(n)
+            let y = -yMax + 2 * yMax * f
+            let (c, s) = intensities(y)
+            combined.append((y, c)); combMax = max(combMax, c)
+            singleOnly.append((y, s)); singMax = max(singMax, s)
+        }
+
+        let displaySamples: [(Double, Double)] = mode == .single ? singleOnly : combined
+        let displayMax: Double = mode == .single ? singMax : combMax
+        let stripColor = wavelengthColor(lambdaNm)
+
+        for (y, I) in displaySamples {
             let f = CGFloat((y + yMax) / (2 * yMax))
             let x = stripRect.minX + f * stripRect.width
             let bar = CGRect(x: x, y: stripRect.minY,
                              width: stripRect.width / CGFloat(n) + 1, height: stripRect.height)
-            ctx.fill(Path(bar), with: .color(color.opacity(I / Imax)))
+            ctx.fill(Path(bar), with: .color(stripColor.opacity(I / displayMax)))
         }
 
-        var path = Path()
-        for (idx, (y, I)) in samples.enumerated() {
-            let f = CGFloat((y + yMax) / (2 * yMax))
-            let x = curveRect.minX + f * curveRect.width
-            let py = curveRect.maxY - CGFloat(I / Imax) * (curveRect.height - 6)
-            if idx == 0 { path.move(to: CGPoint(x: x, y: py)) }
-            else        { path.addLine(to: CGPoint(x: x, y: py)) }
+        let curveInner = curveRect.insetBy(dx: 0, dy: 3)
+
+        func curvePath(samples: [(Double, Double)], maxI: Double) -> Path {
+            var p = Path()
+            for (idx, (y, I)) in samples.enumerated() {
+                let f = CGFloat((y + yMax) / (2 * yMax))
+                let x = curveInner.minX + f * curveInner.width
+                let py = curveInner.maxY - CGFloat(I / maxI) * curveInner.height
+                if idx == 0 { p.move(to: CGPoint(x: x, y: py)) }
+                else        { p.addLine(to: CGPoint(x: x, y: py)) }
+            }
+            return p
         }
-        ctx.stroke(path, with: .color(.yellow), lineWidth: 1.6)
+
+        switch mode {
+        case .both:
+            ctx.stroke(curvePath(samples: combined, maxI: combMax),
+                       with: .color(.yellow), lineWidth: 1.6)
+        case .single:
+            ctx.stroke(curvePath(samples: singleOnly, maxI: singMax),
+                       with: .color(.orange), lineWidth: 1.6)
+        case .compare:
+            ctx.stroke(curvePath(samples: singleOnly, maxI: combMax),
+                       with: .color(.orange.opacity(0.85)),
+                       style: StrokeStyle(lineWidth: 1.2, dash: [3, 2]))
+            ctx.stroke(curvePath(samples: combined, maxI: combMax),
+                       with: .color(.yellow), lineWidth: 1.6)
+            ctx.draw(Text("주황: 단일슬릿 회절 포락선   노랑: 이중슬릿 간섭")
+                        .font(.caption2).foregroundStyle(Theme.mist.opacity(0.85)),
+                     at: CGPoint(x: curveInner.midX, y: curveInner.minY + 10))
+        }
     }
 
     private func wavelengthColor(_ wl: Double) -> Color {
