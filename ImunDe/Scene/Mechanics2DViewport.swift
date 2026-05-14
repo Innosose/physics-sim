@@ -428,9 +428,15 @@ struct Mechanics2DViewport: View {
         if let t = text {
             Text(t)
                 .font(.caption2)
-                .foregroundStyle(reduceTransparency ? Theme.ink : Theme.mist.opacity(0.9))
+                // Liquid Glass 는 affordance (touch 가능 표면) 전용 — toast
+                // 형태의 상태 안내는 opaque material 이 HIG 권장. 또한
+                // hint 텍스트 가독성이 1순위.
+                .foregroundStyle(Theme.mist)
                 .padding(.horizontal, 10).padding(.vertical, 4)
-                .glassEffect(.regular, in: Capsule())
+                .background(
+                    Capsule().fill(Theme.surface)
+                        .overlay(Capsule().stroke(Theme.stroke, lineWidth: 0.5))
+                )
                 .padding(.bottom, 56)  // transportBar (~44pt) 위 살짝 띄움
                 .allowsHitTesting(false)
         }
@@ -1052,13 +1058,16 @@ struct Mechanics2DViewport: View {
         if autoStopped {
             Text("정지됨")
                 .font(.caption2.weight(.semibold))
-                .foregroundStyle(reduceTransparency ? Theme.ink : Theme.mist)
+                .foregroundStyle(Theme.mist)
                 .padding(.horizontal, 10).padding(.vertical, 3)
-                .glassEffect(.regular, in: Capsule())
+                .background(
+                    Capsule().fill(Theme.surface)
+                        .overlay(Capsule().stroke(Theme.stroke, lineWidth: 0.5))
+                )
                 .padding(.leading, 8).padding(.bottom, 8)
                 .allowsHitTesting(false)
                 .transition(.opacity)
-                .animation(.easeOut(duration: 0.3), value: autoStopped)
+                .animation(reduceMotion ? nil : .easeOut(duration: 0.3), value: autoStopped)
         }
     }
 
@@ -1251,7 +1260,11 @@ struct Mechanics2DViewport: View {
 
     private func haptic(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
         #if canImport(UIKit)
-        UIImpactFeedbackGenerator(style: style).impactOccurred()
+        // prepare() 한 번 워밍업으로 첫 impact 지연 (60ms~) 제거.
+        // 인스턴스 재사용은 SwiftUI 의 struct 라이프사이클상 비실용적.
+        let g = UIImpactFeedbackGenerator(style: style)
+        g.prepare()
+        g.impactOccurred()
         #endif
     }
 

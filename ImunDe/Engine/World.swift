@@ -1,7 +1,9 @@
 import Foundation
+import Observation
 
 enum Integrator { case euler, velocityVerlet, rk4 }
 
+@Observable
 final class World {
     var bodies: [PhysicsBody] = []
     var springs: [Spring] = []

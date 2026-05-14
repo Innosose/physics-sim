@@ -24,14 +24,13 @@ private struct AppRoot: View {
             if showSplash {
                 SplashView()
                     .transition(.opacity)
-                    .onAppear {
+                    .task {
                         // Total splash time before fading out.
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.55) {
-                            if reduceMotion { showSplash = false }
-                            else {
-                                withAnimation(.easeInOut(duration: 0.45)) {
-                                    showSplash = false
-                                }
+                        try? await Task.sleep(for: .milliseconds(1550))
+                        if reduceMotion { showSplash = false }
+                        else {
+                            withAnimation(.easeInOut(duration: 0.45)) {
+                                showSplash = false
                             }
                         }
                     }
