@@ -9,7 +9,7 @@ enum MechanicsPresets {
                           max: Vec3(x: 6, y: 50, z: 2),
                           restitution: 0)
         w.trailEnabled = true
-        w.trailMax = 300
+        w.trailMax = 240
         w.bodies = [
             PhysicsBody(pos: Vec3(x: 0, y: 48, z: 0),
                         vel: .zero,
@@ -28,7 +28,7 @@ enum MechanicsPresets {
                           max: Vec3(x: 80, y: 40, z: 3),
                           restitution: 0)
         w.trailEnabled = true
-        w.trailMax = 500
+        w.trailMax = 240
         w.bodies = [
             PhysicsBody(pos: Vec3(x: 0, y: 0.5, z: 0),
                         vel: Vec3(x: v0 * cos(θ), y: v0 * sin(θ), z: 0),
@@ -77,6 +77,12 @@ enum MechanicsPresets {
     static func spring(_ w: World) {
         w.integrator = .velocityVerlet
         w.gravity = .zero
+        // bounds 추가 — 학습자가 mass 를 슬라이더/드래그로 벽 너머 위치로
+        // 보내거나 스프링이 stretch=∞ 가 되는 것을 차단. restitution 1 로
+        // 벽이 탄성 반사 — 자유 진동 + 벽 충돌 합성으로 학습 가능.
+        w.bounds = Bounds(min: Vec3(x: -3, y: -2, z: -1),
+                          max: Vec3(x:  8, y:  4, z:  1),
+                          restitution: 1.0)
         let wall = PhysicsBody(pos: Vec3(x: -3, y: 1, z: 0),
                                mass: 1e9, radius: 0.2,
                                color: Theme.mist, pinned: true, kind: .anchor)
@@ -95,7 +101,7 @@ enum MechanicsPresets {
         w.pairwiseGravity = true
         w.G = 1.0
         w.trailEnabled = true
-        w.trailMax = 500
+        w.trailMax = 240
         let sun = PhysicsBody(pos: .zero, mass: 200, radius: 0.6,
                               color: Theme.bodyPalette[0],
                               pinned: true, kind: .star)
@@ -134,7 +140,7 @@ enum MechanicsPresets {
         w.pairwiseGravity = true
         w.G = 1.0
         w.trailEnabled = true
-        w.trailMax = 400
+        w.trailMax = 240
         var sun = PhysicsBody(pos: .zero, mass: 300, radius: 0.55,
                               color: Theme.bodyPalette[0],
                               pinned: true, kind: .star)
@@ -166,7 +172,7 @@ enum MechanicsPresets {
         w.pairwiseGravity = true
         w.G = 1.0
         w.trailEnabled = true
-        w.trailMax = 500
+        w.trailMax = 240
         let v12 = Vec3(x: 0.93240737 / 2, y: 0.86473146 / 2, z: 0)
         let v3  = Vec3(x: -0.93240737, y: -0.86473146, z: 0)
         var b1 = PhysicsBody(pos: Vec3(x: -0.97000436, y:  0.24308753, z: 0),
@@ -187,7 +193,12 @@ enum MechanicsPresets {
         w.magneticB = Vec3(x: 0, y: 0, z: 1)
         w.electricE = .zero
         w.trailEnabled = true
-        w.trailMax = 400
+        w.trailMax = 240
+        // bounds 추가 — B≈0 일 때 직선 운동으로 무한 비행하던 케이스 차단.
+        // 벽 탄성 반사로 학생이 B=0 vs B>0 거동 차이를 시각 비교 가능.
+        w.bounds = Bounds(min: Vec3(x: -6, y: -4, z: -2),
+                          max: Vec3(x:  6, y:  4, z:  2),
+                          restitution: 1.0)
         w.bodies = [
             PhysicsBody(pos: Vec3(x: -2, y: 0, z: 0),
                         vel: Vec3(x: 1.5, y: 0, z: 0),

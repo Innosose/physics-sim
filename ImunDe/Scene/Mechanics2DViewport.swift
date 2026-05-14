@@ -77,6 +77,8 @@ struct Mechanics2DViewport: View {
     // 텔레포트 + CPU/메모리 thrash. 마지막 변경 후 150ms 안정될 때 한 번만
     // reset.
     @State private var resetDebounceTask: Task<Void, Never>? = nil
+    // 재생/초기화 버튼 마지막 탭 시각 — tap-mash (20×/2초) 보호.
+    @State private var lastTransportTap: Date = .distantPast
     @AppStorage("hasDraggedBody") private var hasDraggedBody = false
     @Environment(\.colorScheme) private var colorScheme
 
@@ -1020,6 +1022,12 @@ struct Mechanics2DViewport: View {
         GlassEffectContainer(spacing: 10) {
             HStack(spacing: 10) {
                 Button {
+                    // tap-mash 보호 — 한국 학생이 재생 버튼을 20×/2초 두드려도
+                    // 50ms 미만 연속 토글은 무시. lastTick 폭주, autoStopped
+                    // 상태 흔들림 방지.
+                    let now = Date()
+                    if now.timeIntervalSince(lastTransportTap) < 0.05 { return }
+                    lastTransportTap = now
                     if !running && allBodiesAtRest() { reset() }
                     running.toggle()
                     if running { autoStopped = false }
@@ -1051,6 +1059,10 @@ struct Mechanics2DViewport: View {
                 .accessibilityLabel(Text("한 프레임 진행"))
 
                 Button {
+                    // tap-mash 보호 — 동일 50ms 디바운스.
+                    let now = Date()
+                    if now.timeIntervalSince(lastTransportTap) < 0.05 { return }
+                    lastTransportTap = now
                     reset()
                     haptic(.medium)
                 } label: {
