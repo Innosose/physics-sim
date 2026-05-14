@@ -55,7 +55,6 @@ struct Mechanics2DViewport: View {
     @State private var dragStart: CGPoint = .zero
     @State private var dragStartTime: Date = .distantPast
     @State private var didMoveBeyondSlop: Bool = false
-    @State private var inspectorSide: InspectorSide = .right
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
@@ -142,13 +141,17 @@ struct Mechanics2DViewport: View {
             .accessibilityAction(named: Text("초기화")) { reset() }
             .overlay { longPressIndicator }
             .overlay(alignment: .topLeading) { zoomBadge }
-            .overlay(alignment: .topTrailing) { miniMapOverlay }
+            .overlay(alignment: .topTrailing) {
+                VStack(alignment: .trailing, spacing: 6) {
+                    miniMapOverlay
+                    inspectorPanel
+                }
+            }
             .overlay(alignment: .bottomTrailing) { hintLabel }
             .overlay(alignment: .bottom) { transportBar }
             .overlay(alignment: .bottomLeading) { settledBadge }
             .overlay(alignment: .topLeading) { coordStatusBar }
             .overlay(alignment: .bottomTrailing) { scaleBar }
-            .overlay { inspectorAccessibilityMirror }
 
             dataSection
 
@@ -446,28 +449,6 @@ struct Mechanics2DViewport: View {
                     rulerOn.toggle(); haptic(.light)
                 }
             }
-        }
-    }
-
-    /// Inspector 패널은 Canvas 안에 그려져 VoiceOver 가 보지 못함.
-    /// 동등한 정보를 노출하는 invisible SwiftUI overlay 를 mirror 로 둔다.
-    /// `.updatesFrequently` 로 VO 재읽기 throttle (과도한 spam 방지).
-    @ViewBuilder
-    private var inspectorAccessibilityMirror: some View {
-        if let id = inspectedId,
-           let body = world.bodies.first(where: { $0.id == id }) {
-            let accels = world.accelerations()
-            let idx = world.bodies.firstIndex(where: { $0.id == id }) ?? 0
-            let a = idx < accels.count ? accels[idx] : .zero
-            let ke = body.pinned ? 0 : 0.5 * body.mass * body.vel.lengthSquared
-            let label = String(
-                format: "%@ — 질량 %.2f, 속력 %.3f, 가속도 %.3f, 운동에너지 %.3f",
-                body.name ?? "선택 입자",
-                body.mass, body.vel.length, a.length, ke)
-            Color.clear
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(Text(label))
-                .accessibilityAddTraits(.updatesFrequently)
         }
     }
 
@@ -1149,8 +1130,6 @@ struct Mechanics2DViewport: View {
         recordEnergy()
         recordMotion()
         updateMaxObservedExtent()
-        updateInspectorSide()
-        updateInspectorSide()
         if world.bodies.contains(where: { !$0.pos.isFinite || !$0.vel.isFinite }) {
             reset()
         }
@@ -1319,7 +1298,6 @@ struct Mechanics2DViewport: View {
         recordEnergy()
         recordMotion()
         updateMaxObservedExtent()
-        updateInspectorSide()
         if !hasEverMoved {
             let maxV = world.bodies.filter { !$0.pinned }
                 .map { $0.vel.length }.max() ?? 0
@@ -1458,10 +1436,12 @@ struct Mechanics2DViewport: View {
         }
         // Energy / graphs panels were moved to a dedicated section below
         // the canvas (see `dataSection`), so they no longer overlay here.
+        // Inspector panel moved to right-docked SwiftUI overlay
+        // (`inspectorPanel`); only reticle stays on canvas.
         if let id = inspectedId,
            let body = world.bodies.first(where: { $0.id == id }) {
-            drawInspector(ctx: ctx, in: CGRect(origin: .zero, size: size),
-                          body: body, scale: scale, cx: cx, cy: cy, ext: extent.center)
+            drawInspectorReticle(ctx: ctx, body: body,
+                                  scale: scale, cx: cx, cy: cy, ext: extent.center)
         }
     }
 
@@ -1478,74 +1458,103 @@ struct Mechanics2DViewport: View {
         }
     }
 
-    private func drawInspector(ctx: GraphicsContext, in r: CGRect,
-                                body: PhysicsBody, scale: CGFloat,
-                                cx: CGFloat, cy: CGFloat, ext: CGPoint) {
+    /// 선택된 body 주변에 작은 reticle (조준원) 만 그림. 정보 패널은
+    /// `inspectorPanel` SwiftUI overlay 가 우측 도킹 위치에 따로 렌더.
+    private func drawInspectorReticle(ctx: GraphicsContext,
+                                        body: PhysicsBody, scale: CGFloat,
+                                        cx: CGFloat, cy: CGFloat, ext: CGPoint) {
+        let p = mapPoint(body.pos, scale: scale, cx: cx, cy: cy, ext: ext)
+        let pr = max(2, CGFloat(body.radius) * scale)
+        Sketchy.circle(center: p, radius: pr + 4, ctx: ctx,
+                        color: Theme.glow, lineWidth: 1.2)
+    }
+
+    /// 인스펙터 정보 줄들 — drawInspector 와 SwiftUI 패널 모두에서 사용.
+    private func inspectorLines(for body: PhysicsBody) -> [String] {
         let accels = world.accelerations()
         let idx = world.bodies.firstIndex(where: { $0.id == body.id }) ?? 0
         let a = idx < accels.count ? accels[idx] : .zero
         let ke = body.pinned ? 0 : 0.5 * body.mass * body.vel.lengthSquared
-        // Per-preset content rows — 공통 (이름, 질량, 속력, 가속도, KE)
-        // 위에 preset 별 추가 정보 (운동량 / 위치 / 전하 / 각도) 부착.
         var lines: [String] = [
             body.name ?? (body.kind.rawValue),
-            String(format: "m = %.2f", body.mass),
-            String(format: "|v| = %.3f", body.vel.length),
-            String(format: "|a| = %.3f", a.length),
-            String(format: "KE = %.3f", ke),
+            "m = \(SciFormat.withUnit(body.mass, unit: "kg"))",
+            "|v| = \(SciFormat.withUnit(body.vel.length, unit: "m/s"))",
+            "|a| = \(SciFormat.withUnit(a.length, unit: "m/s²"))",
+            "KE = \(SciFormat.withUnit(ke, unit: "J"))",
         ]
         switch preset.id {
         case "collision1d", "freecollide", "kepler", "nbody":
-            lines.append(String(format: "p = %.3f", body.mass * body.vel.length))
+            lines.append("p = \(SciFormat.withUnit(body.mass * body.vel.length, unit: "kg·m/s"))")
         case "freefall", "projectile":
-            lines.append(String(format: "(%.2f, %.2f) m", body.pos.x, body.pos.y))
+            lines.append("(\(SciFormat.fixed(body.pos.x, places: 2)), \(SciFormat.fixed(body.pos.y, places: 2))) m")
         case "lorentz", "efield":
-            lines.append(String(format: "q = %+.3f", body.charge))
+            lines.append(String(format: "q = %+.3f C", body.charge))
         case "pendulum":
             if let pivot = world.bodies.first(where: { $0.pinned }) {
                 let dx = body.pos.x - pivot.pos.x
                 let dy = pivot.pos.y - body.pos.y
                 let θ = atan2(dx, dy) * 180 / .pi
-                lines.append(String(format: "θ = %+.1f°", θ))
+                lines.append("θ = \(SciFormat.degrees(θ))")
             }
         default: break
         }
+        return lines
+    }
 
-        let p = mapPoint(body.pos, scale: scale, cx: cx, cy: cy, ext: ext)
-        let pr = max(2, CGFloat(body.radius) * scale)
-        Sketchy.circle(center: p, radius: pr + 4, ctx: ctx,
-                        color: Theme.glow, lineWidth: 1.2)
-
-        let panelW: CGFloat = max(118, min(140, r.width * 0.36))
-        // 6 lines × 14pt + 12pt 패딩 ≈ 96pt — 옛 86pt 는 5 line 기준.
-        let panelH: CGFloat = max(86, min(108, r.height * 0.32))
-
-        // Skip rendering when canvas is too small for the panel — otherwise
-        // the clamp invariant breaks (max(112, …) wins over r.maxX - panelW
-        // - 6) and the panel renders off the right edge.
-        guard r.width >= panelW + 12, r.height >= panelH + 12 else { return }
-
-        // Hysteresis — side flip 은 advance() 의 updateInspectorSide() 에서
-        // 처리. 여기서는 현재 side 만 읽음 (Canvas draw closure 안 state
-        // 변이 금지 — iOS watchdog SIGTERM 원인).
-        var pX: CGFloat = (inspectorSide == .right)
-            ? p.x + pr + 10
-            : p.x - pr - 10 - panelW
-        var pY = p.y - panelH / 2
-        pX = min(max(pX, r.minX + 6), r.maxX - panelW - 6)
-        pY = min(max(pY, r.minY + 6), r.maxY - panelH - 6)
-
-        let panel = CGRect(x: pX, y: pY, width: panelW, height: panelH)
-        ctx.fill(Path(roundedRect: panel, cornerRadius: 8),
-                 with: .color(Theme.surface.opacity(0.94)))
-        ctx.stroke(Path(roundedRect: panel, cornerRadius: 8),
-                   with: .color(Theme.ink.opacity(0.7)), lineWidth: 1.1)
-        for (i, line) in lines.enumerated() {
-            let font: Font = i == 0 ? .caption.weight(.bold) : .caption2.monospacedDigit()
-            let color: Color = i == 0 ? Theme.ink : Theme.mist
-            ctx.draw(Text(line).font(font).foregroundStyle(color),
-                     at: CGPoint(x: panel.minX + 8, y: panel.minY + 10 + CGFloat(i) * 14),
-                     anchor: .leading)
+    /// 우측 도킹 인스펙터 — Canvas 안 floating 패널을 대체. 본체가 어디
+    /// 있든 위치 고정 → 좌/우 side flip 히스테리시스 불필요, body 가림
+    /// 없음, 텍스트 선택/접근성 자연스러움.
+    @ViewBuilder
+    private var inspectorPanel: some View {
+        if let id = inspectedId,
+           let body = world.bodies.first(where: { $0.id == id }) {
+            let lines = inspectorLines(for: body)
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(body.color)
+                        .frame(width: 9, height: 9)
+                        .overlay(Circle().stroke(Theme.ink.opacity(0.4), lineWidth: 0.5))
+                    Text(lines.first ?? "")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Theme.ink)
+                    Spacer(minLength: 0)
+                    Button {
+                        inspectedId = nil
+                        haptic(.light)
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(Theme.mist)
+                            .frame(width: 22, height: 22)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(Text("인스펙터 닫기"))
+                }
+                ForEach(lines.dropFirst().indices, id: \.self) { i in
+                    Text(lines[i + 1])
+                        .font(.caption2.monospacedDigit())
+                        .foregroundStyle(Theme.mist)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.82)
+                }
+            }
+            .padding(10)
+            .frame(width: 148, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
+                    .fill(Theme.surface)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
+                            .stroke(Theme.stroke, lineWidth: 0.5)
+                    )
+            )
+            .padding(.trailing, 10)
+            .padding(.top, 10)
+            .transition(.opacity.combined(with: .move(edge: .trailing)))
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(Text(lines.joined(separator: ", ")))
+            .accessibilityAddTraits(.updatesFrequently)
         }
     }
 
@@ -1851,30 +1860,6 @@ struct Mechanics2DViewport: View {
         maxObservedExtent = initialExtent
     }
 
-    /// Inspector panel 의 좌/우 side flip 을 hysteresis 로 결정 — 매 프레임
-    /// Canvas draw 안이 아닌 advance() 에서 한 번씩 갱신해 view-update
-    /// 사이클 안 state 변이 (SIGTERM 위험) 회피.
-    private func updateInspectorSide() {
-        guard let id = inspectedId,
-              let body = world.bodies.first(where: { $0.id == id }),
-              body.pos.isFinite,
-              canvasSize.width > 0 else { return }
-        let scale = viewScale()
-        guard scale > 0 else { return }
-        let mid = canvasSize.width / 2
-        let cxScreen = mid + panOffset.width
-        let ext = computeExtent()
-        let bodyScreenX = cxScreen + CGFloat(body.pos.x - ext.center.x) * scale
-        let panelW: CGFloat = max(118, min(140, canvasSize.width * 0.36))
-        let buffer = panelW * 0.6
-        switch inspectorSide {
-        case .right:
-            if bodyScreenX < mid - buffer { inspectorSide = .left }
-        case .left:
-            if bodyScreenX > mid + buffer { inspectorSide = .right }
-        }
-    }
-
     private func updateMaxObservedExtent() {
         guard !hasFixedBounds else { return }
         let xs = world.bodies.compactMap { $0.pos.x.isFinite ? $0.pos.x : nil }
@@ -2062,8 +2047,6 @@ struct Mechanics2DViewport: View {
     }
 
     fileprivate enum RulerEnd { case start, end }
-
-    fileprivate enum InspectorSide { case left, right }
 
     fileprivate enum DragMode {
         case none
