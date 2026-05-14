@@ -56,6 +56,7 @@ struct Mechanics2DViewport: View {
     @State private var dragStartTime: Date = .distantPast
     @State private var didMoveBeyondSlop: Bool = false
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     private let pointerTapSlop: CGFloat = 8.0
     private let pointerLongPress: TimeInterval = 0.45
     @State private var initialExtent: CGSize = CGSize(width: 5, height: 5)
@@ -684,10 +685,10 @@ struct Mechanics2DViewport: View {
                         .font(.system(size: 16, weight: .bold))
                         .foregroundStyle(Theme.ink)
                         .frame(width: 44, height: 44)
+                        .contentShape(Circle())
                 }
                 .buttonStyle(.plain)
-                .glassEffect(.regular.tint(running ? Theme.glow : .clear).interactive(),
-                              in: Circle())
+                .glassEffect(playButtonGlass, in: Circle())
 
                 Button {
                     stepOnce()
@@ -696,7 +697,8 @@ struct Mechanics2DViewport: View {
                     Image(systemName: "forward.frame.fill")
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(running ? Theme.mist : Theme.ink)
-                        .frame(width: 36, height: 36)
+                        .frame(width: 44, height: 44)
+                        .contentShape(Circle())
                 }
                 .buttonStyle(.plain)
                 .glassEffect(.regular.interactive(), in: Circle())
@@ -709,13 +711,24 @@ struct Mechanics2DViewport: View {
                     Image(systemName: "arrow.counterclockwise")
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(Theme.ink)
-                        .frame(width: 36, height: 36)
+                        .frame(width: 44, height: 44)
+                        .contentShape(Circle())
                 }
                 .buttonStyle(.plain)
                 .glassEffect(.regular.interactive(), in: Circle())
             }
         }
         .padding(.bottom, 8)
+    }
+
+    /// Play button's glass material. When running we tint with `Theme.glow`,
+    /// but skip the tint if Reduce Transparency is on (glass becomes opaque
+    /// material there and a saturated tint would dominate the chrome).
+    private var playButtonGlass: Glass {
+        if running && !reduceTransparency {
+            return .regular.tint(Theme.glow).interactive()
+        }
+        return .regular.interactive()
     }
 
     @ViewBuilder
