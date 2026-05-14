@@ -1,6 +1,12 @@
 import SwiftUI
 
-struct Preset: Identifiable, Hashable {
+// Swift 6 strict concurrency: PresetCatalog.all 같은 static let [Preset]
+// 가 동시성-안전 하려면 Preset 이 Sendable 이어야 함. load: 클로저는 실제로
+// MainActor 에서만 호출되지만, 클로저 자체에 @MainActor 어노테이션을 달면
+// MechanicsPresets 의 모든 static factory 도 함께 @MainActor 가 되어야 해서
+// 영향 범위가 큼. @unchecked 으로 단언 — 캡처는 모두 value-type / 정적
+// 데이터 (Theme.bodyPalette) 이고 호출은 View 진입점에서만 일어남.
+struct Preset: Identifiable, Hashable, @unchecked Sendable {
     let id: String
     let title: String
     let curriculum: Curriculum
