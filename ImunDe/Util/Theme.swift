@@ -36,18 +36,46 @@ enum Theme {
         light: Color.black.opacity(0.10),
         dark:  Color.white.opacity(0.08))
 
-    // 포인트 (cream) — slider fill, inspector ring, prominent buttons, totals.
-    // BACKGROUND/FILL use only. For text/icon foreground use `glowText` (4.6:1 on light).
+    // 포인트 (cobalt) — slider fill, inspector ring, prominent buttons, totals.
+    // Korean ed-app convention (Toss/Qanda/Classting): saturated cobalt/navy
+    // signals "study/engineering" rather than "consumer/casual". Replaces the
+    // previous cream gold which read as friendly but unprofessional for a
+    // physics simulator targeting high-school study use.
+    // BACKGROUND/FILL use. For text/icon foreground use `glowText`.
     static let glow = Color.adaptive(
-        light: Color(red: 0.88, green: 0.74, blue: 0.36),
-        dark:  Color(red: 0.95, green: 0.83, blue: 0.50))
+        light: Color(red: 0.10, green: 0.32, blue: 0.78),  // #1A52C7
+        dark:  Color(red: 0.36, green: 0.56, blue: 1.00))  // #5C8FFF
 
-    // WCAG-safe variant of glow for use as text/icon foreground on light
-    // backgrounds. `glow` itself measured ~1.82:1 on Theme.surface (light)
-    // — far below AA 4.5:1. This darkened variant: ~4.6:1 light, ~12:1 dark.
+    // WCAG-safe text-foreground variant. Cobalt is already reasonably dark
+    // on light backgrounds (~7:1), but we darken slightly for chart labels
+    // / inline icons where the stroke is thin. Dark mode keeps the brighter
+    // cobalt for contrast on dark surfaces.
     static let glowText = Color.adaptive(
-        light: Color(red: 0.55, green: 0.42, blue: 0.10),
-        dark:  Color(red: 0.95, green: 0.83, blue: 0.50))
+        light: Color(red: 0.07, green: 0.24, blue: 0.62),  // #123E9E
+        dark:  Color(red: 0.45, green: 0.64, blue: 1.00))  // #739FFF
+
+    // Tertiary accent — gold preserved as semantic "energy" highlight only
+    // (energy chart fill, KE/PE bar tops). Not used as primary action color.
+    static let energy = Color.adaptive(
+        light: Color(red: 0.78, green: 0.58, blue: 0.10),  // #C7941A
+        dark:  Color(red: 0.96, green: 0.78, blue: 0.36))  // #F5C75C
+
+    // Semantic body-quantity tokens — for legends, charge signs, vector
+    // arrows. Grayscale `bodyPalette` remains the primary body identity;
+    // these tokens are reserved for quantitative meaning (charge polarity,
+    // momentum direction, etc.) following Tufte data-ink discipline.
+    static let positiveCharge = Color.adaptive(
+        light: Color(red: 0.78, green: 0.18, blue: 0.20),  // #C72E33
+        dark:  Color(red: 0.96, green: 0.40, blue: 0.42))  // #F5666B
+    static let negativeCharge = Color.adaptive(
+        light: Color(red: 0.18, green: 0.34, blue: 0.78),  // #2E57C7
+        dark:  Color(red: 0.40, green: 0.58, blue: 0.98))  // #6694FA
+    static let neutral = Color.adaptive(
+        light: Color(red: 0.14, green: 0.50, blue: 0.30),  // #24804D
+        dark:  Color(red: 0.34, green: 0.74, blue: 0.50))  // #57BD80
+    static let momentum = Color.adaptive(
+        light: Color(red: 0.42, green: 0.18, blue: 0.62),  // #6B2E9E
+        dark:  Color(red: 0.64, green: 0.40, blue: 0.86))  // #A366DB
 
     // Disabled-state subtle gray — distinguished from `mist` (secondary label).
     static let mistDisabled = Color.adaptive(
