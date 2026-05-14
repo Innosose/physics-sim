@@ -12,6 +12,7 @@ struct OpticsViewport: View {
             case .lens:        LensView()
             case .doubleSlit:  DoubleSlitView()
             }
+            CharcoalGrain().allowsHitTesting(false)
         }
         .id(colorScheme)
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))

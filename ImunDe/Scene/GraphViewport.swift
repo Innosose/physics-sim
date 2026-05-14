@@ -12,6 +12,7 @@ struct GraphViewport: View {
             case "heat":        HeatTransferView()
             default:            Text("준비 중").foregroundStyle(Theme.mist)
             }
+            CharcoalGrain().allowsHitTesting(false)
         }
         .id(colorScheme)
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))

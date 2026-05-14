@@ -28,10 +28,15 @@ struct SeededGenerator: RandomNumberGenerator {
 
 // MARK: - Drawing primitives for GraphicsContext.
 //
-// Clean strokes — no perpendicular jitter. `passes` and `jitter`
+// Charcoal feel: thick confident strokes (weight multiplier) + grain
+// overlay rendered separately via `CharcoalGrain`. `passes` and `jitter`
 // parameters are accepted for API compatibility but ignored.
 
 enum Sketchy {
+    /// Universal stroke weight multiplier — gives all simulation lines
+    /// a charcoal-like presence without touching every call site.
+    static let weight: CGFloat = 1.45
+
     static func line(from a: CGPoint, to b: CGPoint, ctx: GraphicsContext,
                      color: Color,
                      lineWidth: CGFloat = 1.4,
@@ -41,9 +46,10 @@ enum Sketchy {
         var path = Path()
         path.move(to: a)
         path.addLine(to: b)
+        let w = lineWidth * weight
         let style = (dash != nil)
-            ? StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round, dash: dash!)
-            : StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round)
+            ? StrokeStyle(lineWidth: w, lineCap: .round, lineJoin: .round, dash: dash!)
+            : StrokeStyle(lineWidth: w, lineCap: .round, lineJoin: .round)
         ctx.stroke(path, with: .color(color), style: style)
     }
 
@@ -57,7 +63,7 @@ enum Sketchy {
             x: center.x - radius, y: center.y - radius,
             width: radius * 2, height: radius * 2))
         ctx.stroke(path, with: .color(color),
-                   style: StrokeStyle(lineWidth: lineWidth,
+                   style: StrokeStyle(lineWidth: lineWidth * weight,
                                       lineCap: .round, lineJoin: .round))
     }
 
@@ -70,7 +76,7 @@ enum Sketchy {
                           width: radius * 2, height: radius * 2)
         ctx.fill(Path(ellipseIn: rect), with: .color(fill))
         ctx.stroke(Path(ellipseIn: rect), with: .color(stroke),
-                   style: StrokeStyle(lineWidth: strokeWidth,
+                   style: StrokeStyle(lineWidth: strokeWidth * weight,
                                       lineCap: .round, lineJoin: .round))
     }
 
@@ -78,7 +84,7 @@ enum Sketchy {
                      lineWidth: CGFloat = 1.4, passes: Int = 1,
                      jitter: CGFloat = 1.0) {
         ctx.stroke(Path(r), with: .color(color),
-                   style: StrokeStyle(lineWidth: lineWidth,
+                   style: StrokeStyle(lineWidth: lineWidth * weight,
                                       lineCap: .round, lineJoin: .round))
     }
 
@@ -94,17 +100,45 @@ enum Sketchy {
             path.addLine(to: pts[i])
         }
         ctx.stroke(path, with: .color(color),
-                   style: StrokeStyle(lineWidth: lineWidth,
+                   style: StrokeStyle(lineWidth: lineWidth * weight,
                                       lineCap: .round, lineJoin: .round))
     }
 
-    /// Clean stroke — kept for callers that explicitly want it.
+    /// Clean stroke — for graph curves where data shouldn't be exaggerated.
     static func smooth(_ path: Path, ctx: GraphicsContext,
                        color: Color, lineWidth: CGFloat = 1.2,
                        opacity: Double = 0.9) {
         ctx.stroke(path, with: .color(color.opacity(opacity)),
                    style: StrokeStyle(lineWidth: lineWidth,
                                       lineCap: .round, lineJoin: .round))
+    }
+}
+
+// MARK: - CharcoalGrain — paper grain overlay for simulation canvases.
+
+struct CharcoalGrain: View {
+    var density: Double = 0.0012     // dots per pixel
+    var seed: UInt64 = 0xC0FFEE_C0FFEE
+
+    var body: some View {
+        Canvas { ctx, size in
+            var rng = SeededGenerator(seed
+                ^ UInt64(size.width.bitPattern)
+                ^ UInt64(size.height.bitPattern))
+            let count = max(20, Int(size.width * size.height * density))
+            for _ in 0..<count {
+                let x = CGFloat.random(in: 0..<size.width, using: &rng)
+                let y = CGFloat.random(in: 0..<size.height, using: &rng)
+                let r = CGFloat.random(in: 0.25...0.75, using: &rng)
+                let op = Double.random(in: 0.05...0.16, using: &rng)
+                ctx.fill(
+                    Path(ellipseIn: CGRect(
+                        x: x - r, y: y - r,
+                        width: r * 2, height: r * 2)),
+                    with: .color(Theme.ink.opacity(op)))
+            }
+        }
+        .allowsHitTesting(false)
     }
 }
 

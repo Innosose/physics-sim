@@ -34,6 +34,7 @@ struct Mechanics2DViewport: View {
     @State private var energyHistory: [World.EnergyBreakdown] = []
     @State private var lorentzB: Double = 1.0
     @State private var autoStopped = false
+    @State private var initialExtent: CGSize = CGSize(width: 5, height: 5)
     @State private var maxObservedExtent: CGSize = .zero
     @GestureState private var pinchDelta: CGFloat = 1.0
     @AppStorage("hasDraggedBody") private var hasDraggedBody = false
@@ -51,16 +52,19 @@ struct Mechanics2DViewport: View {
                     .onChange(of: nBodyVariant) { _, _ in reset() }
             }
 
-            TimelineView(.animation) { tl in
-                Canvas { ctx, size in
-                    draw(ctx: ctx, size: size)
+            ZStack {
+                TimelineView(.animation) { tl in
+                    Canvas { ctx, size in
+                        draw(ctx: ctx, size: size)
+                    }
+                    .id(colorScheme)
+                    .onChange(of: tl.date) { _, newDate in
+                        advance(to: newDate.timeIntervalSinceReferenceDate)
+                    }
                 }
-                .id(colorScheme)
-                .onChange(of: tl.date) { _, newDate in
-                    advance(to: newDate.timeIntervalSinceReferenceDate)
-                }
+                .id(redrawTick)
+                CharcoalGrain().allowsHitTesting(false)
             }
-            .id(redrawTick)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Theme.deep)
             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
@@ -94,6 +98,7 @@ struct Mechanics2DViewport: View {
                     }
             )
             .overlay(alignment: .topLeading) { zoomBadge }
+            .overlay(alignment: .topTrailing) { miniMapOverlay }
             .overlay(alignment: .bottomTrailing) { hintLabel }
             .overlay(alignment: .bottom) { transportBar }
             .overlay(alignment: .bottomLeading) { settledBadge }
@@ -182,6 +187,70 @@ struct Mechanics2DViewport: View {
                     rulerOn.toggle(); haptic(.light)
                 }
             }
+        }
+    }
+
+    @ViewBuilder
+    private var miniMapOverlay: some View {
+        if needsMiniMap {
+            Canvas { ctx, size in
+                drawMiniMap(ctx: ctx, size: size)
+            }
+            .frame(width: 96, height: 72)
+            .background(Theme.surface.opacity(0.78))
+            .overlay(
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .stroke(Theme.stroke, lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+            .padding(10)
+            .allowsHitTesting(false)
+            .transition(.opacity)
+        }
+    }
+
+    private func drawMiniMap(ctx: GraphicsContext, size: CGSize) {
+        let extent = miniMapExtent()
+        let worldW = max(0.001, extent.x * 2)
+        let worldH = max(0.001, extent.y * 2)
+        let scale = min(size.width / worldW, size.height / worldH) * 0.84
+        let cx = size.width / 2
+        let cy = size.height / 2
+
+        // Indicate the main canvas's currently visible world rectangle.
+        // Accounts for live pinch-zoom and pan.
+        let mainScale = viewScale()
+        if mainScale > 0, canvasSize.width > 0, canvasSize.height > 0 {
+            let visibleW = Double(canvasSize.width) / Double(mainScale)
+            let visibleH = Double(canvasSize.height) / Double(mainScale)
+            let mainExtent = computeExtent()
+            let centerWX = mainExtent.center.x - Double(panOffset.width) / Double(mainScale)
+            let centerWY = mainExtent.center.y + Double(panOffset.height) / Double(mainScale)
+            let rectW = CGFloat(visibleW) * scale
+            let rectH = CGFloat(visibleH) * scale
+            let rectCX = cx + CGFloat(centerWX - extent.center.x) * scale
+            let rectCY = cy - CGFloat(centerWY - extent.center.y) * scale
+            let rect = CGRect(
+                x: rectCX - rectW / 2, y: rectCY - rectH / 2,
+                width: rectW, height: rectH)
+            ctx.stroke(
+                Path(roundedRect: rect, cornerRadius: 2),
+                with: .color(Theme.glow.opacity(0.85)),
+                style: StrokeStyle(lineWidth: 1.0, dash: [3, 2]))
+        }
+
+        // Bodies — small filled dots, slightly enlarged so they're visible.
+        for body in world.bodies {
+            guard body.pos.isFinite else { continue }
+            let p = CGPoint(
+                x: cx + CGFloat(body.pos.x - extent.center.x) * scale,
+                y: cy - CGFloat(body.pos.y - extent.center.y) * scale)
+            let r = max(1.6, CGFloat(body.radius) * scale * 0.6)
+            ctx.fill(
+                Path(ellipseIn: CGRect(
+                    x: p.x - r, y: p.y - r,
+                    width: r * 2, height: r * 2)),
+                with: .color(body.color))
         }
     }
 
@@ -472,8 +541,7 @@ struct Mechanics2DViewport: View {
         rulerEnd = Vec3(x: 1.5, y: 0, z: 0)
         trailsOn = world.trailEnabled
         lorentzB = world.magneticB.z
-        maxObservedExtent = .zero
-        updateMaxObservedExtent()
+        captureInitialExtent()
         redrawTick &+= 1
     }
 
@@ -1097,7 +1165,28 @@ struct Mechanics2DViewport: View {
 
     private struct Extent { var center: CGPoint; var x: Double; var y: Double }
 
+    private var hasFixedBounds: Bool { world.bounds != nil }
+
+    /// The world region drawn on the main canvas. For bounded sims this is
+    /// the world bounds. For unbounded sims (kepler/nbody/lorentz) this is
+    /// pinned to `initialExtent` so the view doesn't zoom in/out as bodies
+    /// orbit — bodies that go off-screen show up on the mini-map instead.
     private func computeExtent() -> Extent {
+        if let b = world.bounds {
+            return Extent(
+                center: CGPoint(x: (b.min.x + b.max.x) / 2,
+                                y: (b.min.y + b.max.y) / 2),
+                x: max(0.5, (b.max.x - b.min.x) / 2),
+                y: max(0.5, (b.max.y - b.min.y) / 2))
+        }
+        return Extent(center: .zero,
+                      x: max(5, Double(initialExtent.width)),
+                      y: max(5, Double(initialExtent.height)))
+    }
+
+    /// The extent covering every body's farthest reach so far — used to
+    /// scale the mini-map so distant bodies are always visible there.
+    private func miniMapExtent() -> Extent {
         if let b = world.bounds {
             return Extent(
                 center: CGPoint(x: (b.min.x + b.max.x) / 2,
@@ -1110,14 +1199,36 @@ struct Mechanics2DViewport: View {
                       y: max(5, Double(maxObservedExtent.height)))
     }
 
+    private func captureInitialExtent() {
+        guard !hasFixedBounds else { return }
+        let xs = world.bodies.compactMap { $0.pos.x.isFinite ? $0.pos.x : nil }
+        let ys = world.bodies.compactMap { $0.pos.y.isFinite ? $0.pos.y : nil }
+        let mx = (xs.map { abs($0) }.max() ?? 5) * 1.6
+        let my = (ys.map { abs($0) }.max() ?? 5) * 1.6
+        initialExtent = CGSize(width: max(5, CGFloat(mx)),
+                                height: max(5, CGFloat(my)))
+        maxObservedExtent = initialExtent
+    }
+
     private func updateMaxObservedExtent() {
-        guard world.bounds == nil else { return }
+        guard !hasFixedBounds else { return }
         let xs = world.bodies.compactMap { $0.pos.x.isFinite ? $0.pos.x : nil }
         let ys = world.bodies.compactMap { $0.pos.y.isFinite ? $0.pos.y : nil }
         let mx = (xs.map { abs($0) }.max() ?? 5) * 1.4
         let my = (ys.map { abs($0) }.max() ?? 5) * 1.4
         maxObservedExtent.width = max(maxObservedExtent.width, CGFloat(mx))
         maxObservedExtent.height = max(maxObservedExtent.height, CGFloat(my))
+    }
+
+    private var needsMiniMap: Bool {
+        // Show mini-map for unbounded sims where bodies can wander
+        // far from the locked initial view.
+        guard !hasFixedBounds else { return false }
+        let extX = max(1, maxObservedExtent.width)
+        let extY = max(1, maxObservedExtent.height)
+        // Reveal once the world has expanded ≥ ~25% beyond the locked view.
+        return extX > initialExtent.width * 1.25
+            || extY > initialExtent.height * 1.25
     }
 
     private func drawGraphsPanel(ctx: GraphicsContext, in r: CGRect) {

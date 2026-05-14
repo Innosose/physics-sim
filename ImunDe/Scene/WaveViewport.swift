@@ -11,6 +11,7 @@ struct WaveViewport: View {
             case .waveSum: WaveSumView()
             case .doppler: DopplerView()
             }
+            CharcoalGrain().allowsHitTesting(false)
         }
         .id(colorScheme)
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
