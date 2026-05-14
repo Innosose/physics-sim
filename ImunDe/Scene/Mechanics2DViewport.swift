@@ -58,6 +58,7 @@ struct Mechanics2DViewport: View {
     @State private var inspectorSide: InspectorSide = .right
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     private let pointerTapSlop: CGFloat = 10.0   // UIKit allowableMovement 기본
     private let pointerLongPress: TimeInterval = 0.5  // Apple HIG / UILongPress 기본
     @State private var initialExtent: CGSize = CGSize(width: 5, height: 5)
@@ -457,20 +458,50 @@ struct Mechanics2DViewport: View {
     @ViewBuilder
     private var miniMapOverlay: some View {
         if needsMiniMap {
-            // 미니맵은 천천히 변하니 30Hz 면 충분. main 캔버스 frame
-            // budget 보호.
+            // 96×72 → 128×96 (iPhone) / 160×120 (iPad) — 옛 크기는
+            // readability floor 미만 (Opus Agent 6 — PhET / NASA Eyes
+            // ~150×120 표준).
+            let mapW: CGFloat = horizontalSizeClass == .regular ? 160 : 128
+            let mapH: CGFloat = horizontalSizeClass == .regular ? 120 : 96
+            // 30Hz throttle — main 캔버스 frame budget 보호.
             TimelineView(.animation(minimumInterval: 1.0 / 30)) { _ in
                 Canvas { ctx, size in
                     drawMiniMap(ctx: ctx, size: size)
                 }
             }
-            .frame(width: 96, height: 72)
+            .frame(width: mapW, height: mapH)
             .glassEffect(.regular,
                           in: RoundedRectangle(cornerRadius: 6, style: .continuous))
             .padding(10)
-            .allowsHitTesting(false)
+            .contentShape(Rectangle())
+            // Tap-to-recenter — 탭 한 곳을 main canvas 중앙으로 pan.
+            .onTapGesture(coordinateSpace: .local) { tap in
+                handleMiniMapTap(at: tap, mapSize: CGSize(width: mapW, height: mapH))
+            }
             .transition(.opacity)
+            .accessibilityLabel(Text("미니맵"))
+            .accessibilityHint(Text("두 번 탭하여 그 지점을 메인 캔버스 가운데로"))
         }
+    }
+
+    private func handleMiniMapTap(at tap: CGPoint, mapSize: CGSize) {
+        let extent = miniMapExtent()
+        let worldW = max(0.001, extent.x * 2)
+        let worldH = max(0.001, extent.y * 2)
+        let s = min(mapSize.width / worldW, mapSize.height / worldH) * 0.84
+        guard s > 0 else { return }
+        let mapCx = mapSize.width / 2
+        let mapCy = mapSize.height / 2
+        let wx = Double((tap.x - mapCx) / s) + extent.center.x
+        let wy = -Double((tap.y - mapCy) / s) + extent.center.y
+        let mainScale = viewScale()
+        let mainExtent = computeExtent()
+        withAnimation(.easeOut(duration: 0.3)) {
+            panOffset = CGSize(
+                width:  -CGFloat(wx - mainExtent.center.x) * mainScale,
+                height:  CGFloat(wy - mainExtent.center.y) * mainScale)
+        }
+        haptic(.light)
     }
 
     private func drawMiniMap(ctx: GraphicsContext, size: CGSize) {
