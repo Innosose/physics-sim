@@ -179,9 +179,6 @@ private struct WelcomeView: View {
                                     .foregroundStyle(Theme.mist)
                             }
                             Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 11, weight: .medium))
-                                .foregroundStyle(Theme.mist.opacity(0.5))
                         }
                         .padding(.horizontal, 14)
                         .padding(.vertical, 10)

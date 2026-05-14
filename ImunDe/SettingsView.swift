@@ -31,7 +31,7 @@ struct SettingsView: View {
                                     .font(.callout.monospacedDigit())
                                     .foregroundStyle(Theme.mist)
                             }
-                            Text("이런 문제 데이터베이스 — 흑백 종이 위 손그림 물리 시뮬레이션")
+                            Text("이런 문제 데이터베이스 — 인터랙티브 물리 시뮬레이션")
                                 .font(.caption)
                                 .foregroundStyle(Theme.mist)
                         }
@@ -67,7 +67,7 @@ struct SettingsView: View {
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .stroke(Theme.ink.opacity(0.55), lineWidth: 1.1)
+                        .stroke(Theme.stroke, lineWidth: 1)
                 )
         }
     }

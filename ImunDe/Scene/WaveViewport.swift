@@ -130,6 +130,18 @@ private struct WaveSumView: View {
                  amp: 1, omega: 2 * .pi * f2, t: t,
                  sign: oppose ? -1 : 1, dashed: true)
         drawSum(ctx, in: CGRect(x: 0, y: 2 * h, width: size.width, height: h), t: t)
+
+        let labels: [(String, CGFloat)] = [
+            (String(format: "f₁ = %.2f Hz", f1), h * 0.5),
+            (String(format: "f₂ = %.2f Hz", f2), h * 1.5),
+            ("합성파", h * 2.5),
+        ]
+        for (label, y) in labels {
+            ctx.draw(Text(label)
+                        .font(.system(size: 9).monospaced())
+                        .foregroundStyle(Theme.mist.opacity(0.7)),
+                     at: CGPoint(x: 6, y: y), anchor: .leading)
+        }
     }
 
     private func drawWave(_ ctx: GraphicsContext, in r: CGRect,

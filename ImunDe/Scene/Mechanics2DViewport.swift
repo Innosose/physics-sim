@@ -329,7 +329,7 @@ struct Mechanics2DViewport: View {
             } label: {
                 Image(systemName: running ? "pause.fill" : "play.fill")
                     .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(running ? Theme.ink : Theme.ink)
+                    .foregroundStyle(Theme.ink)
                     .frame(width: 40, height: 40)
                     .background(Circle().fill(running ? Theme.glow : Theme.surface.opacity(0.92)))
                     .overlay(Circle().stroke(Theme.ink.opacity(running ? 0.85 : 0.55), lineWidth: 1.1))
@@ -934,7 +934,7 @@ struct Mechanics2DViewport: View {
             ctx.stroke(path, with: .color(color), style: style)
         }
         // Legend
-        ctx.draw(Text("실 KE  ㅡㅡ PE  ─ ΣE")
+        ctx.draw(Text("실선 KE   점선 PE   굵선 ΣE")
                     .font(.system(size: 8).monospacedDigit())
                     .foregroundStyle(Theme.mist),
                  at: CGPoint(x: plotR.midX, y: plotR.maxY - 6))
@@ -1158,11 +1158,11 @@ struct Mechanics2DViewport: View {
         let a = last.map(keyA) ?? 0
         let b = last.map(keyB) ?? 0
         ctx.draw(Text("\(leftLabel) \(String(format: "%+.2f", a))")
-                    .font(.system(size: 8, design: .monospaced))
+                    .font(.system(size: 8).monospaced())
                     .foregroundStyle(Theme.ink),
                  at: CGPoint(x: r.maxX - 4, y: r.minY + 6), anchor: .trailing)
         ctx.draw(Text("\(rightLabel) \(String(format: "%+.2f", b))")
-                    .font(.system(size: 8, design: .monospaced))
+                    .font(.system(size: 8).monospaced())
                     .foregroundStyle(Theme.mist),
                  at: CGPoint(x: r.maxX - 4, y: r.minY + 16), anchor: .trailing)
     }

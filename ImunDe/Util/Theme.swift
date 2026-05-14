@@ -110,6 +110,11 @@ struct ImunDeBackground: View {
     var topGlow: Color = Theme.glow.opacity(0.0)
 
     var body: some View {
-        Theme.void.ignoresSafeArea()
+        ZStack {
+            Theme.void.ignoresSafeArea()
+            LinearGradient(colors: [topGlow, .clear],
+                           startPoint: .top, endPoint: .center)
+                .ignoresSafeArea()
+        }
     }
 }
