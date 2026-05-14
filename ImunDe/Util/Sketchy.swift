@@ -81,6 +81,46 @@ enum Sketchy {
                                       lineCap: .round, lineJoin: .round))
     }
 
+    /// 화살표 — shaft + 머리 양쪽 day. Mechanics2D 벡터/룰러/E-field 에서 공용.
+    /// shaft 가 너무 짧으면 (~< 6px) head 만 stray dash 처럼 보이므로 생략.
+    static func arrow(from a: CGPoint, to b: CGPoint, ctx: GraphicsContext,
+                      color: Color, lineWidth: CGFloat = 1.5,
+                      dashed: Bool = false) {
+        let dx = b.x - a.x, dy = b.y - a.y
+        let len = (dx * dx + dy * dy).squareRoot()
+        guard len > 1.5 else { return }
+        Sketchy.line(from: a, to: b, ctx: ctx, color: color,
+                     lineWidth: lineWidth, passes: 1, jitter: 0.5,
+                     dash: dashed ? [4, 3] : nil)
+        guard len >= 6 else { return }
+        let nx = dx / len, ny = dy / len
+        let s = min(CGFloat(9), len * 0.5)
+        let h1 = CGPoint(x: b.x - nx * s - ny * s * 0.45,
+                         y: b.y - ny * s + nx * s * 0.45)
+        let h2 = CGPoint(x: b.x - nx * s + ny * s * 0.45,
+                         y: b.y - ny * s - nx * s * 0.45)
+        Sketchy.line(from: b, to: h1, ctx: ctx, color: color,
+                     lineWidth: lineWidth, passes: 1, jitter: 0.3)
+        Sketchy.line(from: b, to: h2, ctx: ctx, color: color,
+                     lineWidth: lineWidth, passes: 1, jitter: 0.3)
+    }
+
+    /// 화살표 머리만 (shaft 없이) — E-field 곡선 끝점 표시.
+    static func arrowhead(from a: CGPoint, to b: CGPoint, ctx: GraphicsContext,
+                          color: Color, size: CGFloat = 5) {
+        let dx = b.x - a.x, dy = b.y - a.y
+        let len = (dx * dx + dy * dy).squareRoot()
+        guard len > 0.001 else { return }
+        let nx = dx / len, ny = dy / len
+        let h1 = CGPoint(x: b.x - nx * size - ny * size * 0.5,
+                         y: b.y - ny * size + nx * size * 0.5)
+        let h2 = CGPoint(x: b.x - nx * size + ny * size * 0.5,
+                         y: b.y - ny * size - nx * size * 0.5)
+        Sketchy.line(from: b, to: h1, ctx: ctx, color: color,
+                     lineWidth: 1.2, passes: 1, jitter: 0.2)
+        Sketchy.line(from: b, to: h2, ctx: ctx, color: color,
+                     lineWidth: 1.2, passes: 1, jitter: 0.2)
+    }
 }
 
 // MARK: - Modern flat button styles.

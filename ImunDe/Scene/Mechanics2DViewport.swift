@@ -210,6 +210,8 @@ struct Mechanics2DViewport: View {
         .onChange(of: running) { _, _ in lastTick = nil }
     }
 
+    // MARK: - Overlays — longPressIndicator / dataSection / hintLabel / miniMap / badges
+
     @ViewBuilder
     private var longPressIndicator: some View {
         if longPressProgress > 0 && longPressProgress < 1 {
@@ -468,6 +470,8 @@ struct Mechanics2DViewport: View {
             return ChipMask()
         }
     }
+
+    // MARK: - Control panel — toggleRow / presetParameterRow / timeScaleRow / derivedRow
 
     private var toggleRow: some View {
         let mask = chipMask
@@ -976,6 +980,8 @@ struct Mechanics2DViewport: View {
         }
     }
 
+    // MARK: - Transport bar (Liquid Glass play / step / reset)
+
     private var transportBar: some View {
         GlassEffectContainer(spacing: 10) {
             HStack(spacing: 10) {
@@ -1071,6 +1077,8 @@ struct Mechanics2DViewport: View {
         let maxV = nonPinned.map { $0.vel.length }.max() ?? 0
         return maxV < 1e-3
     }
+
+    // MARK: - Reset / step / record / pick helpers
 
     private func reset() {
         world.bodies.removeAll()
@@ -1362,6 +1370,8 @@ struct Mechanics2DViewport: View {
         return bestId
     }
 
+    // MARK: - Simulation tick
+
     private func advance(to now: TimeInterval) {
         guard let last = lastTick else { lastTick = now; return }
         guard running else { lastTick = now; return }
@@ -1389,6 +1399,8 @@ struct Mechanics2DViewport: View {
         }
         if allBodiesAtRest() { running = false; autoStopped = true }
     }
+
+    // MARK: - Main Canvas draw
 
     private func draw(ctx: GraphicsContext, size: CGSize) {
         let extent = computeExtent()
@@ -1535,6 +1547,8 @@ struct Mechanics2DViewport: View {
         }
     }
 
+    // MARK: - Inspector (reticle / lines / SwiftUI panel)
+
     private func drawBodyLabels(ctx: GraphicsContext, scale: CGFloat,
                                  cx: CGFloat, cy: CGFloat, ext: CGPoint) {
         for body in world.bodies {
@@ -1666,6 +1680,8 @@ struct Mechanics2DViewport: View {
         }
     }
 
+    // MARK: - Vector / Energy / Motion charts
+
     private func drawVectors(ctx: GraphicsContext, scale: CGFloat,
                               cx: CGFloat, cy: CGFloat, ext: CGPoint) {
         let accels = world.accelerations()
@@ -1685,39 +1701,15 @@ struct Mechanics2DViewport: View {
             if body.vel.lengthSquared > 1e-9 {
                 let end = mapPoint(body.pos + body.vel * vWorld,
                                    scale: scale, cx: cx, cy: cy, ext: ext)
-                drawArrow(ctx: ctx, from: start, to: end, color: Theme.ink, dashed: false)
+                Sketchy.arrow(from: start, to: end, ctx: ctx, color: Theme.ink)
             }
             let F = accels[i] * body.mass
             if F.lengthSquared > 1e-9 {
                 let end = mapPoint(body.pos + F * fWorld,
                                    scale: scale, cx: cx, cy: cy, ext: ext)
-                drawArrow(ctx: ctx, from: start, to: end, color: Theme.ink, dashed: true)
+                Sketchy.arrow(from: start, to: end, ctx: ctx, color: Theme.ink, dashed: true)
             }
         }
-    }
-
-    private func drawArrow(ctx: GraphicsContext, from: CGPoint, to: CGPoint,
-                            color: Color, dashed: Bool = false) {
-        let dx = to.x - from.x, dy = to.y - from.y
-        let len = (dx * dx + dy * dy).squareRoot()
-        guard len > 1.5 else { return }
-        Sketchy.line(from: from, to: to, ctx: ctx, color: color,
-                     lineWidth: 1.5, passes: 1, jitter: 0.5,
-                     dash: dashed ? [4, 3] : nil)
-        let nx = dx / len, ny = dy / len
-        // Hide arrowhead when shaft is too short — 옛날엔 0.8px head 가
-        // shaft 보다 작아 invisible head + visible shaft 가 stray dash 처럼
-        // 보였음.
-        guard len >= 6 else { return }
-        let s = min(CGFloat(9), len * 0.5)
-        let h1 = CGPoint(x: to.x - nx * s - ny * s * 0.45,
-                         y: to.y - ny * s + nx * s * 0.45)
-        let h2 = CGPoint(x: to.x - nx * s + ny * s * 0.45,
-                         y: to.y - ny * s - nx * s * 0.45)
-        Sketchy.line(from: to, to: h1, ctx: ctx, color: color,
-                     lineWidth: 1.5, passes: 1, jitter: 0.3)
-        Sketchy.line(from: to, to: h2, ctx: ctx, color: color,
-                     lineWidth: 1.5, passes: 1, jitter: 0.3)
     }
 
     /// Renders the energy chart into the given panel rect (no background —
@@ -1801,6 +1793,8 @@ struct Mechanics2DViewport: View {
     /// 분석 모드 격자 + 좌표축. zoom 에 맞춰 round-number 간격을 1·2·5
     /// 시퀀스로 선택 → 항상 측정 가능한 좌표선. 축 라벨은 매우 옅게 (Tufte
     /// minimum-ink). 원점이 화면 안에 있으면 더 진한 0 축.
+    // MARK: - Analysis grid / Field grid / E-field lines / Ruler
+
     private func drawAnalysisGrid(ctx: GraphicsContext, size: CGSize,
                                     scale: CGFloat, cx: CGFloat, cy: CGFloat,
                                     ext: CGPoint) {
@@ -2007,31 +2001,12 @@ struct Mechanics2DViewport: View {
 
                 let midIdx = pts.count / 2
                 if midIdx >= 1 && midIdx < pts.count {
-                    drawArrowhead(ctx: ctx,
-                                  from: pts[midIdx - 1],
-                                  to: pts[midIdx],
-                                  color: Theme.ink)
+                    Sketchy.arrowhead(from: pts[midIdx - 1],
+                                      to: pts[midIdx],
+                                      ctx: ctx, color: Theme.ink)
                 }
             }
         }
-    }
-
-    private func drawArrowhead(ctx: GraphicsContext, from a: CGPoint, to b: CGPoint,
-                               color: Color) {
-        let dx = b.x - a.x
-        let dy = b.y - a.y
-        let len = (dx * dx + dy * dy).squareRoot()
-        guard len > 0.001 else { return }
-        let nx = dx / len, ny = dy / len
-        let size: CGFloat = 5
-        let h1 = CGPoint(x: b.x - nx * size - ny * size * 0.5,
-                         y: b.y - ny * size + nx * size * 0.5)
-        let h2 = CGPoint(x: b.x - nx * size + ny * size * 0.5,
-                         y: b.y - ny * size - nx * size * 0.5)
-        Sketchy.line(from: b, to: h1, ctx: ctx, color: color,
-                     lineWidth: 1.2, passes: 1, jitter: 0.2)
-        Sketchy.line(from: b, to: h2, ctx: ctx, color: color,
-                     lineWidth: 1.2, passes: 1, jitter: 0.2)
     }
 
     private struct Extent { var center: CGPoint; var x: Double; var y: Double }
