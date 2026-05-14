@@ -1592,8 +1592,8 @@ struct Mechanics2DViewport: View {
                             .foregroundStyle(Theme.ink)
                         Spacer(minLength: 22)  // X 버튼 자리
                     }
-                    ForEach(lines.dropFirst().indices, id: \.self) { i in
-                        Text(lines[i + 1])
+                    ForEach(1..<lines.count, id: \.self) { i in
+                        Text(lines[i])
                             .font(.caption2.monospacedDigit())
                             .foregroundStyle(Theme.mist)
                             .lineLimit(1)
