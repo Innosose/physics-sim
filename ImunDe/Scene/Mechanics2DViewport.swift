@@ -191,10 +191,6 @@ struct Mechanics2DViewport: View {
                 longPressProgress = 0
             }
         }
-        // 시뮬 캔버스는 항상 다크 톤. 엔지니어링 도구(MATLAB / COMSOL /
-        // Origin) 컨벤션 — 차트와 발광 trail/벡터 대비 위해 어두운 배경
-        // 표준. 시스템 라이트 모드에서도 sim 영역만 다크 적용.
-        .environment(\.colorScheme, .dark)
     }
 
     @ViewBuilder
@@ -640,12 +636,12 @@ struct Mechanics2DViewport: View {
     }
 
     /// 커서 월드좌표 표시 — 손가락이 캔버스 위에 있는 동안만 노출.
-    /// CAD/COMSOL 표준 — 사용자가 정확한 위치 식별을 위해 필요. 작은
-    /// 화면이므로 좌측 하단 단일 라인으로 압축 (sketch/Origin 처럼).
+    /// Desmos 컨벤션의 `(x, y) m` — 한국 교과서 표기와 가깝고 단위가
+    /// 명확. 작은 화면이라 단일 라인 압축.
     @ViewBuilder
     private var coordStatusBar: some View {
         if let p = pointerWorldPos, p.isFinite {
-            Text("x \(SciFormat.fixed(p.x, places: 2))   y \(SciFormat.fixed(p.y, places: 2))")
+            Text("(\(SciFormat.fixed(p.x, places: 2)), \(SciFormat.fixed(p.y, places: 2))) m")
                 .font(.caption2.weight(.medium).monospacedDigit())
                 .foregroundStyle(Theme.ink)
                 .padding(.horizontal, 8).padding(.vertical, 3)
@@ -663,12 +659,16 @@ struct Mechanics2DViewport: View {
         }
     }
 
-    /// 척도 바 — 캔버스 우상단 / 미니맵 아래에 표시. round-number 1·2·5
-    /// 시퀀스 (지도학 표준) 로 현재 zoom 에 맞는 길이를 골라 그림.
+    /// 척도 바 — round-number 1·2·5 시퀀스 (지도학 표준) 로 현재 zoom 에
+    /// 맞는 길이를 골라 그림. PhET/Algodoo 등 학습 도구엔 척도바가 흔치
+    /// 않아 영구 표시는 시각 노이즈 — zoom 변화가 있거나 분석 모드일
+    /// 때만 노출 (학생이 측정 컨텍스트인 순간).
     @ViewBuilder
     private var scaleBar: some View {
         let s = viewScale() * pinchDelta
-        if s > 0, canvasSize.width > 0 {
+        let liveZoom = zoomScale * pinchDelta
+        let shouldShow = analysisOn || abs(liveZoom - 1.0) > 0.01
+        if shouldShow, s > 0, canvasSize.width > 0 {
             // 화면상 약 60pt 가까운 round 길이 선택.
             let targetPx: CGFloat = 60
             let rawMeters = Double(targetPx / s)
