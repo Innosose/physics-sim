@@ -58,6 +58,7 @@ struct Mechanics2DViewport: View {
     @State private var didMoveBeyondSlop: Bool = false
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     private let pointerTapSlop: CGFloat = 10.0   // UIKit allowableMovement 기본
     private let pointerLongPress: TimeInterval = 0.5  // Apple HIG / UILongPress 기본
@@ -372,7 +373,8 @@ struct Mechanics2DViewport: View {
                     )
                 }
             }
-            .transition(.opacity.combined(with: .move(edge: .top)))
+            .transition(reduceMotion ? .opacity
+                        : .opacity.combined(with: .move(edge: .top)))
         }
     }
 
@@ -524,7 +526,7 @@ struct Mechanics2DViewport: View {
         let wy = -Double((tap.y - mapCy) / s) + extent.center.y
         let mainScale = viewScale()
         let mainExtent = computeExtent()
-        withAnimation(.easeOut(duration: 0.3)) {
+        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.3)) {
             panOffset = CGSize(
                 width:  -CGFloat(wx - mainExtent.center.x) * mainScale,
                 height:  CGFloat(wy - mainExtent.center.y) * mainScale)
@@ -638,7 +640,7 @@ struct Mechanics2DViewport: View {
         let live = zoomScale * pinchDelta
         if abs(live - 1.0) > 0.01 || panOffset != .zero {
             Button {
-                withAnimation(.spring(duration: 0.25)) {
+                withAnimation(reduceMotion ? nil : .spring(duration: 0.25)) {
                     zoomScale = 1.0
                     panOffset = .zero
                 }
@@ -1583,8 +1585,12 @@ struct Mechanics2DViewport: View {
                         )
                 )
                 .allowsHitTesting(false)
-                .accessibilityElement(children: .combine)
-                .accessibilityLabel(Text(lines.joined(separator: ", ")))
+                // VO 라벨: 6줄 전체 joined 는 5초 polling 으로 끝까지 못
+                // 읽고 잘림. 핵심 3줄 (이름·질량·속력) 만 + updatesFrequently
+                // 로 재읽기 빈도 자동 throttle.
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(Text(lines.prefix(3).joined(separator: ", ")))
+                .accessibilityAddTraits(.updatesFrequently)
 
                 Button {
                     inspectedId = nil
@@ -1601,7 +1607,8 @@ struct Mechanics2DViewport: View {
             }
             .padding(.trailing, 10)
             .padding(.top, 10)
-            .transition(.opacity.combined(with: .move(edge: .trailing)))
+            .transition(reduceMotion ? .opacity
+                        : .opacity.combined(with: .move(edge: .trailing)))
         }
     }
 
@@ -1726,7 +1733,7 @@ struct Mechanics2DViewport: View {
         }
         // Legend
         ctx.draw(Text("실선 KE   점선 PE   굵선 ΣE")
-                    .font(.system(size: 8).monospacedDigit())
+                    .font(.caption2.monospacedDigit())
                     .foregroundStyle(Theme.mist),
                  at: CGPoint(x: plotR.midX, y: plotR.maxY - 6))
     }
@@ -1812,7 +1819,8 @@ struct Mechanics2DViewport: View {
         // 라벨 — 격자 spacing 단위로만 (디시멀 자릿수는 spacing 으로 결정).
         if spacingPx >= 36 {
             let labelColor = Theme.mist.opacity(0.6)
-            let labelFont = Font.system(size: 9, design: .monospaced)
+            // Canvas Text 가 Dynamic Type 을 따르도록 text-style 폰트 사용.
+            let labelFont = Font.caption2.monospacedDigit()
             let decimals = max(0, Int(-floor(log10(spacing))))
             // x 라벨 — 0 축 위 또는 화면 하단.
             let xLabelY: CGFloat = (originY >= 8 && originY <= size.height - 14)
@@ -2121,11 +2129,11 @@ struct Mechanics2DViewport: View {
         let a = last.map(keyA) ?? 0
         let b = last.map(keyB) ?? 0
         ctx.draw(Text("\(leftLabel) \(String(format: "%+.2f", a))")
-                    .font(.system(size: 8).monospaced())
+                    .font(.caption2.monospacedDigit())
                     .foregroundStyle(Theme.ink),
                  at: CGPoint(x: r.maxX - 4, y: r.minY + 6), anchor: .trailing)
         ctx.draw(Text("\(rightLabel) \(String(format: "%+.2f", b))")
-                    .font(.system(size: 8).monospaced())
+                    .font(.caption2.monospacedDigit())
                     .foregroundStyle(Theme.mist),
                  at: CGPoint(x: r.maxX - 4, y: r.minY + 16), anchor: .trailing)
     }

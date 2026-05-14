@@ -116,7 +116,10 @@ extension Font {
     // Text-style based — respect Dynamic Type (WCAG 1.4.4).
     static var themeMono: Font     { .system(.caption, design: .monospaced) }
     static var themeMonoBold: Font { .system(.caption, design: .monospaced).weight(.semibold) }
-    static var themeHeader: Font   { .system(.caption2, design: .default).weight(.semibold).smallCaps() }
+    /// 한글 + 라틴 혼합 헤더에 smallCaps 를 적용하면 라틴 글리프만 작아져
+    /// baseline 불균형 발생 (한글은 케이스 구분이 없음). tracking 으로
+    /// 헤더 톤만 살리고 smallCaps 는 제거.
+    static var themeHeader: Font   { .system(.caption2, design: .default).weight(.semibold) }
     static var themeLabel: Font    { .system(.subheadline, design: .default) }
 }
 

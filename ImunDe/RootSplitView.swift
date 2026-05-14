@@ -158,6 +158,7 @@ private struct WelcomeView: View {
                         .foregroundStyle(Theme.ink)
                     Text("물리학 I · II · 2022 개정 과학과")
                         .font(.themeHeader)
+                        .tracking(0.4)
                         .foregroundStyle(Theme.mist)
                 }
 
@@ -200,7 +201,7 @@ private struct WelcomeView: View {
                         .font(.system(size: 12))
                         .foregroundStyle(Theme.mist)
                     Text("교육과정 기준 · 2022 개정 과학과 교육과정")
-                        .font(.system(size: 10, design: .monospaced))
+                        .font(.caption2.monospacedDigit())
                         .foregroundStyle(Theme.mistDisabled)
                 }
             }
@@ -359,16 +360,16 @@ private struct PresetList: View {
         HStack(spacing: 6) {
             if let icon = leadingIcon {
                 Image(systemName: icon)
-                    .font(.system(size: 9))
+                    .font(.caption2)
                     .foregroundStyle(iconColor)
             }
             Text(title)
-                .font(.system(size: 10, weight: .semibold))
+                .font(.caption2.weight(.semibold))
                 .foregroundStyle(Theme.mist)
                 .tracking(0.6)
             Spacer()
             Text("\(count)")
-                .font(.system(size: 10, weight: .medium).monospacedDigit())
+                .font(.caption2.weight(.medium).monospacedDigit())
                 .foregroundStyle(Theme.mist.opacity(0.6))
         }
         .textCase(nil)
@@ -397,7 +398,7 @@ private struct PresetRow: View {
                         .foregroundStyle(Theme.ink)
                     if isFavorite {
                         Image(systemName: "star.fill")
-                            .font(.system(size: 9))
+                            .font(.caption2)
                             .foregroundStyle(Theme.glowText)
                     }
                 }
@@ -410,7 +411,7 @@ private struct PresetRow: View {
             }
             Spacer(minLength: 4)
             Text(preset.category.rawValue)
-                .font(.system(size: 10, weight: .medium))
+                .font(.caption2.weight(.medium))
                 .foregroundStyle(Theme.mist)
                 .padding(.horizontal, 7)
                 .padding(.vertical, 3)

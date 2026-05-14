@@ -11,8 +11,12 @@ import Foundation
 
 enum SciFormat {
 
-    /// Thin space (U+2009) — SI 표준 단위 기호 구분자.
-    static let thinSpace = "\u{2009}"
+    /// 단위 구분자 — non-breaking space (U+00A0).
+    /// ISO 80000 권장은 thin space (U+2009) 이지만 NIST SP 811 §5.6 도 NBSP
+    /// 허용. NBSP 이점: (a) 줄바꿈 방지로 "1.23 km" 이 분리되지 않음,
+    /// (b) 한국 보안 키보드 / 외부 앱 (계산기 / Numbers) 복붙 시 호환성.
+    /// 학습 도구에서는 복붙 안전성이 thin-space 시각 미세 차이보다 중요.
+    static let thinSpace = "\u{00A0}"
 
     /// 유효숫자 기반 포맷. 학습 단계에서 권장되는 3 유효숫자가 기본.
     /// - 0 처리: 정확히 0 일 때 `"0"` 반환 (`%.3g` 가 `0.00`로 찍는 것 방지).
