@@ -169,19 +169,18 @@ private struct LensView: View {
                     diverging.toggle()
                 } label: {
                     Label("발산 렌즈 (f<0)", systemImage: "arrow.left.arrow.right")
-                        .font(.caption.weight(.medium))
-                        .foregroundStyle(Theme.ink)
+                        .font(.system(size: 11, weight: diverging ? .semibold : .regular))
+                        .foregroundStyle(diverging ? Theme.surface : Theme.mist)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.vertical, 6)
-                        .padding(.horizontal, 8)
+                        .padding(.vertical, 7)
+                        .padding(.horizontal, 10)
                         .background(
                             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                .fill(diverging ? Theme.glow : Theme.surface.opacity(0.6))
+                                .fill(diverging ? Theme.ink : Theme.crest.opacity(0.5))
                         )
                         .overlay(
                             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                .stroke(Theme.ink.opacity(diverging ? 0.95 : 0.55),
-                                        lineWidth: diverging ? 1.4 : 1.1)
+                                .stroke(diverging ? Color.clear : Theme.stroke, lineWidth: 1)
                         )
                 }
                 .buttonStyle(.chipPress)

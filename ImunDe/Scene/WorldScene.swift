@@ -5,8 +5,8 @@ struct WorldScene: View {
 
     var body: some View {
         ZStack {
-            ImunDeBackground(topGlow: Theme.glow.opacity(0.06))
-            VStack(spacing: 8) {
+            ImunDeBackground()
+            VStack(spacing: 10) {
                 if preset.formula != nil {
                     ConceptCard(preset: preset)
                 }

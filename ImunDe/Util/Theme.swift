@@ -74,8 +74,8 @@ extension Color {
 extension Font {
     static var themeMono: Font     { .system(size: 12, weight: .regular,  design: .monospaced) }
     static var themeMonoBold: Font { .system(size: 12, weight: .semibold, design: .monospaced) }
-    static var themeHeader: Font   { .system(size: 11, weight: .semibold, design: .serif).smallCaps() }
-    static var themeLabel: Font    { .system(size: 13, weight: .regular,  design: .serif) }
+    static var themeHeader: Font   { .system(size: 11, weight: .semibold).smallCaps() }
+    static var themeLabel: Font    { .system(size: 13, weight: .regular) }
 }
 
 extension View {
@@ -89,9 +89,9 @@ private struct ThemeCard: ViewModifier {
     func body(content: Content) -> some View {
         let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
         return content
-            .background(shape.fill(Theme.surface.opacity(0.85)))
-            .overlay(shape.stroke(Theme.ink.opacity(0.55),
-                                  style: StrokeStyle(lineWidth: 1.1)))
+            .background(shape.fill(Theme.surface))
+            .overlay(shape.stroke(Theme.stroke, lineWidth: 1))
+            .shadow(color: Theme.ink.opacity(0.06), radius: 4, x: 0, y: 2)
     }
 }
 
@@ -107,36 +107,9 @@ struct PropertyDivider: View {
 // MARK: - Paper background
 
 struct ImunDeBackground: View {
-    var topGlow: Color = Theme.glow.opacity(0.0)  // legacy param, ignored
+    var topGlow: Color = Theme.glow.opacity(0.0)
 
     var body: some View {
-        ZStack {
-            LinearGradient(
-                colors: [Theme.deep, Theme.void],
-                startPoint: .top, endPoint: .bottom)
-                .ignoresSafeArea()
-            PaperGrainOverlay()
-                .ignoresSafeArea()
-                .allowsHitTesting(false)
-        }
-    }
-}
-
-/// Subtle paper-grain noise drawn with sparse dots. Deterministic per layout.
-private struct PaperGrainOverlay: View {
-    var body: some View {
-        Canvas { ctx, size in
-            var rng = SeededGenerator(0x6A09E667F3BCC908)
-            let density: Double = 0.0006
-            let count = max(40, Int(size.width * size.height * density))
-            for _ in 0..<count {
-                let x = CGFloat.random(in: 0...size.width, using: &rng)
-                let y = CGFloat.random(in: 0...size.height, using: &rng)
-                let r = CGFloat.random(in: 0.3...0.9, using: &rng)
-                let a = Double.random(in: 0.03...0.10, using: &rng)
-                ctx.fill(Path(ellipseIn: CGRect(x: x, y: y, width: r, height: r)),
-                         with: .color(Theme.ink.opacity(a)))
-            }
-        }
+        Theme.void.ignoresSafeArea()
     }
 }

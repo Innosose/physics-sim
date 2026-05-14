@@ -55,19 +55,18 @@ private struct WaveSumView: View {
                     oppose.toggle()
                 } label: {
                     Label("두 번째 파 반대 진행 (정상파)", systemImage: "arrow.left.arrow.right")
-                        .font(.caption.weight(.medium))
-                        .foregroundStyle(Theme.ink)
+                        .font(.system(size: 11, weight: oppose ? .semibold : .regular))
+                        .foregroundStyle(oppose ? Theme.surface : Theme.mist)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.vertical, 6)
-                        .padding(.horizontal, 8)
+                        .padding(.vertical, 7)
+                        .padding(.horizontal, 10)
                         .background(
                             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                .fill(oppose ? Theme.glow : Theme.surface.opacity(0.6))
+                                .fill(oppose ? Theme.ink : Theme.crest.opacity(0.5))
                         )
                         .overlay(
                             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                .stroke(Theme.ink.opacity(oppose ? 0.95 : 0.55),
-                                        lineWidth: oppose ? 1.4 : 1.1)
+                                .stroke(oppose ? Color.clear : Theme.stroke, lineWidth: 1)
                         )
                         .opacity(axis == .time ? 0.4 : 1)
                 }

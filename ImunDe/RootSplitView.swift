@@ -36,40 +36,45 @@ struct RootSplitView: View {
             Section {
                 ForEach(Curriculum.allCases) { c in
                     NavigationLink(value: SidebarItem.curriculum(c)) {
-                        HStack(spacing: 12) {
-                            RoundedRectangle(cornerRadius: 2, style: .continuous)
-                                .fill(c.accent)
-                                .frame(width: 3)
+                        HStack(spacing: 10) {
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                    .fill(c.accent.opacity(0.12))
+                                    .frame(width: 32, height: 32)
+                                Image(systemName: c.icon)
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundStyle(c.accent)
+                            }
                             Text(c.rawValue)
-                                .font(.body.weight(.semibold))
+                                .font(.system(size: 14, weight: .semibold))
                                 .foregroundStyle(Theme.ink)
                         }
-                        .padding(.vertical, 4)
+                        .padding(.vertical, 3)
                     }
                 }
             } header: {
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 3) {
                     Text("이문데")
-                        .font(.title.bold())
+                        .font(.system(size: 22, weight: .bold))
                         .foregroundStyle(Theme.ink)
                     Text("이런 문제 데이터베이스")
-                        .font(.caption)
+                        .font(.system(size: 11))
                         .foregroundStyle(Theme.mist)
                 }
-                .padding(.vertical, 6)
+                .padding(.vertical, 8)
                 .textCase(nil)
             }
-
         }
         .listStyle(.sidebar)
         .navigationTitle("이문데")
         .navigationBarTitleDisplayMode(.inline)
         .scrollContentBackground(.hidden)
-        .background(ImunDeBackground(topGlow: Theme.glow.opacity(0.10)))
+        .background(ImunDeBackground())
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button { showSettings = true } label: {
                     Image(systemName: "gearshape")
+                        .font(.system(size: 14, weight: .medium))
                 }
             }
         }
@@ -126,66 +131,75 @@ private struct WelcomeView: View {
     @State private var rowsIn = [false, false, false]
     @State private var footerIn = false
 
-    private let rows: [(title: String, sub: String, color: Color)] = [
-        ("중학교", "역학·빛·회로·열", Curriculum.middle.accent),
-        ("고등학교", "물리Ⅰ·Ⅱ 전 범위", Curriculum.high.accent),
-        ("샌드박스", "자유 시뮬레이션", Curriculum.free.accent),
+    private let rows: [(curriculum: Curriculum, sub: String)] = [
+        (.middle, "역학·빛·회로·열"),
+        (.high, "물리Ⅰ·Ⅱ 전 범위"),
+        (.free, "자유 시뮬레이션"),
     ]
 
     var body: some View {
         ZStack {
-            ImunDeBackground(topGlow: Theme.glow.opacity(0.12))
-            VStack(spacing: 20) {
-                VStack(spacing: 6) {
+            ImunDeBackground()
+            VStack(spacing: 24) {
+                VStack(spacing: 5) {
                     Text("이문데")
-                        .font(.system(size: 48, weight: .bold, design: .serif))
+                        .font(.system(size: 44, weight: .bold))
                         .foregroundStyle(Theme.ink)
                         .opacity(titleIn ? 1 : 0)
-                        .offset(y: titleIn ? 0 : 14)
+                        .offset(y: titleIn ? 0 : 12)
                     Text("이런 문제 데이터베이스")
-                        .font(.title3)
+                        .font(.system(size: 14))
                         .foregroundStyle(Theme.mist)
                         .opacity(subIn ? 1 : 0)
-                        .offset(y: subIn ? 0 : 8)
+                        .offset(y: subIn ? 0 : 6)
                 }
-                SketchyLineShape(jitter: 1.0, seed: 0xAA55AA55)
-                    .trim(from: 0, to: underlineProgress)
-                    .stroke(Theme.glow, style: StrokeStyle(lineWidth: 2.2,
-                                                            lineCap: .round))
-                    .frame(width: 64, height: 8)
-                VStack(spacing: 8) {
+                Rectangle()
+                    .fill(Theme.glow)
+                    .frame(width: underlineProgress * 48, height: 3)
+                    .clipShape(Capsule())
+                    .animation(.easeInOut(duration: 0.7).delay(0.38), value: underlineProgress)
+                VStack(spacing: 6) {
                     ForEach(rows.indices, id: \.self) { i in
                         let item = rows[i]
                         HStack(spacing: 12) {
-                            RoundedRectangle(cornerRadius: 2, style: .continuous)
-                                .fill(item.color)
-                                .frame(width: 3, height: 28)
-                            VStack(alignment: .leading, spacing: 1) {
-                                Text(item.title)
-                                    .font(.callout.weight(.semibold))
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                    .fill(item.curriculum.accent.opacity(0.10))
+                                    .frame(width: 36, height: 36)
+                                Image(systemName: item.curriculum.icon)
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundStyle(item.curriculum.accent)
+                            }
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(item.curriculum.rawValue)
+                                    .font(.system(size: 14, weight: .semibold))
                                     .foregroundStyle(Theme.ink)
                                 Text(item.sub)
-                                    .font(.caption)
+                                    .font(.system(size: 11))
                                     .foregroundStyle(Theme.mist)
                             }
                             Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundStyle(Theme.mist.opacity(0.5))
                         }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                        .background(Theme.surface.opacity(0.55))
-                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+                        .background(Theme.surface)
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                         .overlay(
-                            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .stroke(Theme.ink.opacity(0.45), lineWidth: 1.1)
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .stroke(Theme.stroke, lineWidth: 1)
                         )
+                        .shadow(color: Theme.ink.opacity(0.04), radius: 4, x: 0, y: 2)
                         .opacity(rowsIn[i] ? 1 : 0)
-                        .offset(y: rowsIn[i] ? 0 : 14)
+                        .offset(y: rowsIn[i] ? 0 : 12)
                     }
                 }
-                .frame(maxWidth: 320)
+                .frame(maxWidth: 340)
                 Text("사이드바에서 학년을 선택하세요")
-                    .font(.footnote)
-                    .foregroundStyle(Theme.mist.opacity(0.7))
+                    .font(.system(size: 12))
+                    .foregroundStyle(Theme.mist.opacity(0.6))
                     .opacity(footerIn ? 1 : 0)
             }
             .padding(24)
@@ -196,9 +210,10 @@ private struct WelcomeView: View {
 
     private func animateIn() {
         guard !titleIn else { return }
-        withAnimation(.easeOut(duration: 0.55)) { titleIn = true }
-        withAnimation(.easeOut(duration: 0.55).delay(0.18)) { subIn = true }
-        withAnimation(.easeInOut(duration: 0.7).delay(0.38)) {
+        withAnimation(.easeOut(duration: 0.5)) { titleIn = true }
+        withAnimation(.easeOut(duration: 0.5).delay(0.15)) { subIn = true }
+        withAnimation(.none) { underlineProgress = 0 }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
             underlineProgress = 1
         }
         for i in 0..<rowsIn.count {
@@ -232,38 +247,67 @@ private struct PresetList: View {
                 Section {
                     ForEach(presets) { p in
                         NavigationLink(value: p) {
-                            HStack(spacing: 12) {
-                                RoundedRectangle(cornerRadius: 2, style: .continuous)
-                                    .fill(curriculum.accent)
-                                    .frame(width: 3)
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(p.title)
-                                        .font(.body.weight(.semibold))
-                                        .foregroundStyle(Theme.ink)
-                                    if !p.subtitle.isEmpty {
-                                        Text(p.subtitle)
-                                            .font(.caption)
-                                            .foregroundStyle(Theme.mist)
-                                            .lineLimit(2)
-                                    }
-                                }
-                            }
-                            .padding(.vertical, 4)
+                            PresetRow(preset: p, curriculum: curriculum)
                         }
                     }
                 } header: {
-                    Text(cat.rawValue)
-                        .font(.themeHeader)
-                        .foregroundStyle(Theme.mist)
-                        .textCase(nil)
+                    HStack(spacing: 6) {
+                        Text(cat.rawValue.uppercased())
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(Theme.mist)
+                            .tracking(0.6)
+                        Spacer()
+                        Text("\(presets.count)")
+                            .font(.system(size: 10, weight: .medium).monospacedDigit())
+                            .foregroundStyle(Theme.mist.opacity(0.6))
+                    }
+                    .textCase(nil)
                 }
             }
         }
         .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
-        .background(ImunDeBackground(topGlow: curriculum.accent.opacity(0.10)))
+        .background(ImunDeBackground())
         .navigationTitle(curriculum.rawValue)
         .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+private struct PresetRow: View {
+    let preset: Preset
+    let curriculum: Curriculum
+
+    var body: some View {
+        HStack(spacing: 12) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(curriculum.accent.opacity(0.10))
+                    .frame(width: 34, height: 34)
+                Image(systemName: preset.kind.icon)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(curriculum.accent)
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                Text(preset.title)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Theme.ink)
+                if !preset.subtitle.isEmpty {
+                    Text(preset.subtitle)
+                        .font(.system(size: 11))
+                        .foregroundStyle(Theme.mist)
+                        .lineLimit(1)
+                }
+            }
+            Spacer(minLength: 4)
+            Text(preset.category.rawValue)
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(Theme.mist)
+                .padding(.horizontal, 7)
+                .padding(.vertical, 3)
+                .background(Theme.crest)
+                .clipShape(Capsule())
+        }
+        .padding(.vertical, 4)
     }
 }
 

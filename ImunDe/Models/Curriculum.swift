@@ -7,6 +7,14 @@ enum Curriculum: String, CaseIterable, Identifiable, Hashable {
 
     var id: String { rawValue }
 
+    var icon: String {
+        switch self {
+        case .middle: return "graduationcap.fill"
+        case .high:   return "book.closed.fill"
+        case .free:   return "play.square.fill"
+        }
+    }
+
     var accent: Color {
         switch self {
         case .middle: return Color.adaptive(light: Color(white: 0.18),

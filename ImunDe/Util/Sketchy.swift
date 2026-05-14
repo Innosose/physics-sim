@@ -152,29 +152,26 @@ enum Sketchy {
     }
 }
 
-// MARK: - Sketch-styled button (replacement for .glass / .glassProminent).
+// MARK: - Modern flat button styles.
 
 struct SketchButtonStyle: ButtonStyle {
     var prominent: Bool = false
 
     func makeBody(configuration: Configuration) -> some View {
-        let bg = prominent ? Theme.glow : Theme.surface.opacity(0.6)
         let pressed = configuration.isPressed
+        let bg: Color     = prominent ? Theme.ink : Theme.surface
+        let fg: Color     = prominent ? Theme.surface : Theme.ink
+        let border: Color = prominent ? Color.clear : Theme.stroke
         let shape = RoundedRectangle(cornerRadius: 10, style: .continuous)
         return configuration.label
-            .padding(.horizontal, 12)
-            .padding(.vertical, 7)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 9)
             .background(shape.fill(bg))
-            .overlay(
-                shape.stroke(
-                    Theme.ink.opacity(pressed ? 0.95 : 0.7),
-                    style: StrokeStyle(lineWidth: pressed ? 1.5 : 1.2)
-                )
-            )
-            .foregroundStyle(Theme.ink)
+            .overlay(shape.stroke(border, lineWidth: 1))
+            .foregroundStyle(fg)
             .scaleEffect(pressed ? 0.97 : 1.0)
-            .opacity(pressed ? 0.88 : 1.0)
-            .animation(.spring(duration: 0.18), value: pressed)
+            .opacity(pressed ? 0.82 : 1.0)
+            .animation(.spring(duration: 0.15), value: pressed)
     }
 }
 
@@ -244,7 +241,7 @@ extension ButtonStyle where Self == ChipPressStyle {
     static var chipPress: ChipPressStyle { ChipPressStyle() }
 }
 
-// MARK: - PaperSlider — sketchy ink-on-paper slider.
+// MARK: - PaperSlider — clean modern slider.
 
 struct PaperSlider: View {
     @Binding var value: Double
@@ -259,33 +256,39 @@ struct PaperSlider: View {
 
     var body: some View {
         GeometryReader { geo in
-            Canvas { ctx, size in
-                let leftPad: CGFloat = 6, rightPad: CGFloat = 6
-                let usable = max(1, size.width - leftPad - rightPad)
-                let midY = size.height / 2
-                let handleX = leftPad + usable * CGFloat(fraction)
+            let pad: CGFloat = 11
+            let usable = max(1, geo.size.width - pad * 2)
+            let handleX = pad + usable * CGFloat(fraction)
+            let midY = height / 2
+            let trackH: CGFloat = 3
 
-                Sketchy.line(from: CGPoint(x: leftPad, y: midY),
-                              to: CGPoint(x: size.width - rightPad, y: midY),
-                              ctx: ctx, color: Theme.ink.opacity(0.6),
-                              lineWidth: 1.2, passes: 1, jitter: 0.25)
-                if handleX > leftPad + 1 {
-                    Sketchy.line(from: CGPoint(x: leftPad, y: midY),
-                                  to: CGPoint(x: handleX, y: midY),
-                                  ctx: ctx, color: Theme.glow,
-                                  lineWidth: 2.2, passes: 2, jitter: 0.22)
-                }
-                Sketchy.fillCircle(center: CGPoint(x: handleX, y: midY), radius: 8,
-                                    ctx: ctx, fill: Theme.surface,
-                                    stroke: Theme.ink, strokeWidth: 1.4)
+            ZStack(alignment: .leading) {
+                // Full track
+                Capsule()
+                    .fill(Theme.ink.opacity(0.10))
+                    .frame(height: trackH)
+                    .padding(.horizontal, pad)
+
+                // Filled portion
+                Capsule()
+                    .fill(Theme.glow)
+                    .frame(width: max(trackH, handleX), height: trackH)
+                    .padding(.leading, pad)
+
+                // Handle knob
+                Circle()
+                    .fill(Theme.surface)
+                    .frame(width: 22, height: 22)
+                    .overlay(Circle().stroke(Theme.ink.opacity(0.22), lineWidth: 1))
+                    .shadow(color: Theme.ink.opacity(0.10), radius: 3, x: 0, y: 1)
+                    .offset(x: handleX - 11)
             }
+            .frame(height: height)
             .contentShape(Rectangle())
             .gesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { g in
-                        let leftPad: CGFloat = 6, rightPad: CGFloat = 6
-                        let usable = max(1, geo.size.width - leftPad - rightPad)
-                        let t = max(0, min(1, (g.location.x - leftPad) / usable))
+                        let t = max(0, min(1, (g.location.x - pad) / usable))
                         let span = range.upperBound - range.lowerBound
                         value = range.lowerBound + Double(t) * span
                     }
@@ -295,7 +298,7 @@ struct PaperSlider: View {
     }
 }
 
-// MARK: - PaperPicker — segmented picker styled as a paper card.
+// MARK: - PaperPicker — clean modern segmented control.
 
 struct PaperPicker<T: Hashable>: View {
     @Binding var selection: T
@@ -303,34 +306,35 @@ struct PaperPicker<T: Hashable>: View {
     let label: (T) -> String
 
     var body: some View {
-        HStack(spacing: 0) {
-            ForEach(Array(options.enumerated()), id: \.offset) { idx, opt in
+        HStack(spacing: 3) {
+            ForEach(Array(options.enumerated()), id: \.offset) { _, opt in
                 let isActive = selection == opt
                 Button {
                     withAnimation(.spring(duration: 0.18)) { selection = opt }
                 } label: {
                     Text(label(opt))
-                        .font(.caption.weight(.medium))
+                        .font(.system(size: 12, weight: isActive ? .semibold : .regular))
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 7)
-                        .foregroundStyle(isActive ? Theme.surface : Theme.ink)
-                        .background(isActive
-                                    ? Theme.ink.opacity(0.9)
-                                    : Color.clear)
+                        .padding(.vertical, 6)
+                        .foregroundStyle(isActive ? Theme.surface : Theme.mist)
+                        .background(
+                            isActive
+                            ? RoundedRectangle(cornerRadius: 7, style: .continuous)
+                                .fill(Theme.ink)
+                            : Color.clear
+                        )
                 }
                 .buttonStyle(.chipPress)
-                if idx < options.count - 1 {
-                    Rectangle()
-                        .fill(Theme.ink.opacity(0.45))
-                        .frame(width: 1)
-                }
             }
         }
-        .background(Theme.surface.opacity(0.55))
-        .overlay(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .stroke(Theme.ink.opacity(0.65), lineWidth: 1.1)
+        .padding(3)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(Theme.crest.opacity(0.5))
         )
-        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .stroke(Theme.stroke, lineWidth: 1)
+        )
     }
 }

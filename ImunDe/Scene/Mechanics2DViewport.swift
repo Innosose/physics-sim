@@ -176,19 +176,18 @@ struct Mechanics2DViewport: View {
                              action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Label(title, systemImage: systemImage)
-                .font(.caption.weight(.medium))
-                .foregroundStyle(Theme.ink)
+                .font(.system(size: 11, weight: on ? .semibold : .regular))
+                .foregroundStyle(on ? Theme.surface : Theme.mist)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 6)
-                .padding(.horizontal, 6)
+                .padding(.horizontal, 4)
                 .background(
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(on ? Theme.glow : Theme.surface.opacity(0.6))
+                        .fill(on ? Theme.ink : Theme.crest.opacity(0.5))
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .stroke(Theme.ink.opacity(on ? 0.95 : 0.55),
-                                lineWidth: on ? 1.4 : 1.1)
+                        .stroke(on ? Color.clear : Theme.stroke, lineWidth: 1)
                 )
         }
         .buttonStyle(.chipPress)

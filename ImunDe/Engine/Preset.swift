@@ -68,6 +68,31 @@ struct Preset: Identifiable, Hashable, @unchecked Sendable {
         case wave(WaveScene)
         case circuit(CircuitScene)
         case graph
+
+        var icon: String {
+            switch self {
+            case .mechanics2D: return "dot.circle"
+            case .optics(let s):
+                switch s {
+                case .reflection: return "arrow.turn.right.up"
+                case .lens:       return "magnifyingglass"
+                case .doubleSlit: return "waveform"
+                }
+            case .wave(let s):
+                switch s {
+                case .waveSum: return "waveform.path"
+                case .doppler: return "speaker.wave.2.fill"
+                }
+            case .circuit(let s):
+                switch s {
+                case .circuit:  return "bolt.fill"
+                case .rlc:      return "waveform.path.ecg.rectangle.fill"
+                case .faraday:  return "bolt.horizontal.fill"
+                case .solenoid: return "cylinder.fill"
+                }
+            case .graph: return "chart.xyaxis.line"
+            }
+        }
     }
 
     enum OpticsScene: Hashable { case reflection, lens, doubleSlit }

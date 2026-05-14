@@ -40,33 +40,31 @@ private struct AppRoot: View {
 private struct SplashView: View {
     @State private var titleIn = false
     @State private var subIn = false
-    @State private var trim: CGFloat = 0
+    @State private var barW: CGFloat = 0
 
     var body: some View {
         ZStack {
-            ImunDeBackground(topGlow: Theme.glow.opacity(0.10))
-            VStack(spacing: 10) {
+            ImunDeBackground()
+            VStack(spacing: 8) {
                 Text("이문데")
-                    .font(.system(size: 64, weight: .bold, design: .serif))
+                    .font(.system(size: 60, weight: .bold))
                     .foregroundStyle(Theme.ink)
                     .opacity(titleIn ? 1 : 0)
-                    .offset(y: titleIn ? 0 : 12)
+                    .offset(y: titleIn ? 0 : 10)
                 Text("이런 문제 데이터베이스")
-                    .font(.title3)
+                    .font(.system(size: 15))
                     .foregroundStyle(Theme.mist)
                     .opacity(subIn ? 1 : 0)
-                SketchyLineShape(jitter: 1.1, seed: 0x5A5A5A5A)
-                    .trim(from: 0, to: trim)
-                    .stroke(Theme.glow,
-                            style: StrokeStyle(lineWidth: 2.4, lineCap: .round))
-                    .frame(width: 92, height: 10)
-                    .padding(.top, 4)
+                Capsule()
+                    .fill(Theme.glow)
+                    .frame(width: barW, height: 3)
+                    .padding(.top, 6)
             }
         }
         .onAppear {
-            withAnimation(.easeOut(duration: 0.55)) { titleIn = true }
-            withAnimation(.easeOut(duration: 0.55).delay(0.22)) { subIn = true }
-            withAnimation(.easeInOut(duration: 0.7).delay(0.42)) { trim = 1 }
+            withAnimation(.easeOut(duration: 0.5)) { titleIn = true }
+            withAnimation(.easeOut(duration: 0.5).delay(0.18)) { subIn = true }
+            withAnimation(.easeInOut(duration: 0.6).delay(0.38)) { barW = 56 }
         }
     }
 }
