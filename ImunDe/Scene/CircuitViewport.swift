@@ -130,7 +130,7 @@ private struct SimpleCircuitView: View {
                  with: .color(Theme.mist.opacity(0.45)))
         Sketchy.rect(rect, ctx: ctx, color: Theme.ink,
                      lineWidth: 1.1, passes: 1, jitter: 0.4)
-        ctx.draw(Text(label).font(.caption2.weight(.semibold)).foregroundColor(Theme.ink),
+        ctx.draw(Text(label).font(.caption2.weight(.semibold)).foregroundStyle(Theme.ink),
                  at: CGPoint(x: c.x, y: c.y + h / 2 + 10))
     }
 }
@@ -306,9 +306,9 @@ private struct FaradayView: View {
                  with: .color(Theme.mist.opacity(0.55)))
         Sketchy.rect(northR, ctx: ctx, color: Theme.ink, lineWidth: 1.2, passes: 1, jitter: 0.4)
         Sketchy.rect(southR, ctx: ctx, color: Theme.ink, lineWidth: 1.2, passes: 1, jitter: 0.4)
-        ctx.draw(Text("N").font(.caption.bold()).foregroundColor(Theme.surface),
+        ctx.draw(Text("N").font(.caption.bold()).foregroundStyle(Theme.surface),
                  at: CGPoint(x: northR.midX, y: northR.midY))
-        ctx.draw(Text("S").font(.caption.bold()).foregroundColor(Theme.ink),
+        ctx.draw(Text("S").font(.caption.bold()).foregroundStyle(Theme.ink),
                  at: CGPoint(x: southR.midX, y: southR.midY))
 
         let curEMF = emfHistory.last ?? 0
@@ -323,13 +323,28 @@ private struct FaradayView: View {
         let inner = r.insetBy(dx: 8, dy: 6)
         ctx.stroke(Path(roundedRect: inner, cornerRadius: 6),
                    with: .color(Theme.ink.opacity(0.18)), lineWidth: 1)
+        // 진폭 ±50% 가이드선
+        for mult in [-1.0, 1.0] {
+            let gy = inner.midY + CGFloat(mult) * (inner.height / 2 - 4) * 0.5
+            var hLine = Path()
+            hLine.move(to: CGPoint(x: inner.minX, y: gy))
+            hLine.addLine(to: CGPoint(x: inner.maxX, y: gy))
+            ctx.stroke(hLine, with: .color(Theme.ink.opacity(0.12)),
+                       style: StrokeStyle(lineWidth: 0.5, dash: [2, 4]))
+        }
         var zero = Path()
         zero.move(to: CGPoint(x: inner.minX, y: inner.midY))
         zero.addLine(to: CGPoint(x: inner.maxX, y: inner.midY))
         ctx.stroke(zero, with: .color(Theme.ink.opacity(0.3)),
                    style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
-        ctx.draw(Text("EMF").font(.caption2).foregroundStyle(Theme.mist),
-                 at: CGPoint(x: inner.minX + 20, y: inner.minY + 8))
+        ctx.draw(Text("EMF (V)").font(.caption2).foregroundStyle(Theme.mist),
+                 at: CGPoint(x: inner.minX + 4, y: inner.minY + 8), anchor: .leading)
+        let peakEMF = emfHistory.map { abs($0) }.max() ?? 0
+        if peakEMF > 0.01 {
+            ctx.draw(Text(String(format: "peak ±%.2fV", peakEMF))
+                        .font(.system(size: 8)).foregroundStyle(Theme.mist),
+                     at: CGPoint(x: inner.maxX - 4, y: inner.minY + 8), anchor: .trailing)
+        }
         guard emfHistory.count > 1 else { return }
         let peak = max(emfHistory.map { abs($0) }.max() ?? 1, 0.001)
         var path = Path()
@@ -370,10 +385,10 @@ private struct SolenoidView: View {
             Canvas { ctx, size in draw(ctx: ctx, size: size) }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             VStack(alignment: .leading, spacing: 8) {
-                sSlider("n (권선수/m)", value: $nPerM, range: 100...2000, fmt: "%.0f")
-                sSlider("I (전류)", value: $current, range: 0.1...10, fmt: "%.1f A")
-                sSlider("길이 L", value: $soleL, range: 1...5, fmt: "%.1f")
-                sSlider("반지름 R", value: $soleR, range: 0.3...1.5, fmt: "%.2f")
+                sSlider("n (권선수/m)", value: $nPerM, range: 100...2000, fmt: "%.0f /m")
+                sSlider("I (전류)",    value: $current, range: 0.1...10,   fmt: "%.1f A")
+                sSlider("길이 L",      value: $soleL,   range: 1...5,       fmt: "%.1f m")
+                sSlider("반지름 R",    value: $soleR,   range: 0.3...1.5,   fmt: "%.2f m")
             }
         }
         .padding(8)

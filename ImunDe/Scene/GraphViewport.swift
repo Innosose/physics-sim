@@ -153,6 +153,10 @@ private struct MotionGraphView: View {
         drawCurve(ctx, in: plotInner, tEnd: tEnd, yMax: yMax2,
                   fn: { min(trackLength, max(0, v0 * $0 + 0.5 * a * $0 * $0)) },
                   dashed: true)
+        ctx.draw(Text("실선 ○ 등속   점선 ● 등가속")
+                    .font(.system(size: 9)).foregroundStyle(Theme.mist),
+                 at: CGPoint(x: plotInner.maxX - 4, y: plotInner.minY + 8),
+                 anchor: .trailing)
     }
 
     private func drawCurve(_ ctx: GraphicsContext, in r: CGRect, tEnd: Double,
@@ -281,10 +285,10 @@ private struct HeatTransferView: View {
         Sketchy.rect(r1, ctx: ctx, color: Theme.ink, lineWidth: 1.2, passes: 1, jitter: 0.5)
         Sketchy.rect(r2, ctx: ctx, color: Theme.ink, lineWidth: 1.2, passes: 1, jitter: 0.5)
         ctx.draw(Text(String(format: "T₁=%.1f°C", cur1)).font(.caption.weight(.bold))
-                    .foregroundColor(Theme.ink),
+                    .foregroundStyle(Theme.ink),
                  at: CGPoint(x: r1.midX, y: r1.midY))
         ctx.draw(Text(String(format: "T₂=%.1f°C", cur2)).font(.caption.weight(.bold))
-                    .foregroundColor(Theme.ink),
+                    .foregroundStyle(Theme.ink),
                  at: CGPoint(x: r2.midX, y: r2.midY))
 
         let inner = plotR.insetBy(dx: 12, dy: 12)
@@ -312,6 +316,21 @@ private struct HeatTransferView: View {
         ctx.stroke(p2, with: .color(Theme.ink),
                    style: StrokeStyle(lineWidth: 1.3, lineCap: .round,
                                        lineJoin: .round, dash: [5, 3]))
+
+        // Teq 기준선
+        let teqFrac = (hi - lo) > 1e-6 ? (Teq - lo) / (hi - lo) : 0.5
+        let teqPY = inner.maxY - 6 - CGFloat(teqFrac) * (inner.height - 12)
+        var teqLine = Path()
+        teqLine.move(to: CGPoint(x: inner.minX, y: teqPY))
+        teqLine.addLine(to: CGPoint(x: inner.maxX, y: teqPY))
+        ctx.stroke(teqLine, with: .color(Theme.mist.opacity(0.5)),
+                   style: StrokeStyle(lineWidth: 0.8, dash: [2, 4]))
+        ctx.draw(Text(String(format: "Teq=%.1f°", Teq))
+                    .font(.system(size: 8)).foregroundStyle(Theme.mist),
+                 at: CGPoint(x: inner.minX + 4, y: teqPY - 7), anchor: .leading)
+        ctx.draw(Text("실선 T₁   점선 T₂")
+                    .font(.system(size: 9)).foregroundStyle(Theme.mist),
+                 at: CGPoint(x: inner.maxX - 4, y: inner.minY + 8), anchor: .trailing)
     }
 
     private func tempColor(_ T: Double) -> Color {

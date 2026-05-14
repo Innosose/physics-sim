@@ -183,7 +183,7 @@ private struct WelcomeView: View {
                     }
                 }
                 .frame(maxWidth: 320)
-                Text("← 왼쪽에서 학년을 선택하세요")
+                Text("사이드바에서 학년을 선택하세요")
                     .font(.footnote)
                     .foregroundStyle(Theme.mist.opacity(0.7))
                     .opacity(footerIn ? 1 : 0)

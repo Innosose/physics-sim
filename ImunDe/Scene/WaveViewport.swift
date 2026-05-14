@@ -367,5 +367,25 @@ private struct DopplerView: View {
         let sx = CGFloat(cur + span / 2) * scale
         Sketchy.fillCircle(center: CGPoint(x: sx, y: cy), radius: 7, ctx: ctx,
                             fill: Theme.glow, stroke: Theme.ink, strokeWidth: 1.4)
+
+        // 음원 레이블
+        ctx.draw(Text("음원").font(.caption2.weight(.semibold)).foregroundStyle(Theme.mist),
+                 at: CGPoint(x: sx, y: cy - 18))
+
+        // 벽 레이블
+        ctx.draw(Text("벽").font(.caption2).foregroundStyle(Theme.mist.opacity(0.7)),
+                 at: CGPoint(x: wallPx + 6, y: cy - 20), anchor: .leading)
+
+        // 초음속 경고
+        if sourceSpeed >= soundSpeed {
+            ctx.draw(Text("초음속 (충격파)")
+                        .font(.caption2.weight(.semibold)).foregroundStyle(Theme.glow),
+                     at: CGPoint(x: size.width / 2, y: 14))
+        }
+
+        // 범례
+        ctx.draw(Text("○ 파면   ● 음원")
+                    .font(.system(size: 9)).foregroundStyle(Theme.mist.opacity(0.7)),
+                 at: CGPoint(x: 8, y: size.height - 10), anchor: .leading)
     }
 }

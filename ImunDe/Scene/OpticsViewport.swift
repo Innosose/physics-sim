@@ -165,8 +165,26 @@ private struct LensView: View {
             Canvas { ctx, size in draw(ctx: ctx, size: size) }
             derivedRow
             VStack(alignment: .leading, spacing: 8) {
-                Toggle("발산 렌즈 (f<0)", isOn: $diverging)
-                    .font(.caption)
+                Button {
+                    diverging.toggle()
+                } label: {
+                    Label("발산 렌즈 (f<0)", systemImage: "arrow.left.arrow.right")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(Theme.ink)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.vertical, 6)
+                        .padding(.horizontal, 8)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .fill(diverging ? Theme.glow : Theme.surface.opacity(0.6))
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .stroke(Theme.ink.opacity(diverging ? 0.95 : 0.55),
+                                        lineWidth: diverging ? 1.4 : 1.1)
+                        )
+                }
+                .buttonStyle(.chipPress)
                 slider("|f|", value: $f, range: 0.5...6, unit: "m")
                 slider("p", value: $p, range: 0.3...10, unit: "m")
             }
