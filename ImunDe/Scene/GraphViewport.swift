@@ -24,6 +24,7 @@ private struct MotionGraphView: View {
     @State private var elapsed: Double = 0
     @State private var lastTick: TimeInterval? = nil
     @State private var running: Bool = false
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         VStack(spacing: 8) {
@@ -51,6 +52,9 @@ private struct MotionGraphView: View {
             .frame(maxHeight: 220)
         }
         .padding(8)
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { lastTick = nil }
+        }
     }
 
     private var playReset: some View {
@@ -160,6 +164,7 @@ private struct HeatTransferView: View {
     @State private var T2: Double = 20
     @State private var capRatio: Double = 1
     @State private var hA: Double = 1
+    @Environment(\.scenePhase) private var scenePhase
     @State private var elapsed: Double = 0
     @State private var lastTick: TimeInterval? = nil
     @State private var running: Bool = false
@@ -194,6 +199,9 @@ private struct HeatTransferView: View {
             .frame(maxHeight: 240)
         }
         .padding(8)
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { lastTick = nil }
+        }
     }
 
     private var playReset: some View {

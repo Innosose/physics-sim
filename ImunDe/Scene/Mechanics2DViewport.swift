@@ -114,11 +114,14 @@ struct Mechanics2DViewport: View {
                 // 키보드/safe-area 애니메이션이 sub-pixel 변동을 만들기 때문에
                 // 1pt 이상 변화일 때만 — 그리고 드래그 활성일 때만 — cancel.
                 let active: Bool = { if case .none = dragMode { false } else { true } }()
-                if active {
-                    let dw = abs(canvasSize.width - newSize.width)
-                    let dh = abs(canvasSize.height - newSize.height)
-                    if dw > 1 || dh > 1 { cancelActiveDrag() }
-                }
+                let dw = abs(canvasSize.width - newSize.width)
+                let dh = abs(canvasSize.height - newSize.height)
+                if active && (dw > 1 || dh > 1) { cancelActiveDrag() }
+                // 회전 등 큰 변화 시 panOffset 은 옛 픽셀 단위이므로 viewport
+                // 가 점프. 절대 픽셀 panOffset 을 새 캔버스로 안전하게
+                // 옮기려면 비율 보정해야 하지만, 단순히 리셋하는 게
+                // 학생이 "원위치" 의도와 더 부합.
+                if dw > 50 || dh > 50 { panOffset = .zero }
                 canvasSize = newSize
             }
             .gesture(pointerGesture)
@@ -184,11 +187,14 @@ struct Mechanics2DViewport: View {
         .onDisappear { fadeTask?.cancel(); fadeTask = nil }
         .onChange(of: preset.id) { _, _ in reset() }
         .onChange(of: scenePhase) { _, phase in
-            // .inactive (알림 배너 / Control Center pulldown) 만으로는
-            // cancel 하지 않음 — drag 진행 중에 잠깐 inactive 가 되는 경우
-            // 사용자가 의도한 게 아닌데 끊긴다. .background 가 진짜
-            // dismissal signal.
-            if phase == .background { cancelActiveDrag() }
+            // .active 가 아닌 모든 상태에서 drag cleanup —
+            // .inactive (Control Center pulldown / 알림 / 통화) 도 포함.
+            // iOS 26 에서 .inactive 가 gesture 인터럽트를 항상 알리지
+            // 않는다는 보고가 있어 보수적으로 모든 비-active 케이스 처리.
+            if phase != .active { cancelActiveDrag() }
+            // foreground 복귀 시 lastTick 리셋 — 백그라운드 동안 누적된
+            // wall-clock 갭이 첫 프레임 dt 를 폭주시키는 것 차단.
+            if phase == .active { lastTick = nil }
         }
         // @GestureState `isPointerActive` 가 false 로 떨어질 때는 시스템이
         // 제스처를 취소했거나 (Control Center pulldown, 인터럽트 등)
@@ -197,12 +203,16 @@ struct Mechanics2DViewport: View {
         .onChange(of: isPointerActive) { wasActive, nowActive in
             if wasActive && !nowActive { cancelActiveDrag() }
         }
-        // 두 번째 손가락이 도착했고 아직 tap 후보 상태라면 long-press 가
-        // spuriously 발화하지 않게 .consumed 로 전환.
+        // 두 번째 손가락이 도착하면 진행 중인 tap/body drag 를 .consumed
+        // 로 전환. .body(id) 가 active 일 때 pinch 가 시작되면 pinchDelta 가
+        // viewScale 을 흔들어 손가락 아래 body 가 표류하던 문제 차단.
         .onChange(of: isPinching) { _, pinching in
-            if pinching, case .pendingTap = dragMode {
+            guard pinching else { return }
+            switch dragMode {
+            case .pendingTap, .body:
                 dragMode = .consumed
                 longPressProgress = 0
+            default: break
             }
         }
         // 일시정지·재생 토글 시 clock 누적 상태 리셋 — 재생 직후 첫 dt 가
@@ -426,10 +436,8 @@ struct Mechanics2DViewport: View {
         if let t = text {
             Text(t)
                 .font(.caption2)
-                // Liquid Glass 는 affordance (touch 가능 표면) 전용 — toast
-                // 형태의 상태 안내는 opaque material 이 HIG 권장. 또한
-                // hint 텍스트 가독성이 1순위.
-                .foregroundStyle(Theme.mist)
+                // Reduce Transparency 시 ink 로 콘트라스트 보장. 일반은 mist.
+                .foregroundStyle(reduceTransparency ? Theme.ink : Theme.mist)
                 .padding(.horizontal, 10).padding(.vertical, 4)
                 .background(
                     Capsule().fill(Theme.surface)
@@ -1049,7 +1057,7 @@ struct Mechanics2DViewport: View {
         if autoStopped {
             Text("정지됨")
                 .font(.caption2.weight(.semibold))
-                .foregroundStyle(Theme.mist)
+                .foregroundStyle(reduceTransparency ? Theme.ink : Theme.mist)
                 .padding(.horizontal, 10).padding(.vertical, 3)
                 .background(
                     Capsule().fill(Theme.surface)
@@ -1686,7 +1694,7 @@ struct Mechanics2DViewport: View {
                 // 읽고 잘림. 핵심 3줄 (이름·질량·속력) 만 + updatesFrequently
                 // 로 재읽기 빈도 자동 throttle.
                 .accessibilityElement(children: .ignore)
-                .accessibilityLabel(Text(lines.prefix(3).joined(separator: ", ")))
+                .accessibilityLabel(Text(lines.joined(separator: ", ")))
                 .accessibilityAddTraits(.updatesFrequently)
 
                 Button {

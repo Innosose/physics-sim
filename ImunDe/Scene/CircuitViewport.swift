@@ -213,6 +213,7 @@ private struct FaradayView: View {
     @State private var elapsed: Double = 0
     @State private var lastTick: TimeInterval? = nil
     @State private var running: Bool = false
+    @Environment(\.scenePhase) private var scenePhase
     @State private var emfHistory: [Double] = []
 
     private let amplitude: Double = 3.0
@@ -247,6 +248,9 @@ private struct FaradayView: View {
             .frame(maxHeight: 220)
         }
         .padding(8)
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { lastTick = nil }
+        }
     }
 
     private var faradayPlayReset: some View {

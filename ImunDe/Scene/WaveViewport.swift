@@ -30,6 +30,7 @@ private struct WaveSumView: View {
     @State private var elapsed: Double = 0
     @State private var lastTick: TimeInterval? = nil
     @State private var running: Bool = true
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         VStack(spacing: 8) {
@@ -65,6 +66,9 @@ private struct WaveSumView: View {
             .frame(maxHeight: 240)
         }
         .padding(8)
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { lastTick = nil }
+        }
     }
 
     private var playReset: some View {
@@ -191,6 +195,7 @@ private struct DopplerView: View {
     @State private var elapsed: Double = 0
     @State private var lastTick: TimeInterval? = nil
     @State private var running: Bool = false
+    @Environment(\.scenePhase) private var scenePhase
 
     private var tStop: Double {
         let span: Double = 800
@@ -249,6 +254,9 @@ private struct DopplerView: View {
             .frame(maxHeight: 240)
         }
         .padding(8)
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { lastTick = nil }
+        }
     }
 
     private var playReset: some View {
