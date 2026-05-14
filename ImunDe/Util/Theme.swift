@@ -2,57 +2,60 @@ import SwiftUI
 import UIKit
 
 enum Theme {
+    // Paper tones — light = aged cream, dark = warm dim (chalkboard-ish but warm).
     static let void = Color.adaptive(
-        light: Color(red: 0.93, green: 0.94, blue: 0.97),
-        dark:  Color(red: 0.020, green: 0.031, blue: 0.086))
+        light: Color(red: 0.93, green: 0.90, blue: 0.84),
+        dark:  Color(red: 0.13, green: 0.11, blue: 0.09))
 
     static let deep = Color.adaptive(
-        light: Color(red: 0.95, green: 0.96, blue: 0.99),
-        dark:  Color(red: 0.043, green: 0.067, blue: 0.149))
+        light: Color(red: 0.96, green: 0.93, blue: 0.86),
+        dark:  Color(red: 0.16, green: 0.14, blue: 0.11))
 
     static let surface = Color.adaptive(
-        light: Color.white,
-        dark:  Color(red: 0.075, green: 0.102, blue: 0.220))
+        light: Color(red: 0.98, green: 0.96, blue: 0.91),
+        dark:  Color(red: 0.21, green: 0.19, blue: 0.16))
 
     static let crest = Color.adaptive(
-        light: Color(red: 0.91, green: 0.93, blue: 0.97),
-        dark:  Color(red: 0.118, green: 0.153, blue: 0.314))
+        light: Color(red: 0.91, green: 0.87, blue: 0.79),
+        dark:  Color(red: 0.26, green: 0.23, blue: 0.18))
 
-    static let glow = Color.adaptive(
-        light: Color(red: 0.78, green: 0.55, blue: 0.18),
-        dark:  Color(red: 0.878, green: 0.710, blue: 0.455))
-
-    static let accent = Color.adaptive(
-        light: Color(red: 0.20, green: 0.65, blue: 0.58),
-        dark:  Color(red: 0.400, green: 0.831, blue: 0.753))
-
-    static let pulse = Color.adaptive(
-        light: Color(red: 0.55, green: 0.36, blue: 0.78),
-        dark:  Color(red: 0.725, green: 0.553, blue: 0.898))
-
-    static let confirm = Color.adaptive(
-        light: Color(red: 0.30, green: 0.65, blue: 0.40),
-        dark:  Color(red: 0.561, green: 0.890, blue: 0.635))
-
-    static let danger = Color.adaptive(
-        light: Color(red: 0.78, green: 0.30, blue: 0.30),
-        dark:  Color(red: 0.878, green: 0.482, blue: 0.482))
-
+    // Pencil & ink — primary stroke color.
     static let ink = Color.adaptive(
-        light: Color(red: 0.05, green: 0.07, blue: 0.16),
-        dark:  Color(red: 0.945, green: 0.925, blue: 0.878))
+        light: Color(red: 0.16, green: 0.14, blue: 0.13),
+        dark:  Color(red: 0.94, green: 0.91, blue: 0.83))
 
     static let mist = Color.adaptive(
-        light: Color(red: 0.36, green: 0.40, blue: 0.50),
-        dark:  Color(red: 0.533, green: 0.584, blue: 0.718))
+        light: Color(red: 0.43, green: 0.40, blue: 0.36),
+        dark:  Color(red: 0.66, green: 0.62, blue: 0.54))
 
     static let stroke = Color.adaptive(
+        light: Color.black.opacity(0.18),
+        dark:  Color.white.opacity(0.14))
+
+    static let divider = Color.adaptive(
         light: Color.black.opacity(0.10),
         dark:  Color.white.opacity(0.08))
 
-    static let divider = Color.adaptive(
-        light: Color.black.opacity(0.06),
-        dark:  Color.white.opacity(0.04))
+    // Accent — warm sketch-amber (like a colored pencil).
+    static let glow = Color.adaptive(
+        light: Color(red: 0.70, green: 0.45, blue: 0.18),
+        dark:  Color(red: 0.86, green: 0.66, blue: 0.36))
+
+    static let accent = Color.adaptive(
+        light: Color(red: 0.27, green: 0.50, blue: 0.46),
+        dark:  Color(red: 0.49, green: 0.74, blue: 0.69))
+
+    static let pulse = Color.adaptive(
+        light: Color(red: 0.46, green: 0.38, blue: 0.55),
+        dark:  Color(red: 0.69, green: 0.59, blue: 0.81))
+
+    static let confirm = Color.adaptive(
+        light: Color(red: 0.32, green: 0.50, blue: 0.32),
+        dark:  Color(red: 0.55, green: 0.76, blue: 0.55))
+
+    static let danger = Color.adaptive(
+        light: Color(red: 0.68, green: 0.30, blue: 0.27),
+        dark:  Color(red: 0.85, green: 0.50, blue: 0.45))
 }
 
 extension Color {
@@ -67,24 +70,24 @@ extension Color {
 extension Font {
     static var themeMono: Font     { .system(size: 12, weight: .regular,  design: .monospaced) }
     static var themeMonoBold: Font { .system(size: 12, weight: .semibold, design: .monospaced) }
-    static var themeHeader: Font   { .system(size: 11, weight: .semibold, design: .default).smallCaps() }
-    static var themeLabel: Font    { .system(size: 13, weight: .regular,  design: .rounded) }
+    static var themeHeader: Font   { .system(size: 11, weight: .semibold, design: .serif).smallCaps() }
+    static var themeLabel: Font    { .system(size: 13, weight: .regular,  design: .serif) }
 }
 
 extension View {
-    func themeCard(cornerRadius: CGFloat = 16) -> some View {
+    func themeCard(cornerRadius: CGFloat = 14) -> some View {
         modifier(ThemeCard(cornerRadius: cornerRadius))
     }
 }
 
 private struct ThemeCard: ViewModifier {
     let cornerRadius: CGFloat
-    var tint: Color = Theme.surface.opacity(0.55)
     func body(content: Content) -> some View {
         let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
         return content
-            .glassEffect(.regular.tint(tint), in: shape)
-            .overlay(shape.stroke(Theme.stroke, lineWidth: 1))
+            .background(shape.fill(Theme.surface.opacity(0.85)))
+            .overlay(shape.stroke(Theme.ink.opacity(0.55),
+                                  style: StrokeStyle(lineWidth: 1.1)))
     }
 }
 
@@ -97,8 +100,10 @@ struct PropertyDivider: View {
     }
 }
 
+// MARK: - Paper background
+
 struct ImunDeBackground: View {
-    var topGlow: Color = Theme.glow.opacity(0.10)
+    var topGlow: Color = Theme.glow.opacity(0.0)  // legacy param, ignored
 
     var body: some View {
         ZStack {
@@ -106,10 +111,28 @@ struct ImunDeBackground: View {
                 colors: [Theme.deep, Theme.void],
                 startPoint: .top, endPoint: .bottom)
                 .ignoresSafeArea()
-            RadialGradient(colors: [topGlow, .clear],
-                           center: .top,
-                           startRadius: 0, endRadius: 420)
+            PaperGrainOverlay()
                 .ignoresSafeArea()
+                .allowsHitTesting(false)
+        }
+    }
+}
+
+/// Subtle paper-grain noise drawn with sparse dots. Deterministic per layout.
+private struct PaperGrainOverlay: View {
+    var body: some View {
+        Canvas { ctx, size in
+            var rng = SeededGenerator(0x6A09E667F3BCC908)
+            let density: Double = 0.0006
+            let count = max(40, Int(size.width * size.height * density))
+            for _ in 0..<count {
+                let x = CGFloat.random(in: 0...size.width, using: &rng)
+                let y = CGFloat.random(in: 0...size.height, using: &rng)
+                let r = CGFloat.random(in: 0.3...0.9, using: &rng)
+                let a = Double.random(in: 0.03...0.10, using: &rng)
+                ctx.fill(Path(ellipseIn: CGRect(x: x, y: y, width: r, height: r)),
+                         with: .color(Theme.ink.opacity(a)))
+            }
         }
     }
 }

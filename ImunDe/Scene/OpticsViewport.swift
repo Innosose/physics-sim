@@ -56,40 +56,51 @@ private struct ReflectionView: View {
     private func draw(ctx: GraphicsContext, size: CGSize) {
         let mid = size.height / 2
 
-        var boundary = Path()
-        boundary.move(to: CGPoint(x: 0, y: mid))
-        boundary.addLine(to: CGPoint(x: size.width, y: mid))
-        ctx.stroke(boundary, with: .color(Theme.ink.opacity(0.6)), lineWidth: 1.5)
+        // Boundary
+        Sketchy.line(from: CGPoint(x: 0, y: mid),
+                     to: CGPoint(x: size.width, y: mid),
+                     ctx: ctx, color: Theme.ink,
+                     lineWidth: 1.6, passes: 2, jitter: 1.0)
 
-        var normal = Path()
-        normal.move(to: CGPoint(x: size.width / 2, y: 30))
-        normal.addLine(to: CGPoint(x: size.width / 2, y: size.height - 30))
-        ctx.stroke(normal, with: .color(Theme.ink.opacity(0.4)),
-                   style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
+        // Normal — keep dashed-look via small segments
+        let nx0 = size.width / 2
+        let ny0: CGFloat = 30
+        let ny1 = size.height - 30
+        let segs = 14
+        for i in stride(from: 0, to: segs, by: 2) {
+            let t0 = CGFloat(i) / CGFloat(segs)
+            let t1 = CGFloat(i + 1) / CGFloat(segs)
+            Sketchy.line(from: CGPoint(x: nx0, y: ny0 + (ny1 - ny0) * t0),
+                          to: CGPoint(x: nx0, y: ny0 + (ny1 - ny0) * t1),
+                          ctx: ctx, color: Theme.ink.opacity(0.6),
+                          lineWidth: 1.0, passes: 1, jitter: 0.25)
+        }
 
         let θ1 = incidenceDeg * .pi / 180
         let cx = size.width / 2
         let len: CGFloat = min(min(cx, size.width - cx) - 16,
                                min(mid, size.height - mid) - 16)
 
-        var inc = Path()
-        inc.move(to: CGPoint(x: cx - CGFloat(sin(θ1)) * len, y: mid - CGFloat(cos(θ1)) * len))
-        inc.addLine(to: CGPoint(x: cx, y: mid))
-        ctx.stroke(inc, with: .color(.yellow), lineWidth: 2)
+        Sketchy.line(from: CGPoint(x: cx - CGFloat(sin(θ1)) * len,
+                                    y: mid - CGFloat(cos(θ1)) * len),
+                     to: CGPoint(x: cx, y: mid),
+                     ctx: ctx, color: .yellow,
+                     lineWidth: 1.8, passes: 2, jitter: 0.6)
 
-        var refl = Path()
-        refl.move(to: CGPoint(x: cx, y: mid))
-        refl.addLine(to: CGPoint(x: cx + CGFloat(sin(θ1)) * len, y: mid - CGFloat(cos(θ1)) * len))
-        ctx.stroke(refl, with: .color(.cyan), lineWidth: 2)
+        Sketchy.line(from: CGPoint(x: cx, y: mid),
+                     to: CGPoint(x: cx + CGFloat(sin(θ1)) * len,
+                                  y: mid - CGFloat(cos(θ1)) * len),
+                     ctx: ctx, color: .cyan,
+                     lineWidth: 1.8, passes: 2, jitter: 0.6)
 
         let s2 = n1 * sin(θ1) / n2
         if abs(s2) <= 1 {
             let θ2 = asin(s2)
-            var refr = Path()
-            refr.move(to: CGPoint(x: cx, y: mid))
-            refr.addLine(to: CGPoint(x: cx + CGFloat(sin(θ2)) * len,
-                                     y: mid + CGFloat(cos(θ2)) * len))
-            ctx.stroke(refr, with: .color(.orange), lineWidth: 2)
+            Sketchy.line(from: CGPoint(x: cx, y: mid),
+                         to: CGPoint(x: cx + CGFloat(sin(θ2)) * len,
+                                      y: mid + CGFloat(cos(θ2)) * len),
+                         ctx: ctx, color: .orange,
+                         lineWidth: 1.8, passes: 2, jitter: 0.6)
         }
     }
 }
@@ -138,38 +149,51 @@ private struct LensView: View {
         let scale: CGFloat = (min(size.width, size.height * 1.6) / 2 - 20)
                              / CGFloat(maxExtent)
 
-        var axis = Path()
-        axis.move(to: CGPoint(x: 10, y: cy))
-        axis.addLine(to: CGPoint(x: size.width - 10, y: cy))
-        ctx.stroke(axis, with: .color(Theme.ink.opacity(0.4)), lineWidth: 1)
+        Sketchy.line(from: CGPoint(x: 10, y: cy),
+                     to: CGPoint(x: size.width - 10, y: cy),
+                     ctx: ctx, color: Theme.ink.opacity(0.6),
+                     lineWidth: 1.2, passes: 1, jitter: 0.5)
 
-        var lens = Path()
-        lens.move(to: CGPoint(x: cx, y: cy - 80))
-        lens.addLine(to: CGPoint(x: cx, y: cy + 80))
-        ctx.stroke(lens, with: .color(.cyan), lineWidth: 2)
+        Sketchy.line(from: CGPoint(x: cx, y: cy - 80),
+                     to: CGPoint(x: cx, y: cy + 80),
+                     ctx: ctx, color: .cyan,
+                     lineWidth: 1.8, passes: 2, jitter: 0.4)
 
         for s in [-1.0, 1.0] {
             let fx = cx + CGFloat(s * abs(fSigned)) * scale
-            ctx.fill(Path(ellipseIn: CGRect(x: fx - 3, y: cy - 3, width: 6, height: 6)),
-                     with: .color(.orange))
+            Sketchy.fillCircle(center: CGPoint(x: fx, y: cy), radius: 3.5,
+                               ctx: ctx, fill: .orange, stroke: Theme.ink,
+                               strokeWidth: 1.0)
         }
 
         let objX = cx - CGFloat(p) * scale
-        var obj = Path()
-        obj.move(to: CGPoint(x: objX, y: cy))
-        obj.addLine(to: CGPoint(x: objX, y: cy - 40))
-        ctx.stroke(obj, with: .color(.yellow), lineWidth: 2)
+        Sketchy.line(from: CGPoint(x: objX, y: cy),
+                     to: CGPoint(x: objX, y: cy - 40),
+                     ctx: ctx, color: .yellow,
+                     lineWidth: 1.8, passes: 2, jitter: 0.5)
 
         if q.isFinite {
             let imgX = cx + CGFloat(q) * scale
             let m = -q / p
             let h = -CGFloat(m) * 40
-            var img = Path()
-            img.move(to: CGPoint(x: imgX, y: cy))
-            img.addLine(to: CGPoint(x: imgX, y: cy - h))
-            ctx.stroke(img, with: .color(q > 0 ? .green : .gray),
-                       style: StrokeStyle(lineWidth: 2,
-                                          dash: q > 0 ? [] : [4, 3]))
+            if q > 0 {
+                Sketchy.line(from: CGPoint(x: imgX, y: cy),
+                             to: CGPoint(x: imgX, y: cy - h),
+                             ctx: ctx, color: .green,
+                             lineWidth: 1.8, passes: 2, jitter: 0.5)
+            } else {
+                // virtual image — dashed via segments
+                let total = abs(h)
+                let segs = max(6, Int(total / 6))
+                for i in stride(from: 0, to: segs, by: 2) {
+                    let t0 = CGFloat(i) / CGFloat(segs)
+                    let t1 = CGFloat(i + 1) / CGFloat(segs)
+                    Sketchy.line(from: CGPoint(x: imgX, y: cy - h * t0),
+                                  to: CGPoint(x: imgX, y: cy - h * t1),
+                                  ctx: ctx, color: .gray,
+                                  lineWidth: 1.4, passes: 1, jitter: 0.3)
+                }
+            }
         }
     }
 }

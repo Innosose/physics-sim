@@ -62,8 +62,7 @@ private struct MotionGraphView: View {
                     .font(.callout.weight(.semibold))
                     .frame(maxWidth: .infinity)
             }
-            .buttonStyle(.glassProminent)
-            .tint(Theme.glow)
+            .buttonStyle(.sketchProminent)
 
             Button {
                 elapsed = 0; lastTick = nil; running = false
@@ -72,7 +71,7 @@ private struct MotionGraphView: View {
                     .font(.callout.weight(.semibold))
                     .frame(maxWidth: .infinity)
             }
-            .buttonStyle(.glass)
+            .buttonStyle(.sketch)
         }
     }
 
@@ -120,17 +119,16 @@ private struct MotionGraphView: View {
         let x1 = min(trackLength, max(0, v1 * t))
         let x2 = min(trackLength, max(0, v0 * t + 0.5 * a * t * t))
 
-        var line = Path()
-        line.move(to: CGPoint(x: 16, y: track.midY))
-        line.addLine(to: CGPoint(x: track.maxX - 16, y: track.midY))
-        ctx.stroke(line, with: .color(Theme.ink.opacity(0.4)), lineWidth: 1)
+        Sketchy.line(from: CGPoint(x: 16, y: track.midY),
+                     to: CGPoint(x: track.maxX - 16, y: track.midY),
+                     ctx: ctx, color: Theme.ink.opacity(0.6),
+                     lineWidth: 1.0, passes: 1, jitter: 0.4)
 
-        // 오른쪽 벽.
         let wallX = track.maxX - 16
-        var wall = Path()
-        wall.move(to: CGPoint(x: wallX, y: track.midY - 24))
-        wall.addLine(to: CGPoint(x: wallX, y: track.midY + 24))
-        ctx.stroke(wall, with: .color(Theme.ink.opacity(0.7)), lineWidth: 2)
+        Sketchy.line(from: CGPoint(x: wallX, y: track.midY - 24),
+                     to: CGPoint(x: wallX, y: track.midY + 24),
+                     ctx: ctx, color: Theme.ink,
+                     lineWidth: 1.8, passes: 2, jitter: 0.4)
 
         let usable = track.width - 32
         let toX: (Double) -> CGFloat = { val in
@@ -138,19 +136,20 @@ private struct MotionGraphView: View {
         }
         let p1 = CGPoint(x: toX(x1), y: track.midY - 14)
         let p2 = CGPoint(x: toX(x2), y: track.midY + 14)
-        ctx.fill(Path(ellipseIn: CGRect(x: p1.x - 8, y: p1.y - 8, width: 16, height: 16)),
-                 with: .color(.cyan))
-        ctx.fill(Path(ellipseIn: CGRect(x: p2.x - 8, y: p2.y - 8, width: 16, height: 16)),
-                 with: .color(.orange))
+        Sketchy.fillCircle(center: p1, radius: 8, ctx: ctx,
+                            fill: .cyan, stroke: Theme.ink, strokeWidth: 1.2)
+        Sketchy.fillCircle(center: p2, radius: 8, ctx: ctx,
+                            fill: .orange, stroke: Theme.ink, strokeWidth: 1.2)
 
-        // x-t 그래프 — 두 카트 모두 trackLength 에서 plateau.
+        // x-t 그래프 frame
         let tEnd = max(8.0, t * 1.05)
         let yMax2 = trackLength * 1.1
-        ctx.stroke(Path(roundedRect: plot.insetBy(dx: 12, dy: 12), cornerRadius: 8),
-                   with: .color(Theme.ink.opacity(0.18)), lineWidth: 1)
-        drawCurve(ctx, in: plot.insetBy(dx: 12, dy: 12), tEnd: tEnd, yMax: yMax2,
+        let plotInner = plot.insetBy(dx: 12, dy: 12)
+        ctx.stroke(Path(roundedRect: plotInner, cornerRadius: 8),
+                   with: .color(Theme.ink.opacity(0.45)), lineWidth: 1.0)
+        drawCurve(ctx, in: plotInner, tEnd: tEnd, yMax: yMax2,
                   fn: { min(trackLength, max(0, v1 * $0)) }, color: .cyan)
-        drawCurve(ctx, in: plot.insetBy(dx: 12, dy: 12), tEnd: tEnd, yMax: yMax2,
+        drawCurve(ctx, in: plotInner, tEnd: tEnd, yMax: yMax2,
                   fn: { min(trackLength, max(0, v0 * $0 + 0.5 * a * $0 * $0)) }, color: .orange)
     }
 
@@ -218,8 +217,7 @@ private struct HeatTransferView: View {
                     .font(.callout.weight(.semibold))
                     .frame(maxWidth: .infinity)
             }
-            .buttonStyle(.glassProminent)
-            .tint(Theme.glow)
+            .buttonStyle(.sketchProminent)
 
             Button {
                 elapsed = 0; lastTick = nil; running = false
@@ -228,7 +226,7 @@ private struct HeatTransferView: View {
                     .font(.callout.weight(.semibold))
                     .frame(maxWidth: .infinity)
             }
-            .buttonStyle(.glass)
+            .buttonStyle(.sketch)
         }
     }
 
@@ -272,18 +270,20 @@ private struct HeatTransferView: View {
         let bw: CGFloat = 100, bh: CGFloat = 60
         let r1 = CGRect(x: topR.midX - bw - 16, y: topR.midY - bh / 2, width: bw, height: bh)
         let r2 = CGRect(x: topR.midX + 16, y: topR.midY - bh / 2, width: bw, height: bh)
-        ctx.fill(Path(roundedRect: r1, cornerRadius: 8), with: .color(tempColor(cur1)))
-        ctx.fill(Path(roundedRect: r2, cornerRadius: 8), with: .color(tempColor(cur2)))
+        ctx.fill(Path(roundedRect: r1, cornerRadius: 8), with: .color(tempColor(cur1).opacity(0.8)))
+        ctx.fill(Path(roundedRect: r2, cornerRadius: 8), with: .color(tempColor(cur2).opacity(0.8)))
+        Sketchy.rect(r1, ctx: ctx, color: Theme.ink, lineWidth: 1.2, passes: 1, jitter: 0.5)
+        Sketchy.rect(r2, ctx: ctx, color: Theme.ink, lineWidth: 1.2, passes: 1, jitter: 0.5)
         ctx.draw(Text(String(format: "T₁=%.1f°C", cur1)).font(.caption.weight(.bold))
-                    .foregroundColor(.black),
+                    .foregroundColor(Theme.ink),
                  at: CGPoint(x: r1.midX, y: r1.midY))
         ctx.draw(Text(String(format: "T₂=%.1f°C", cur2)).font(.caption.weight(.bold))
-                    .foregroundColor(.black),
+                    .foregroundColor(Theme.ink),
                  at: CGPoint(x: r2.midX, y: r2.midY))
 
         let inner = plotR.insetBy(dx: 12, dy: 12)
         ctx.stroke(Path(roundedRect: inner, cornerRadius: 8),
-                   with: .color(Theme.ink.opacity(0.18)), lineWidth: 1)
+                   with: .color(Theme.ink.opacity(0.45)), lineWidth: 1.0)
         let tEnd = max(2 * tau, t * 1.1, 0.5)
         let lo = min(0.0, T1, T2), hi = max(100.0, T1, T2)
         var p1 = Path(), p2 = Path()

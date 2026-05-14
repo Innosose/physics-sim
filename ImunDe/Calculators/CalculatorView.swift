@@ -49,7 +49,7 @@ private struct CalcSimButton: View {
                 .font(.callout.weight(.semibold))
                 .frame(maxWidth: .infinity)
         }
-        .buttonStyle(.glass)
+        .buttonStyle(.sketch)
     }
 }
 struct CalcInputField: View {

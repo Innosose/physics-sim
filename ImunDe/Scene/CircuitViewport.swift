@@ -66,27 +66,30 @@ private struct SimpleCircuitView: View {
         let rb = CGPoint(x: r.maxX, y: r.maxY)
         let lb = CGPoint(x: r.minX, y: r.maxY)
 
-        var b1 = Path()
-        b1.move(to: CGPoint(x: lt.x - 14, y: r.midY - 14))
-        b1.addLine(to: CGPoint(x: lt.x + 14, y: r.midY - 14))
-        ctx.stroke(b1, with: .color(Theme.ink), lineWidth: 3)
-        var b2 = Path()
-        b2.move(to: CGPoint(x: lt.x - 8, y: r.midY + 14))
-        b2.addLine(to: CGPoint(x: lt.x + 8, y: r.midY + 14))
-        ctx.stroke(b2, with: .color(Theme.ink), lineWidth: 2)
+        // Battery
+        Sketchy.line(from: CGPoint(x: lt.x - 14, y: r.midY - 14),
+                     to: CGPoint(x: lt.x + 14, y: r.midY - 14),
+                     ctx: ctx, color: Theme.ink, lineWidth: 2.6, passes: 2, jitter: 0.4)
+        Sketchy.line(from: CGPoint(x: lt.x - 8, y: r.midY + 14),
+                     to: CGPoint(x: lt.x + 8, y: r.midY + 14),
+                     ctx: ctx, color: Theme.ink, lineWidth: 1.8, passes: 2, jitter: 0.3)
         ctx.draw(Text(String(format: "%.1fV", emf))
                     .font(.caption2.weight(.semibold)).foregroundStyle(Theme.mist),
                  at: CGPoint(x: lt.x - 22, y: r.midY))
 
-        var wires = Path()
-        wires.move(to: lt); wires.addLine(to: rt)
-        wires.addLine(to: rb); wires.addLine(to: lb)
-        wires.move(to: lt); wires.addLine(to: CGPoint(x: lt.x, y: r.midY - 30))
-        wires.move(to: lb); wires.addLine(to: CGPoint(x: lb.x, y: r.midY + 30))
+        // Wires
+        let outerSegs: [(CGPoint, CGPoint)] = [
+            (lt, rt), (rt, rb), (rb, lb),
+            (lt, CGPoint(x: lt.x, y: r.midY - 30)),
+            (CGPoint(x: lb.x, y: r.midY + 30), lb),
+        ]
+        for (a, b) in outerSegs {
+            Sketchy.line(from: a, to: b, ctx: ctx, color: Theme.ink,
+                         lineWidth: 1.7, passes: 1, jitter: 0.6)
+        }
 
         switch mode {
         case .series:
-            ctx.stroke(wires, with: .color(Theme.ink.opacity(0.85)), lineWidth: 2)
             drawResistor(ctx, at: CGPoint(x: r.midX - 70, y: lt.y),
                          label: String(format: "R₁=%.2fΩ", R1))
             drawResistor(ctx, at: CGPoint(x: r.midX + 70, y: lt.y),
@@ -95,11 +98,15 @@ private struct SimpleCircuitView: View {
             let branchY = lt.y + 60
             let leftJ = CGPoint(x: lt.x + 60, y: lt.y)
             let rightJ = CGPoint(x: rt.x - 60, y: lt.y)
-            wires.move(to: leftJ)
-            wires.addLine(to: CGPoint(x: leftJ.x, y: branchY))
-            wires.addLine(to: CGPoint(x: rightJ.x, y: branchY))
-            wires.addLine(to: rightJ)
-            ctx.stroke(wires, with: .color(Theme.ink.opacity(0.85)), lineWidth: 2)
+            let branchSegs: [(CGPoint, CGPoint)] = [
+                (leftJ, CGPoint(x: leftJ.x, y: branchY)),
+                (CGPoint(x: leftJ.x, y: branchY), CGPoint(x: rightJ.x, y: branchY)),
+                (CGPoint(x: rightJ.x, y: branchY), rightJ),
+            ]
+            for (a, b) in branchSegs {
+                Sketchy.line(from: a, to: b, ctx: ctx, color: Theme.ink,
+                             lineWidth: 1.7, passes: 1, jitter: 0.5)
+            }
             drawResistor(ctx, at: CGPoint(x: r.midX, y: lt.y),
                          label: String(format: "R₁=%.2fΩ", R1))
             drawResistor(ctx, at: CGPoint(x: r.midX, y: branchY),
@@ -114,7 +121,7 @@ private struct SimpleCircuitView: View {
         ctx.draw(Text(String(format: "R_eq=%.2fΩ   I=%.2fA   P=%.2fW",
                               req, I, emf * I))
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(Theme.glow),
+                    .foregroundStyle(Theme.ink),
                  at: CGPoint(x: r.midX, y: r.maxY + 18))
     }
 
@@ -122,10 +129,10 @@ private struct SimpleCircuitView: View {
         let w: CGFloat = 60, h: CGFloat = 22
         let rect = CGRect(x: c.x - w/2, y: c.y - h/2, width: w, height: h)
         ctx.fill(Path(roundedRect: rect, cornerRadius: 6),
-                 with: .color(.orange.opacity(0.85)))
-        ctx.stroke(Path(roundedRect: rect, cornerRadius: 6),
-                   with: .color(Theme.ink.opacity(0.5)), lineWidth: 1)
-        ctx.draw(Text(label).font(.caption2.weight(.semibold)).foregroundColor(.white),
+                 with: .color(.orange.opacity(0.75)))
+        Sketchy.rect(rect, ctx: ctx, color: Theme.ink,
+                     lineWidth: 1.1, passes: 1, jitter: 0.4)
+        ctx.draw(Text(label).font(.caption2.weight(.semibold)).foregroundColor(Theme.ink),
                  at: CGPoint(x: c.x, y: c.y + h / 2 + 10))
     }
 }
@@ -247,12 +254,12 @@ private struct FaradayView: View {
                       systemImage: running ? "pause.fill" : "play.fill")
                     .font(.callout.weight(.semibold)).frame(maxWidth: .infinity)
             }
-            .buttonStyle(.glassProminent).tint(Theme.glow)
+            .buttonStyle(.sketchProminent)
             Button { elapsed = 0; lastTick = nil; running = false; emfHistory = [] } label: {
                 Label("처음부터", systemImage: "arrow.counterclockwise")
                     .font(.callout.weight(.semibold)).frame(maxWidth: .infinity)
             }
-            .buttonStyle(.glass)
+            .buttonStyle(.sketch)
         }
     }
 
@@ -294,18 +301,20 @@ private struct FaradayView: View {
         let mW = scale * 1.2, mH = scale * 0.45
         let northR = CGRect(x: cx + mx - mW, y: cy - mH / 2, width: mW, height: mH)
         let southR = CGRect(x: cx + mx,      y: cy - mH / 2, width: mW, height: mH)
-        ctx.fill(Path(roundedRect: northR, cornerRadius: 5), with: .color(.red.opacity(0.85)))
-        ctx.fill(Path(roundedRect: southR, cornerRadius: 5), with: .color(.blue.opacity(0.85)))
-        ctx.draw(Text("N").font(.caption.bold()).foregroundColor(.white),
+        ctx.fill(Path(roundedRect: northR, cornerRadius: 5), with: .color(.red.opacity(0.7)))
+        ctx.fill(Path(roundedRect: southR, cornerRadius: 5), with: .color(.blue.opacity(0.7)))
+        Sketchy.rect(northR, ctx: ctx, color: Theme.ink, lineWidth: 1.2, passes: 1, jitter: 0.4)
+        Sketchy.rect(southR, ctx: ctx, color: Theme.ink, lineWidth: 1.2, passes: 1, jitter: 0.4)
+        ctx.draw(Text("N").font(.caption.bold()).foregroundColor(Theme.surface),
                  at: CGPoint(x: northR.midX, y: northR.midY))
-        ctx.draw(Text("S").font(.caption.bold()).foregroundColor(.white),
+        ctx.draw(Text("S").font(.caption.bold()).foregroundColor(Theme.surface),
                  at: CGPoint(x: southR.midX, y: southR.midY))
 
         let curEMF = emfHistory.last ?? 0
         let dir = curEMF > 0.01 ? "↑" : curEMF < -0.01 ? "↓" : "·"
         ctx.draw(
             Text(String(format: "ε = %.2f V  %@", curEMF, dir))
-                .font(.caption.weight(.semibold)).foregroundStyle(Theme.glow),
+                .font(.caption.weight(.semibold)).foregroundStyle(Theme.ink),
             at: CGPoint(x: r.midX, y: r.maxY - 8))
     }
 
@@ -395,29 +404,36 @@ private struct SolenoidView: View {
 
         // Solenoid body outline
         let tl = toScreen(-L/2, R), br = toScreen(L/2, -R)
-        ctx.stroke(Path(CGRect(x: tl.x, y: tl.y, width: br.x - tl.x, height: br.y - tl.y)),
-                   with: .color(Theme.ink.opacity(0.6)), lineWidth: 2)
+        Sketchy.rect(CGRect(x: tl.x, y: tl.y, width: br.x - tl.x, height: br.y - tl.y),
+                     ctx: ctx, color: Theme.ink,
+                     lineWidth: 1.7, passes: 2, jitter: 1.0)
 
-        // Turn marks (vertical lines on body)
+        // Turn marks
         let nTurns = max(4, Int(L * 4))
         for i in 0...nTurns {
             let z = -L/2 + L * Double(i) / Double(nTurns)
-            var p = Path()
-            p.move(to: toScreen(z, R)); p.addLine(to: toScreen(z, -R))
-            ctx.stroke(p, with: .color(.cyan.opacity(0.28)), lineWidth: 0.8)
+            Sketchy.line(from: toScreen(z, R), to: toScreen(z, -R),
+                         ctx: ctx, color: .cyan.opacity(0.45),
+                         lineWidth: 0.8, passes: 1, jitter: 0.3)
         }
 
-        // Dashed axis
-        var ax = Path()
-        ax.move(to: toScreen(-extZ + 0.5, 0))
-        ax.addLine(to: toScreen(extZ - 0.5, 0))
-        ctx.stroke(ax, with: .color(Theme.ink.opacity(0.2)),
-                   style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
+        // Dashed axis — segmented sketchy
+        let ax0 = toScreen(-extZ + 0.5, 0)
+        let ax1 = toScreen(extZ - 0.5, 0)
+        let segs = 22
+        for i in stride(from: 0, to: segs, by: 2) {
+            let t0 = CGFloat(i) / CGFloat(segs)
+            let t1 = CGFloat(i + 1) / CGFloat(segs)
+            Sketchy.line(from: CGPoint(x: ax0.x + (ax1.x - ax0.x) * t0, y: ax0.y),
+                          to: CGPoint(x: ax0.x + (ax1.x - ax0.x) * t1, y: ax0.y),
+                          ctx: ctx, color: Theme.ink.opacity(0.45),
+                          lineWidth: 0.9, passes: 1, jitter: 0.2)
+        }
 
         // Label
         ctx.draw(
             Text(String(format: "B₀ = μ₀nI = %.2f mT", B0mT))
-                .font(.caption.weight(.semibold)).foregroundStyle(Theme.glow),
+                .font(.caption.weight(.semibold)).foregroundStyle(Theme.ink),
             at: CGPoint(x: cx, y: size.height - 10))
     }
 
@@ -460,10 +476,8 @@ private struct SolenoidView: View {
         }
 
         guard pts.count > 1 else { return }
-        var path = Path()
-        path.move(to: pts[0])
-        for p in pts.dropFirst() { path.addLine(to: p) }
-        ctx.stroke(path, with: .color(Theme.glow.opacity(0.6)), lineWidth: 1.2)
+        Sketchy.polyline(pts, ctx: ctx, color: Theme.glow,
+                         lineWidth: 1.2, passes: 1, jitter: 0.25)
 
         // Arrowhead at midpoint
         let mid = pts.count / 2
@@ -473,12 +487,12 @@ private struct SolenoidView: View {
             let len = (dx*dx + dy*dy).squareRoot()
             guard len > 0.5 else { return }
             let nx = dx/len, ny = dy/len, s: CGFloat = 6
-            var head = Path()
-            head.move(to: b)
-            head.addLine(to: CGPoint(x: b.x - nx*s - ny*s*0.5, y: b.y - ny*s + nx*s*0.5))
-            head.move(to: b)
-            head.addLine(to: CGPoint(x: b.x - nx*s + ny*s*0.5, y: b.y - ny*s - nx*s*0.5))
-            ctx.stroke(head, with: .color(Theme.glow.opacity(0.85)), lineWidth: 1.2)
+            let h1 = CGPoint(x: b.x - nx*s - ny*s*0.5, y: b.y - ny*s + nx*s*0.5)
+            let h2 = CGPoint(x: b.x - nx*s + ny*s*0.5, y: b.y - ny*s - nx*s*0.5)
+            Sketchy.line(from: b, to: h1, ctx: ctx, color: Theme.glow,
+                         lineWidth: 1.2, passes: 1, jitter: 0.2)
+            Sketchy.line(from: b, to: h2, ctx: ctx, color: Theme.glow,
+                         lineWidth: 1.2, passes: 1, jitter: 0.2)
         }
     }
 

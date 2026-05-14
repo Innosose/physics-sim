@@ -180,10 +180,21 @@ struct Mechanics2DViewport: View {
         Button(action: action) {
             Label(title, systemImage: systemImage)
                 .font(.caption.weight(.medium))
+                .foregroundStyle(on ? Theme.surface : Theme.ink)
                 .frame(maxWidth: .infinity)
+                .padding(.vertical, 7)
+                .padding(.horizontal, 6)
+                .background(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(on ? Theme.ink.opacity(0.92) : Theme.surface.opacity(0.6))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .stroke(Theme.ink.opacity(on ? 0.95 : 0.55),
+                                lineWidth: on ? 1.4 : 1.1)
+                )
         }
-        .buttonStyle(.glass)
-        .tint(on ? Theme.glow : Theme.mist)
+        .buttonStyle(.plain)
     }
 
     @ViewBuilder
@@ -236,8 +247,7 @@ struct Mechanics2DViewport: View {
                 .font(.callout.weight(.semibold))
                 .frame(maxWidth: .infinity)
         }
-        .buttonStyle(.glassProminent)
-        .tint(Theme.glow)
+        .buttonStyle(.sketchProminent)
     }
 
     private var stepButton: some View {
@@ -249,7 +259,7 @@ struct Mechanics2DViewport: View {
                 .font(.callout.weight(.semibold))
                 .frame(maxWidth: .infinity)
         }
-        .buttonStyle(.glass)
+        .buttonStyle(.sketch)
         .disabled(running)
     }
 
@@ -262,7 +272,7 @@ struct Mechanics2DViewport: View {
                 .font(.callout.weight(.semibold))
                 .frame(maxWidth: .infinity)
         }
-        .buttonStyle(.glass)
+        .buttonStyle(.sketch)
     }
 
     private func allBodiesAtRest() -> Bool {
@@ -546,8 +556,9 @@ struct Mechanics2DViewport: View {
             let x1 = cx + CGFloat(b.max.x - extent.center.x) * scale
             let y0 = cy - CGFloat(b.max.y - extent.center.y) * scale
             let y1 = cy - CGFloat(b.min.y - extent.center.y) * scale
-            ctx.stroke(Path(CGRect(x: x0, y: y0, width: x1 - x0, height: y1 - y0)),
-                       with: .color(Theme.ink.opacity(0.4)), lineWidth: 1.2)
+            Sketchy.rect(CGRect(x: x0, y: y0, width: x1 - x0, height: y1 - y0),
+                         ctx: ctx, color: Theme.ink,
+                         lineWidth: 1.4, passes: 2, jitter: 1.4)
         }
 
         if abs(world.magneticB.z) > 1e-6 {
@@ -558,29 +569,16 @@ struct Mechanics2DViewport: View {
             drawEFieldLines(ctx: ctx, scale: scale, cx: cx, cy: cy, ext: extent.center)
         }
 
-        // 네온 자취 — 본체보다 먼저 그려서 본체 아래 깔리게.
+        // 연필 자취 — 단일 sketchy 폴리라인.
         if world.trailEnabled {
             for body in world.bodies {
                 guard let pts = world.trails[body.id], pts.count > 1 else { continue }
-                var path = Path()
-                var first = true
-                for p in pts {
-                    guard p.isFinite else { continue }
-                    let pt = mapPoint(p, scale: scale, cx: cx, cy: cy, ext: extent.center)
-                    if first { path.move(to: pt); first = false }
-                    else     { path.addLine(to: pt) }
+                let screenPts: [CGPoint] = pts.compactMap { p in
+                    guard p.isFinite else { return nil }
+                    return mapPoint(p, scale: scale, cx: cx, cy: cy, ext: extent.center)
                 }
-                guard !first else { continue }
-                let col = body.color
-                // 외광 (가장 두껍고 흐림) → 중간 → 코어 (얇고 진함). 네온 효과.
-                ctx.stroke(path, with: .color(col.opacity(0.10)),
-                           style: StrokeStyle(lineWidth: 8, lineCap: .round, lineJoin: .round))
-                ctx.stroke(path, with: .color(col.opacity(0.25)),
-                           style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round))
-                ctx.stroke(path, with: .color(col.opacity(0.65)),
-                           style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
-                ctx.stroke(path, with: .color(.white.opacity(0.8)),
-                           style: StrokeStyle(lineWidth: 0.6, lineCap: .round, lineJoin: .round))
+                Sketchy.polyline(screenPts, ctx: ctx, color: body.color,
+                                 lineWidth: 1.4, passes: 1, jitter: 0.35)
             }
         }
 
@@ -591,12 +589,11 @@ struct Mechanics2DViewport: View {
             else { continue }
             let pa = mapPoint(a.pos, scale: scale, cx: cx, cy: cy, ext: extent.center)
             let pb = mapPoint(b.pos, scale: scale, cx: cx, cy: cy, ext: extent.center)
-            var path = Path()
-            path.move(to: pa)
-            path.addLine(to: pb)
-            ctx.stroke(path,
-                       with: .color(Theme.ink.opacity(s.rigid ? 0.7 : 0.5)),
-                       lineWidth: s.rigid ? 2 : 1.5)
+            Sketchy.line(from: pa, to: pb, ctx: ctx,
+                         color: Theme.ink,
+                         lineWidth: s.rigid ? 1.8 : 1.3,
+                         passes: s.rigid ? 2 : 1,
+                         jitter: s.rigid ? 0.7 : 0.4)
         }
 
         for body in world.bodies {
@@ -604,24 +601,14 @@ struct Mechanics2DViewport: View {
             let p = mapPoint(body.pos, scale: scale, cx: cx, cy: cy, ext: extent.center)
             let pr = max(2, CGFloat(body.radius) * scale)
             guard pr.isFinite else { continue }
-            // 자취 있는 입자에는 작은 글로우 헤일로.
-            if world.trailEnabled {
-                let halo = pr * 3
-                ctx.fill(
-                    Path(ellipseIn: CGRect(x: p.x - halo, y: p.y - halo,
-                                           width: halo * 2, height: halo * 2)),
-                    with: .radialGradient(
-                        Gradient(colors: [body.color.opacity(0.55), .clear]),
-                        center: p, startRadius: 0, endRadius: halo))
-            }
+            // 연필 톤 — 옅은 색연필 칠 위에 sketchy 잉크 윤곽.
             ctx.fill(
                 Path(ellipseIn: CGRect(x: p.x - pr, y: p.y - pr,
                                        width: pr * 2, height: pr * 2)),
-                with: .color(body.color))
-            ctx.stroke(
-                Path(ellipseIn: CGRect(x: p.x - pr, y: p.y - pr,
-                                       width: pr * 2, height: pr * 2)),
-                with: .color(.white.opacity(0.5)), lineWidth: 0.8)
+                with: .color(body.color.opacity(0.55)))
+            Sketchy.circle(center: p, radius: pr, ctx: ctx,
+                            color: Theme.ink, lineWidth: 1.3, passes: 2,
+                            jitter: 0.025)
         }
 
         if vectorsOn {
@@ -674,28 +661,25 @@ struct Mechanics2DViewport: View {
 
         let p = mapPoint(body.pos, scale: scale, cx: cx, cy: cy, ext: ext)
         let pr = max(2, CGFloat(body.radius) * scale)
-        // 본체 강조 링
-        ctx.stroke(Path(ellipseIn: CGRect(x: p.x - pr - 4, y: p.y - pr - 4,
-                                          width: pr * 2 + 8, height: pr * 2 + 8)),
-                   with: .color(Theme.glow.opacity(0.9)),
-                   style: StrokeStyle(lineWidth: 1.5, dash: [3, 3]))
+        // Sketchy highlight ring around the body.
+        Sketchy.circle(center: p, radius: pr + 5, ctx: ctx,
+                        color: Theme.glow, lineWidth: 1.4, passes: 2, jitter: 0.04)
 
         let panelW: CGFloat = 132, panelH: CGFloat = 86
         var pX = p.x + pr + 10
         var pY = p.y - panelH / 2
-        // 가장자리에 닿지 않게
         pX = min(pX, r.maxX - panelW - 6)
         pX = max(pX, r.minX + 6)
         pY = min(pY, r.maxY - panelH - 6)
         pY = max(pY, r.minY + 6)
         let panel = CGRect(x: pX, y: pY, width: panelW, height: panelH)
         ctx.fill(Path(roundedRect: panel, cornerRadius: 8),
-                 with: .color(Theme.deep.opacity(0.88)))
+                 with: .color(Theme.surface.opacity(0.94)))
         ctx.stroke(Path(roundedRect: panel, cornerRadius: 8),
-                   with: .color(Theme.glow.opacity(0.6)), lineWidth: 1)
+                   with: .color(Theme.ink.opacity(0.7)), lineWidth: 1.1)
         for (i, line) in lines.enumerated() {
             let font: Font = i == 0 ? .caption.weight(.bold) : .caption2.monospacedDigit()
-            let color: Color = i == 0 ? Theme.glow : Theme.mist
+            let color: Color = i == 0 ? Theme.ink : Theme.mist
             ctx.draw(Text(line).font(font).foregroundStyle(color),
                      at: CGPoint(x: panel.minX + 8, y: panel.minY + 10 + CGFloat(i) * 14),
                      anchor: .leading)
@@ -736,19 +720,18 @@ struct Mechanics2DViewport: View {
         let dx = to.x - from.x, dy = to.y - from.y
         let len = (dx * dx + dy * dy).squareRoot()
         guard len > 1.5 else { return }
-        var shaft = Path()
-        shaft.move(to: from); shaft.addLine(to: to)
-        ctx.stroke(shaft, with: .color(color.opacity(0.9)), lineWidth: 1.6)
+        Sketchy.line(from: from, to: to, ctx: ctx, color: color,
+                     lineWidth: 1.5, passes: 1, jitter: 0.5)
         let nx = dx / len, ny = dy / len
-        let s = min(CGFloat(8), len * 0.5)
-        var head = Path()
-        head.move(to: to)
-        head.addLine(to: CGPoint(x: to.x - nx * s - ny * s * 0.45,
-                                  y: to.y - ny * s + nx * s * 0.45))
-        head.move(to: to)
-        head.addLine(to: CGPoint(x: to.x - nx * s + ny * s * 0.45,
-                                  y: to.y - ny * s - nx * s * 0.45))
-        ctx.stroke(head, with: .color(color.opacity(0.95)), lineWidth: 1.6)
+        let s = min(CGFloat(9), len * 0.5)
+        let h1 = CGPoint(x: to.x - nx * s - ny * s * 0.45,
+                         y: to.y - ny * s + nx * s * 0.45)
+        let h2 = CGPoint(x: to.x - nx * s + ny * s * 0.45,
+                         y: to.y - ny * s - nx * s * 0.45)
+        Sketchy.line(from: to, to: h1, ctx: ctx, color: color,
+                     lineWidth: 1.5, passes: 1, jitter: 0.3)
+        Sketchy.line(from: to, to: h2, ctx: ctx, color: color,
+                     lineWidth: 1.5, passes: 1, jitter: 0.3)
     }
 
     private func drawEnergyPanel(ctx: GraphicsContext, in r: CGRect) {
@@ -757,9 +740,9 @@ struct Mechanics2DViewport: View {
         let panel = CGRect(x: r.maxX - panelW - 8, y: r.minY + 8,
                            width: panelW, height: panelH)
         ctx.fill(Path(roundedRect: panel, cornerRadius: 8),
-                 with: .color(Theme.deep.opacity(0.82)))
+                 with: .color(Theme.surface.opacity(0.92)))
         ctx.stroke(Path(roundedRect: panel, cornerRadius: 8),
-                   with: .color(Theme.stroke), lineWidth: 1)
+                   with: .color(Theme.ink.opacity(0.7)), lineWidth: 1.1)
 
         let e = world.energyBreakdown()
         let total = e.total
@@ -767,7 +750,7 @@ struct Mechanics2DViewport: View {
         ctx.draw(Text(String(format: "KE %.2f  PE %+.2f  ΣE %+.2f",
                               e.kinetic, e.potential, total))
                     .font(.caption2.monospacedDigit().weight(.semibold))
-                    .foregroundStyle(Theme.glow),
+                    .foregroundStyle(Theme.ink),
                  at: CGPoint(x: panel.midX, y: panel.minY + 10))
 
         let plot = panel.insetBy(dx: 8, dy: 8)
@@ -830,17 +813,19 @@ struct Mechanics2DViewport: View {
             var y: CGFloat = step / 2
             while y < size.height {
                 if outward {
-                    let r: CGFloat = 1.5
+                    let r: CGFloat = 1.6
                     ctx.fill(Path(ellipseIn: CGRect(x: x - r, y: y - r,
                                                      width: r * 2, height: r * 2)),
-                             with: .color(Theme.ink.opacity(0.20)))
+                             with: .color(Theme.ink.opacity(0.45)))
                 } else {
-                    var c = Path()
-                    c.move(to: CGPoint(x: x - 3, y: y - 3))
-                    c.addLine(to: CGPoint(x: x + 3, y: y + 3))
-                    c.move(to: CGPoint(x: x - 3, y: y + 3))
-                    c.addLine(to: CGPoint(x: x + 3, y: y - 3))
-                    ctx.stroke(c, with: .color(Theme.ink.opacity(0.18)), lineWidth: 1)
+                    Sketchy.line(from: CGPoint(x: x - 3, y: y - 3),
+                                  to: CGPoint(x: x + 3, y: y + 3),
+                                  ctx: ctx, color: Theme.ink.opacity(0.55),
+                                  lineWidth: 0.9, passes: 1, jitter: 0.15)
+                    Sketchy.line(from: CGPoint(x: x - 3, y: y + 3),
+                                  to: CGPoint(x: x + 3, y: y - 3),
+                                  ctx: ctx, color: Theme.ink.opacity(0.55),
+                                  lineWidth: 0.9, passes: 1, jitter: 0.15)
                 }
                 y += step
             }
@@ -897,17 +882,15 @@ struct Mechanics2DViewport: View {
                 }
 
                 guard pts.count > 1 else { continue }
-                var path = Path()
-                path.move(to: pts[0])
-                for pt in pts.dropFirst() { path.addLine(to: pt) }
-                ctx.stroke(path, with: .color(Theme.glow.opacity(0.55)), lineWidth: 1.1)
+                Sketchy.polyline(pts, ctx: ctx, color: Theme.glow,
+                                 lineWidth: 1.2, passes: 1, jitter: 0.3)
 
                 let midIdx = pts.count / 2
                 if midIdx >= 1 && midIdx < pts.count {
                     drawArrowhead(ctx: ctx,
                                   from: pts[midIdx - 1],
                                   to: pts[midIdx],
-                                  color: Theme.glow.opacity(0.85))
+                                  color: Theme.glow)
                 }
             }
         }
@@ -921,14 +904,14 @@ struct Mechanics2DViewport: View {
         guard len > 0.001 else { return }
         let nx = dx / len, ny = dy / len
         let size: CGFloat = 5
-        var head = Path()
-        head.move(to: b)
-        head.addLine(to: CGPoint(x: b.x - nx * size - ny * size * 0.5,
-                                  y: b.y - ny * size + nx * size * 0.5))
-        head.move(to: b)
-        head.addLine(to: CGPoint(x: b.x - nx * size + ny * size * 0.5,
-                                  y: b.y - ny * size - nx * size * 0.5))
-        ctx.stroke(head, with: .color(color), lineWidth: 1.2)
+        let h1 = CGPoint(x: b.x - nx * size - ny * size * 0.5,
+                         y: b.y - ny * size + nx * size * 0.5)
+        let h2 = CGPoint(x: b.x - nx * size + ny * size * 0.5,
+                         y: b.y - ny * size - nx * size * 0.5)
+        Sketchy.line(from: b, to: h1, ctx: ctx, color: color,
+                     lineWidth: 1.2, passes: 1, jitter: 0.2)
+        Sketchy.line(from: b, to: h2, ctx: ctx, color: color,
+                     lineWidth: 1.2, passes: 1, jitter: 0.2)
     }
 
     private struct Extent { var center: CGPoint; var x: Double; var y: Double }
@@ -957,9 +940,9 @@ struct Mechanics2DViewport: View {
                            y: r.maxY - panelH - 8,
                            width: panelW, height: panelH)
         ctx.fill(Path(roundedRect: panel, cornerRadius: 8),
-                 with: .color(Theme.deep.opacity(0.82)))
+                 with: .color(Theme.surface.opacity(0.92)))
         ctx.stroke(Path(roundedRect: panel, cornerRadius: 8),
-                   with: .color(Theme.stroke), lineWidth: 1)
+                   with: .color(Theme.ink.opacity(0.7)), lineWidth: 1.1)
 
         guard let body = graphTargetBody(),
               let history = motionHistory[body.id], history.count > 1 else {
@@ -972,7 +955,7 @@ struct Mechanics2DViewport: View {
         let title = body.name ?? "선택 입자"
         ctx.draw(Text("\(title) — x·y(m) ⏐ vₓ·v_y(m/s)")
                     .font(.caption2.monospacedDigit().weight(.semibold))
-                    .foregroundStyle(Theme.glow),
+                    .foregroundStyle(Theme.ink),
                  at: CGPoint(x: panel.midX, y: panel.minY + 10))
 
         let inner = panel.insetBy(dx: 8, dy: 8).offsetBy(dx: 0, dy: 6)
@@ -1045,47 +1028,56 @@ struct Mechanics2DViewport: View {
         let s = mapPoint(rulerStart, scale: scale, cx: cx, cy: cy, ext: ext)
         let e = mapPoint(rulerEnd, scale: scale, cx: cx, cy: cy, ext: ext)
 
-        var shadow = Path()
-        shadow.move(to: s); shadow.addLine(to: e)
-        ctx.stroke(shadow, with: .color(Theme.deep.opacity(0.6)),
-                   style: StrokeStyle(lineWidth: 4, lineCap: .round))
-        var line = Path()
-        line.move(to: s); line.addLine(to: e)
-        ctx.stroke(line, with: .color(Theme.glow),
-                   style: StrokeStyle(lineWidth: 1.4, lineCap: .round, dash: [6, 4]))
+        // Main rod
+        Sketchy.line(from: s, to: e, ctx: ctx, color: Theme.ink,
+                     lineWidth: 1.7, passes: 2, jitter: 0.6)
 
-        for pt in [s, e] {
-            let r: CGFloat = 7
-            ctx.fill(Path(ellipseIn: CGRect(x: pt.x - r, y: pt.y - r,
-                                             width: r * 2, height: r * 2)),
-                     with: .color(Theme.deep.opacity(0.9)))
-            ctx.stroke(Path(ellipseIn: CGRect(x: pt.x - r, y: pt.y - r,
-                                              width: r * 2, height: r * 2)),
-                       with: .color(Theme.glow), lineWidth: 1.6)
+        // Tick marks every 0.5 m
+        let dxW = rulerEnd.x - rulerStart.x
+        let dyW = rulerEnd.y - rulerStart.y
+        let distW = (dxW * dxW + dyW * dyW).squareRoot()
+        let lineLen = hypot(e.x - s.x, e.y - s.y)
+        if distW > 0.2, lineLen > 4 {
+            let tickStep = 0.5
+            let nTicks = min(Int(distW / tickStep), 80)
+            let perpX = -(e.y - s.y) / lineLen
+            let perpY =  (e.x - s.x) / lineLen
+            for i in 0...nTicks {
+                let t = CGFloat(Double(i) * tickStep / distW)
+                let xC = s.x + (e.x - s.x) * t
+                let yC = s.y + (e.y - s.y) * t
+                let isMajor = (i % 2 == 0)
+                let tl: CGFloat = isMajor ? 5 : 3
+                Sketchy.line(from: CGPoint(x: xC - perpX * tl, y: yC - perpY * tl),
+                              to: CGPoint(x: xC + perpX * tl, y: yC + perpY * tl),
+                              ctx: ctx, color: Theme.ink,
+                              lineWidth: 0.9, passes: 1, jitter: 0.2)
+            }
         }
 
-        let mid = CGPoint(x: (s.x + e.x) / 2, y: (s.y + e.y) / 2)
-        let dx = rulerEnd.x - rulerStart.x
-        let dy = rulerEnd.y - rulerStart.y
-        let dist = (dx * dx + dy * dy).squareRoot()
-        let label = String(format: "%.2f m", dist)
+        // Endpoint handles
+        for pt in [s, e] {
+            Sketchy.fillCircle(center: pt, radius: 6, ctx: ctx,
+                                fill: Theme.surface, stroke: Theme.ink,
+                                strokeWidth: 1.4)
+        }
 
-        // Offset label perpendicular to ruler
-        let lineLen = hypot(e.x - s.x, e.y - s.y)
+        // Label
+        let mid = CGPoint(x: (s.x + e.x) / 2, y: (s.y + e.y) / 2)
+        let label = String(format: "%.2f m", distW)
         var ox: CGFloat = 0, oy: CGFloat = -14
         if lineLen > 0.5 {
             let nx = (e.y - s.y) / lineLen
             let ny = -(e.x - s.x) / lineLen
-            ox = nx * 14
-            oy = ny * 14
+            ox = nx * 14; oy = ny * 14
         }
         let lblPt = CGPoint(x: mid.x + ox, y: mid.y + oy)
         let bg = CGRect(x: lblPt.x - 32, y: lblPt.y - 9, width: 64, height: 18)
         ctx.fill(Path(roundedRect: bg, cornerRadius: 4),
-                 with: .color(Theme.deep.opacity(0.9)))
-        ctx.stroke(Path(roundedRect: bg, cornerRadius: 4),
-                   with: .color(Theme.glow.opacity(0.6)), lineWidth: 0.8)
-        ctx.draw(Text(label).font(.caption2.monospacedDigit()).foregroundStyle(Theme.glow),
+                 with: .color(Theme.surface.opacity(0.92)))
+        Sketchy.rect(bg, ctx: ctx, color: Theme.ink,
+                     lineWidth: 0.9, passes: 1, jitter: 0.3)
+        ctx.draw(Text(label).font(.caption2.monospacedDigit()).foregroundStyle(Theme.ink),
                  at: lblPt)
     }
 

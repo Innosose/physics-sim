@@ -71,8 +71,7 @@ private struct WaveSumView: View {
                     .font(.callout.weight(.semibold))
                     .frame(maxWidth: .infinity)
             }
-            .buttonStyle(.glassProminent)
-            .tint(Theme.glow)
+            .buttonStyle(.sketchProminent)
 
             Button {
                 elapsed = 0; lastTick = nil; running = false
@@ -81,7 +80,7 @@ private struct WaveSumView: View {
                     .font(.callout.weight(.semibold))
                     .frame(maxWidth: .infinity)
             }
-            .buttonStyle(.glass)
+            .buttonStyle(.sketch)
         }
     }
 
@@ -242,8 +241,7 @@ private struct DopplerView: View {
                     .font(.callout.weight(.semibold))
                     .frame(maxWidth: .infinity)
             }
-            .buttonStyle(.glassProminent)
-            .tint(Theme.glow)
+            .buttonStyle(.sketchProminent)
 
             Button {
                 elapsed = 0; lastTick = nil; running = false
@@ -252,7 +250,7 @@ private struct DopplerView: View {
                     .font(.callout.weight(.semibold))
                     .frame(maxWidth: .infinity)
             }
-            .buttonStyle(.glass)
+            .buttonStyle(.sketch)
         }
     }
 
@@ -300,14 +298,14 @@ private struct DopplerView: View {
         let curT = min(t, tStop)
         let cur = xStart + sourceSpeed * curT
 
-        // 오른쪽 벽 표시.
+        // 오른쪽 벽
         let wallPx = CGFloat(xWall + span / 2) * scale
-        var wall = Path()
-        wall.move(to: CGPoint(x: wallPx, y: cy - 30))
-        wall.addLine(to: CGPoint(x: wallPx, y: cy + 30))
-        ctx.stroke(wall, with: .color(Theme.ink.opacity(0.5)), lineWidth: 2)
+        Sketchy.line(from: CGPoint(x: wallPx, y: cy - 30),
+                     to: CGPoint(x: wallPx, y: cy + 30),
+                     ctx: ctx, color: Theme.ink,
+                     lineWidth: 1.8, passes: 2, jitter: 0.4)
 
-        // 파면들 — 음원 정지 후에도 이미 방출된 파면은 계속 퍼져나감.
+        // 파면들
         let period = 1 / freq
         let tMax = span / soundSpeed * 1.4
         let kMin = max(0, Int(((t - tMax) / period).rounded(.up)))
@@ -320,16 +318,13 @@ private struct DopplerView: View {
                 if radius < 0 { continue }
                 let center = CGPoint(x: CGFloat(xs + span / 2) * scale, y: cy)
                 let rPx = CGFloat(radius) * scale
-                ctx.stroke(
-                    Path(ellipseIn: CGRect(x: center.x - rPx, y: center.y - rPx,
-                                           width: rPx * 2, height: rPx * 2)),
-                    with: .color(.cyan.opacity(0.8)), lineWidth: 1)
+                Sketchy.circle(center: center, radius: rPx, ctx: ctx,
+                                color: .cyan, lineWidth: 1.1, passes: 1,
+                                jitter: 0.02)
             }
         }
         let sx = CGFloat(cur + span / 2) * scale
-        let sr: CGFloat = 6
-        ctx.fill(Path(ellipseIn: CGRect(x: sx - sr, y: cy - sr,
-                                         width: sr * 2, height: sr * 2)),
-                 with: .color(.yellow))
+        Sketchy.fillCircle(center: CGPoint(x: sx, y: cy), radius: 6, ctx: ctx,
+                            fill: .yellow, stroke: Theme.ink, strokeWidth: 1.2)
     }
 }
