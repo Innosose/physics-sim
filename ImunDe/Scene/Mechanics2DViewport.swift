@@ -23,6 +23,7 @@ struct Mechanics2DViewport: View {
     @State private var trailsOn: Bool = false
     @State private var graphsOn: Bool = false
     @State private var rulerOn: Bool = false
+    @State private var analysisOn: Bool = false
     @State private var rulerStart: Vec3 = Vec3(x: -1.5, y: 0, z: 0)
     @State private var rulerEnd: Vec3 = Vec3(x: 1.5, y: 0, z: 0)
     @State private var zoomScale: CGFloat = 1.0
@@ -448,6 +449,9 @@ struct Mechanics2DViewport: View {
                 ChipToggle(title: "자", systemImage: "ruler", isOn: rulerOn) {
                     rulerOn.toggle(); haptic(.light)
                 }
+            }
+            ChipToggle(title: "분석", systemImage: "grid", isOn: analysisOn) {
+                analysisOn.toggle(); haptic(.light)
             }
         }
     }
@@ -1319,6 +1323,11 @@ struct Mechanics2DViewport: View {
         let cx = size.width / 2 + panOffset.width
         let cy = size.height / 2 + panOffset.height
 
+        if analysisOn {
+            drawAnalysisGrid(ctx: ctx, size: size, scale: scale,
+                              cx: cx, cy: cy, ext: extent.center)
+        }
+
         if let b = world.bounds {
             let x0 = cx + CGFloat(b.min.x - extent.center.x) * scale
             let x1 = cx + CGFloat(b.max.x - extent.center.x) * scale
@@ -1688,6 +1697,118 @@ struct Mechanics2DViewport: View {
                           ext: CGPoint) -> CGPoint {
         CGPoint(x: cx + CGFloat(p.x - ext.x) * scale,
                 y: cy - CGFloat(p.y - ext.y) * scale)
+    }
+
+    /// 분석 모드 격자 + 좌표축. zoom 에 맞춰 round-number 간격을 1·2·5
+    /// 시퀀스로 선택 → 항상 측정 가능한 좌표선. 축 라벨은 매우 옅게 (Tufte
+    /// minimum-ink). 원점이 화면 안에 있으면 더 진한 0 축.
+    private func drawAnalysisGrid(ctx: GraphicsContext, size: CGSize,
+                                    scale: CGFloat, cx: CGFloat, cy: CGFloat,
+                                    ext: CGPoint) {
+        guard scale > 0 else { return }
+        // 화면 60pt 근처에서 round 간격 선택.
+        let targetPx: CGFloat = 60
+        let rawSpacing = Double(targetPx / scale)
+        let pow10 = pow(10, floor(log10(rawSpacing)))
+        let normalized = rawSpacing / pow10
+        let stepped: Double = (normalized < 1.5) ? 1.0
+                            : (normalized < 3.5) ? 2.0
+                            : (normalized < 7.5) ? 5.0 : 10.0
+        let spacing = stepped * pow10
+        let spacingPx = CGFloat(spacing) * scale
+
+        // 화면 좌상단/우하단의 world 좌표 → grid 시작점.
+        let leftW = Double((-cx) / scale) + ext.x
+        let rightW = Double((size.width - cx) / scale) + ext.x
+        let topW = -Double((-cy) / scale) + ext.y     // y 화면 ↓ = world ↑
+        let bottomW = -Double((size.height - cy) / scale) + ext.y
+
+        let xStart = (leftW / spacing).rounded(.down) * spacing
+        let xEnd = (rightW / spacing).rounded(.up) * spacing
+        let yStart = (bottomW / spacing).rounded(.down) * spacing
+        let yEnd = (topW / spacing).rounded(.up) * spacing
+
+        // 격자선 — 0.5pt 옅은 ink. 너무 빽빽한 zoom 보호 (분당 100 라인 cap).
+        guard spacingPx >= 8 else { return }
+        let lineColor = Theme.ink.opacity(0.08)
+        var x = xStart
+        while x <= xEnd {
+            let sx = cx + CGFloat(x - ext.x) * scale
+            if sx >= 0, sx <= size.width {
+                var p = Path()
+                p.move(to: CGPoint(x: sx, y: 0))
+                p.addLine(to: CGPoint(x: sx, y: size.height))
+                ctx.stroke(p, with: .color(lineColor), lineWidth: 0.5)
+            }
+            x += spacing
+        }
+        var y = yStart
+        while y <= yEnd {
+            let sy = cy - CGFloat(y - ext.y) * scale
+            if sy >= 0, sy <= size.height {
+                var p = Path()
+                p.move(to: CGPoint(x: 0, y: sy))
+                p.addLine(to: CGPoint(x: size.width, y: sy))
+                ctx.stroke(p, with: .color(lineColor), lineWidth: 0.5)
+            }
+            y += spacing
+        }
+
+        // 0 축 (원점) — 더 진한 1pt ink.
+        let originX = cx - CGFloat(ext.x) * scale
+        let originY = cy + CGFloat(ext.y) * scale
+        let axisColor = Theme.ink.opacity(0.28)
+        if originX >= 0, originX <= size.width {
+            var p = Path()
+            p.move(to: CGPoint(x: originX, y: 0))
+            p.addLine(to: CGPoint(x: originX, y: size.height))
+            ctx.stroke(p, with: .color(axisColor), lineWidth: 0.8)
+        }
+        if originY >= 0, originY <= size.height {
+            var p = Path()
+            p.move(to: CGPoint(x: 0, y: originY))
+            p.addLine(to: CGPoint(x: size.width, y: originY))
+            ctx.stroke(p, with: .color(axisColor), lineWidth: 0.8)
+        }
+
+        // 라벨 — 격자 spacing 단위로만 (디시멀 자릿수는 spacing 으로 결정).
+        if spacingPx >= 36 {
+            let labelColor = Theme.mist.opacity(0.6)
+            let labelFont = Font.system(size: 9, design: .monospaced)
+            let decimals = max(0, Int(-floor(log10(spacing))))
+            // x 라벨 — 0 축 위 또는 화면 하단.
+            let xLabelY: CGFloat = (originY >= 8 && originY <= size.height - 14)
+                ? originY + 8
+                : size.height - 14
+            var lx = xStart
+            while lx <= xEnd {
+                if abs(lx) > 1e-9 {  // 0 라벨은 생략
+                    let sx = cx + CGFloat(lx - ext.x) * scale
+                    if sx >= 14, sx <= size.width - 14 {
+                        ctx.draw(Text(String(format: "%.\(decimals)f", lx))
+                                    .font(labelFont).foregroundStyle(labelColor),
+                                 at: CGPoint(x: sx, y: xLabelY))
+                    }
+                }
+                lx += spacing
+            }
+            let yLabelX: CGFloat = (originX >= 16 && originX <= size.width - 28)
+                ? originX - 10
+                : 14
+            var ly = yStart
+            while ly <= yEnd {
+                if abs(ly) > 1e-9 {
+                    let sy = cy - CGFloat(ly - ext.y) * scale
+                    if sy >= 10, sy <= size.height - 10 {
+                        ctx.draw(Text(String(format: "%.\(decimals)f", ly))
+                                    .font(labelFont).foregroundStyle(labelColor),
+                                 at: CGPoint(x: yLabelX, y: sy),
+                                 anchor: .trailing)
+                    }
+                }
+                ly += spacing
+            }
+        }
     }
 
     private func drawFieldGrid(ctx: GraphicsContext, size: CGSize, outward: Bool) {
