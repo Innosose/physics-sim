@@ -18,6 +18,7 @@ struct OpticsViewport: View {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .stroke(Theme.stroke, lineWidth: 1)
         )
+        .environment(\.colorScheme, .dark)
     }
 }
 

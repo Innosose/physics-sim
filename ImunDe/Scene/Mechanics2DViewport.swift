@@ -191,6 +191,10 @@ struct Mechanics2DViewport: View {
                 longPressProgress = 0
             }
         }
+        // 시뮬 캔버스는 항상 다크 톤. 엔지니어링 도구(MATLAB / COMSOL /
+        // Origin) 컨벤션 — 차트와 발광 trail/벡터 대비 위해 어두운 배경
+        // 표준. 시스템 라이트 모드에서도 sim 영역만 다크 적용.
+        .environment(\.colorScheme, .dark)
     }
 
     @ViewBuilder
