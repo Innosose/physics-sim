@@ -173,7 +173,9 @@ struct Mechanics2DViewport: View {
                 }
             }
             .scrollBounceBehavior(.basedOnSize)
-            .frame(maxHeight: 280)
+            // iPhone SE (375×667) 등 compact 화면에선 컨트롤 영역을 줄여
+            // 캔버스 비율 60:40 유지 (PhET 표준). Regular 에선 여유 공간.
+            .frame(maxHeight: horizontalSizeClass == .regular ? 280 : 200)
         }
         .onAppear { reset() }
         .onChange(of: preset.id) { _, _ in reset() }
@@ -353,6 +355,8 @@ struct Mechanics2DViewport: View {
                 if energyOn {
                     // 차트는 60-120Hz 필요 없음 — 30Hz 로 제한해 main
                     // 캔버스의 frame budget 을 보호 (Opus Agent 1).
+                    // compact (iPhone SE) 에선 캔버스 크기 확보를 위해 차트
+                    // 높이도 96 → 72 로 축소.
                     TimelineView(.animation(minimumInterval: 1.0 / 30)) { _ in
                         Canvas { ctx, size in
                             drawEnergyChart(ctx: ctx,
@@ -360,7 +364,7 @@ struct Mechanics2DViewport: View {
                         }
                     }
                     .frame(maxWidth: .infinity)
-                    .frame(height: 96)
+                    .frame(height: horizontalSizeClass == .regular ? 96 : 72)
                     .background(
                         RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
                             .fill(Theme.surface)
@@ -378,7 +382,7 @@ struct Mechanics2DViewport: View {
                         }
                     }
                     .frame(maxWidth: .infinity)
-                    .frame(height: 128)
+                    .frame(height: horizontalSizeClass == .regular ? 128 : 96)
                     .background(
                         RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
                             .fill(Theme.surface)
