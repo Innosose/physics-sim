@@ -104,6 +104,64 @@ final class World {
         }
     }
 
+    // MARK: - Diagnostics (for visualization)
+
+    struct EnergyBreakdown {
+        var kinetic: Double
+        var potential: Double
+        var total: Double { kinetic + potential }
+    }
+
+    func accelerations() -> [Vec3] {
+        let pos = bodies.map { $0.pos }
+        let vel = bodies.map { $0.vel }
+        return computeAccel(pos: pos, vel: vel)
+    }
+
+    func energyBreakdown() -> EnergyBreakdown {
+        var ke: Double = 0
+        var pe: Double = 0
+        for b in bodies where !b.pinned {
+            ke += 0.5 * b.mass * b.vel.lengthSquared
+        }
+        if gravity.lengthSquared > 1e-12 {
+            for b in bodies where !b.pinned {
+                pe += -b.mass * Vec3.dot(gravity, b.pos)
+            }
+        }
+        if pairwiseGravity {
+            let n = bodies.count
+            for i in 0..<n {
+                for j in (i + 1)..<n {
+                    let r = (bodies[j].pos - bodies[i].pos).length
+                    if r > 1e-6 {
+                        pe -= G * bodies[i].mass * bodies[j].mass / r
+                    }
+                }
+            }
+        }
+        for s in springs where !s.rigid {
+            if let i = bodies.firstIndex(where: { $0.id == s.aId }),
+               let j = bodies.firstIndex(where: { $0.id == s.bId }) {
+                let d = (bodies[j].pos - bodies[i].pos).length
+                let stretch = d - s.restLength
+                pe += 0.5 * s.stiffness * stretch * stretch
+            }
+        }
+        if pairwiseCoulomb {
+            let n = bodies.count
+            for i in 0..<n {
+                for j in (i + 1)..<n {
+                    let r = (bodies[j].pos - bodies[i].pos).length
+                    if r > 1e-6 {
+                        pe += kCoulomb * bodies[i].charge * bodies[j].charge / r
+                    }
+                }
+            }
+        }
+        return EnergyBreakdown(kinetic: ke, potential: pe)
+    }
+
     // MARK: - Force computation
 
     private func computeAccel(pos: [Vec3], vel: [Vec3]) -> [Vec3] {
