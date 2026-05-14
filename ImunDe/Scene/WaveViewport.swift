@@ -106,15 +106,16 @@ private struct WaveSumView: View {
     private func draw(ctx: GraphicsContext, size: CGSize, t: Double) {
         let h = size.height / 3
         drawWave(ctx, in: CGRect(x: 0, y: 0, width: size.width, height: h),
-                 amp: 1, omega: 2 * .pi * f1, t: t, sign: 1, color: .cyan)
+                 amp: 1, omega: 2 * .pi * f1, t: t, sign: 1, dashed: false)
         drawWave(ctx, in: CGRect(x: 0, y: h, width: size.width, height: h),
-                 amp: 1, omega: 2 * .pi * f2, t: t, sign: oppose ? -1 : 1, color: .pink)
+                 amp: 1, omega: 2 * .pi * f2, t: t,
+                 sign: oppose ? -1 : 1, dashed: true)
         drawSum(ctx, in: CGRect(x: 0, y: 2 * h, width: size.width, height: h), t: t)
     }
 
     private func drawWave(_ ctx: GraphicsContext, in r: CGRect,
                           amp: Double, omega: Double, t: Double,
-                          sign: Double, color: Color) {
+                          sign: Double, dashed: Bool) {
         var path = Path()
         let n = 400
         let amplitudePx = r.height * 0.4
@@ -125,7 +126,6 @@ private struct WaveSumView: View {
                 let x = f * 12.0
                 y = amp * sin(x - sign * omega * t)
             } else {
-                // 한 점(x=0)에서 시간에 따른 진폭
                 let timeWindow = 6.0
                 let tau = t - timeWindow * (1 - f)
                 y = amp * sin(-omega * tau)
@@ -135,7 +135,11 @@ private struct WaveSumView: View {
             if i == 0 { path.move(to: CGPoint(x: px, y: py)) }
             else      { path.addLine(to: CGPoint(x: px, y: py)) }
         }
-        ctx.stroke(path, with: .color(color), lineWidth: 1.6)
+        let style: StrokeStyle = dashed
+            ? StrokeStyle(lineWidth: 1.3, lineCap: .round,
+                          lineJoin: .round, dash: [5, 3])
+            : StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round)
+        ctx.stroke(path, with: .color(Theme.ink), style: style)
     }
 
     private func drawSum(_ ctx: GraphicsContext, in r: CGRect, t: Double) {
@@ -161,19 +165,17 @@ private struct WaveSumView: View {
             if i == 0 { path.move(to: CGPoint(x: px, y: py)) }
             else      { path.addLine(to: CGPoint(x: px, y: py)) }
         }
-        ctx.stroke(path, with: .color(.yellow), lineWidth: 1.8)
+        ctx.stroke(path, with: .color(Theme.ink), lineWidth: 1.9)
 
         if axis == .time && abs(f1 - f2) > 0.001 && !oppose {
             // 맥놀이 포락선
             let beat = abs(f1 - f2)
-            let avg = (f1 + f2) / 2
             let timeWindow = 6.0
             var envUp = Path(), envDn = Path()
             for i in 0...n {
                 let f = Double(i) / Double(n)
                 let tau = t - timeWindow * (1 - f)
                 let env = 2 * abs(cos(.pi * beat * tau))
-                _ = avg
                 let px = r.minX + CGFloat(f) * r.width
                 let pyUp = r.midY - CGFloat(env) * amp / 3
                 let pyDn = r.midY + CGFloat(env) * amp / 3
@@ -182,9 +184,9 @@ private struct WaveSumView: View {
                 else      { envUp.addLine(to: CGPoint(x: px, y: pyUp))
                             envDn.addLine(to: CGPoint(x: px, y: pyDn)) }
             }
-            ctx.stroke(envUp, with: .color(.yellow.opacity(0.35)),
+            ctx.stroke(envUp, with: .color(Theme.ink.opacity(0.45)),
                        style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
-            ctx.stroke(envDn, with: .color(.yellow.opacity(0.35)),
+            ctx.stroke(envDn, with: .color(Theme.ink.opacity(0.45)),
                        style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
         }
     }
@@ -317,12 +319,12 @@ private struct DopplerView: View {
                 let center = CGPoint(x: CGFloat(xs + span / 2) * scale, y: cy)
                 let rPx = CGFloat(radius) * scale
                 Sketchy.circle(center: center, radius: rPx, ctx: ctx,
-                                color: .cyan, lineWidth: 1.1, passes: 1,
-                                jitter: 0.02)
+                                color: Theme.ink.opacity(0.6),
+                                lineWidth: 1.0, passes: 1, jitter: 0.02)
             }
         }
         let sx = CGFloat(cur + span / 2) * scale
         Sketchy.fillCircle(center: CGPoint(x: sx, y: cy), radius: 6, ctx: ctx,
-                            fill: .yellow, stroke: Theme.ink, strokeWidth: 1.2)
+                            fill: Theme.ink, stroke: Theme.ink, strokeWidth: 1.2)
     }
 }

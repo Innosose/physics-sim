@@ -14,7 +14,7 @@ enum MechanicsPresets {
             PhysicsBody(pos: Vec3(x: 0, y: 48, z: 0),
                         vel: .zero,
                         mass: 1, radius: 0.4,
-                        color: .yellow)
+                        color: Theme.bodyPalette[0])
         ]
     }
 
@@ -32,7 +32,7 @@ enum MechanicsPresets {
         w.bodies = [
             PhysicsBody(pos: Vec3(x: 0, y: 0.5, z: 0),
                         vel: Vec3(x: v0 * cos(θ), y: v0 * sin(θ), z: 0),
-                        mass: 1, radius: 0.3, color: .yellow)
+                        mass: 1, radius: 0.3, color: Theme.bodyPalette[0])
         ]
     }
 
@@ -47,10 +47,10 @@ enum MechanicsPresets {
         w.bodies = [
             PhysicsBody(pos: Vec3(x: -3, y: 0.5, z: 0),
                         vel: Vec3(x: 3, y: 0, z: 0),
-                        mass: 2, radius: 0.5, color: .yellow),
+                        mass: 2, radius: 0.5, color: Theme.bodyPalette[0]),
             PhysicsBody(pos: Vec3(x: 3, y: 0.5, z: 0),
                         vel: Vec3(x: -1, y: 0, z: 0),
-                        mass: 1, radius: 0.4, color: .cyan),
+                        mass: 1, radius: 0.4, color: Theme.bodyPalette[4]),
         ]
     }
 
@@ -59,14 +59,14 @@ enum MechanicsPresets {
         w.gravity = Vec3(x: 0, y: -9.81, z: 0)
         let pivot = PhysicsBody(pos: Vec3(x: 0, y: 3, z: 0),
                                 mass: 1e9, radius: 0.1,
-                                color: .gray, pinned: true, kind: .anchor)
+                                color: Theme.mist, pinned: true, kind: .anchor)
         let θ0 = 60.0 * .pi / 180
         let L = 1.5
         let bob = PhysicsBody(pos: Vec3(x: pivot.pos.x + L * sin(θ0),
                                         y: pivot.pos.y - L * cos(θ0),
                                         z: 0),
                               mass: 1, radius: 0.18,
-                              color: .yellow)
+                              color: Theme.bodyPalette[0])
         w.bodies = [pivot, bob]
         w.springs = [
             Spring(aId: pivot.id, bId: bob.id,
@@ -79,10 +79,10 @@ enum MechanicsPresets {
         w.gravity = .zero
         let wall = PhysicsBody(pos: Vec3(x: -3, y: 1, z: 0),
                                mass: 1e9, radius: 0.2,
-                               color: .gray, pinned: true, kind: .anchor)
+                               color: Theme.mist, pinned: true, kind: .anchor)
         let mass = PhysicsBody(pos: Vec3(x: 0, y: 1, z: 0),
                                vel: Vec3(x: 1, y: 0, z: 0),
-                               mass: 1, radius: 0.3, color: .yellow)
+                               mass: 1, radius: 0.3, color: Theme.bodyPalette[0])
         w.bodies = [wall, mass]
         w.springs = [
             Spring(aId: wall.id, bId: mass.id,
@@ -97,14 +97,14 @@ enum MechanicsPresets {
         w.trailEnabled = true
         w.trailMax = 500
         let sun = PhysicsBody(pos: .zero, mass: 200, radius: 0.6,
-                              color: Color(red: 1.0, green: 0.74, blue: 0.40),
+                              color: Theme.bodyPalette[0],
                               pinned: true, kind: .star)
         let r = 5.0
         let v = (w.G * sun.mass / r).squareRoot()
         let planet = PhysicsBody(pos: Vec3(x: r, y: 0, z: 0),
                                  vel: Vec3(x: 0, y: v, z: 0),
                                  mass: 1, radius: 0.2,
-                                 color: Color(red: 0.74, green: 0.88, blue: 0.96),
+                                 color: Theme.bodyPalette[3],
                                  kind: .planet)
         w.bodies = [sun, planet]
     }
@@ -120,12 +120,12 @@ enum MechanicsPresets {
         w.bodies = [
             PhysicsBody(pos: Vec3(x: -0.7, y: 0, z: 0),
                         vel: Vec3(x: 1, y: 0.05, z: 0),
-                        mass: 2.5, radius: 0.12, color: .gray),
+                        mass: 2.5, radius: 0.12, color: Theme.bodyPalette[0]),
             PhysicsBody(pos: Vec3(x: 0, y: 0, z: 0),
-                        mass: 1.0, radius: 0.10, color: .pink),
+                        mass: 1.0, radius: 0.10, color: Theme.bodyPalette[3]),
             PhysicsBody(pos: Vec3(x: 0.7, y: 0, z: 0),
                         vel: Vec3(x: -0.7, y: -0.05, z: 0),
-                        mass: 2.0, radius: 0.12, color: .brown),
+                        mass: 2.0, radius: 0.12, color: Theme.bodyPalette[6]),
         ]
     }
 
@@ -136,16 +136,16 @@ enum MechanicsPresets {
         w.trailEnabled = true
         w.trailMax = 400
         var sun = PhysicsBody(pos: .zero, mass: 300, radius: 0.55,
-                              color: Color(red: 1.00, green: 0.78, blue: 0.30),
+                              color: Theme.bodyPalette[0],
                               pinned: true, kind: .star)
         sun.name = "태양"
         let planets: [(name: String, r: Double, size: Double, color: Color)] = [
-            ("수성", 1.4, 0.08, Color(red: 0.78, green: 0.70, blue: 0.60)),
-            ("금성", 2.2, 0.13, Color(red: 0.95, green: 0.80, blue: 0.45)),
-            ("지구", 3.0, 0.14, Color(red: 0.30, green: 0.55, blue: 0.95)),
-            ("화성", 3.9, 0.11, Color(red: 0.85, green: 0.40, blue: 0.20)),
-            ("목성", 5.5, 0.30, Color(red: 0.88, green: 0.72, blue: 0.50)),
-            ("토성", 7.5, 0.24, Color(red: 0.92, green: 0.85, blue: 0.62)),
+            ("수성", 1.4, 0.08, Theme.bodyPalette[5]),
+            ("금성", 2.2, 0.13, Theme.bodyPalette[2]),
+            ("지구", 3.0, 0.14, Theme.bodyPalette[7]),
+            ("화성", 3.9, 0.11, Theme.bodyPalette[4]),
+            ("목성", 5.5, 0.30, Theme.bodyPalette[6]),
+            ("토성", 7.5, 0.24, Theme.bodyPalette[9]),
         ]
         var arr: [PhysicsBody] = [sun]
         for p in planets {
@@ -169,20 +169,15 @@ enum MechanicsPresets {
         w.trailMax = 500
         let v12 = Vec3(x: 0.93240737 / 2, y: 0.86473146 / 2, z: 0)
         let v3  = Vec3(x: -0.93240737, y: -0.86473146, z: 0)
-        let colors: [Color] = [
-            Color(red: 1.00, green: 0.78, blue: 0.30),
-            Color(red: 0.55, green: 0.78, blue: 1.00),
-            Color(red: 0.96, green: 0.94, blue: 0.86),
-        ]
         var b1 = PhysicsBody(pos: Vec3(x: -0.97000436, y:  0.24308753, z: 0),
-                             vel: v12, mass: 1, radius: 0.08, color: colors[0],
-                             kind: .star)
+                             vel: v12, mass: 1, radius: 0.08,
+                             color: Theme.bodyPalette[0], kind: .star)
         var b2 = PhysicsBody(pos: Vec3(x:  0.97000436, y: -0.24308753, z: 0),
-                             vel: v12, mass: 1, radius: 0.08, color: colors[1],
-                             kind: .star)
+                             vel: v12, mass: 1, radius: 0.08,
+                             color: Theme.bodyPalette[3], kind: .star)
         var b3 = PhysicsBody(pos: .zero,
-                             vel: v3,  mass: 1, radius: 0.08, color: colors[2],
-                             kind: .star)
+                             vel: v3,  mass: 1, radius: 0.08,
+                             color: Theme.bodyPalette[6], kind: .star)
         b1.name = "A"; b2.name = "B"; b3.name = "C"
         w.bodies = [b1, b2, b3]
     }
@@ -197,7 +192,7 @@ enum MechanicsPresets {
             PhysicsBody(pos: Vec3(x: -2, y: 0, z: 0),
                         vel: Vec3(x: 1.5, y: 0, z: 0),
                         mass: 1, radius: 0.2, charge: 1,
-                        color: .red, kind: .charge)
+                        color: Theme.bodyPalette[0], kind: .charge)
         ]
     }
 
@@ -207,10 +202,12 @@ enum MechanicsPresets {
         w.kCoulomb = 1.0
         w.bodies = [
             PhysicsBody(pos: Vec3(x: -2, y: 0, z: 0),
-                        mass: 1, radius: 0.25, charge: 1, color: .red,
+                        mass: 1, radius: 0.25, charge: 1,
+                        color: Theme.bodyPalette[0],
                         pinned: true, kind: .charge),
             PhysicsBody(pos: Vec3(x: 2, y: 0, z: 0),
-                        mass: 1, radius: 0.25, charge: -1, color: .blue,
+                        mass: 1, radius: 0.25, charge: -1,
+                        color: Theme.bodyPalette[5],
                         pinned: true, kind: .charge),
         ]
     }

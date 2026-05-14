@@ -127,7 +127,7 @@ private struct SimpleCircuitView: View {
         let w: CGFloat = 60, h: CGFloat = 22
         let rect = CGRect(x: c.x - w/2, y: c.y - h/2, width: w, height: h)
         ctx.fill(Path(roundedRect: rect, cornerRadius: 6),
-                 with: .color(.orange.opacity(0.75)))
+                 with: .color(Theme.mist.opacity(0.45)))
         Sketchy.rect(rect, ctx: ctx, color: Theme.ink,
                      lineWidth: 1.1, passes: 1, jitter: 0.4)
         ctx.draw(Text(label).font(.caption2.weight(.semibold)).foregroundColor(Theme.ink),
@@ -192,15 +192,16 @@ private struct RLCView: View {
             if k == 0 { path.move(to: CGPoint(x: px, y: py)) }
             else      { path.addLine(to: CGPoint(x: px, y: py)) }
         }
-        ctx.stroke(path, with: .color(.orange), lineWidth: 1.6)
+        ctx.stroke(path, with: .color(Theme.ink), lineWidth: 1.6)
 
         let xω = r.minX + CGFloat(min(omega, omegaMax) / omegaMax) * r.width
         var line = Path()
         line.move(to: CGPoint(x: xω, y: r.minY))
         line.addLine(to: CGPoint(x: xω, y: r.maxY))
-        ctx.stroke(line, with: .color(.red.opacity(0.7)), lineWidth: 1)
+        ctx.stroke(line, with: .color(Theme.ink.opacity(0.75)),
+                   style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
         ctx.draw(Text("1/|Z(ω)| — 공명 위치 ω₀=\(String(format: "%.2f", omega0))")
-                    .font(.caption).foregroundStyle(.secondary),
+                    .font(.caption).foregroundStyle(Theme.mist),
                  at: CGPoint(x: r.minX + 80, y: r.minY + 12))
     }
 }
@@ -291,21 +292,23 @@ private struct FaradayView: View {
             let xOff = (f - 0.5) * Rpx * 0.55
             let path = Path(ellipseIn: CGRect(x: cx + xOff - Rpx * 0.12, y: cy - Rpx,
                                               width: Rpx * 0.24, height: Rpx * 2))
-            ctx.stroke(path, with: .color(.cyan.opacity(0.65)), lineWidth: 1.5)
+            ctx.stroke(path, with: .color(Theme.ink.opacity(0.7)), lineWidth: 1.3)
         }
 
-        // Bar magnet
+        // Bar magnet — N darker, S lighter, both with ink outline
         let mx = CGFloat(magnetPos(t)) * scale
         let mW = scale * 1.2, mH = scale * 0.45
         let northR = CGRect(x: cx + mx - mW, y: cy - mH / 2, width: mW, height: mH)
         let southR = CGRect(x: cx + mx,      y: cy - mH / 2, width: mW, height: mH)
-        ctx.fill(Path(roundedRect: northR, cornerRadius: 5), with: .color(.red.opacity(0.7)))
-        ctx.fill(Path(roundedRect: southR, cornerRadius: 5), with: .color(.blue.opacity(0.7)))
+        ctx.fill(Path(roundedRect: northR, cornerRadius: 5),
+                 with: .color(Theme.ink.opacity(0.78)))
+        ctx.fill(Path(roundedRect: southR, cornerRadius: 5),
+                 with: .color(Theme.mist.opacity(0.55)))
         Sketchy.rect(northR, ctx: ctx, color: Theme.ink, lineWidth: 1.2, passes: 1, jitter: 0.4)
         Sketchy.rect(southR, ctx: ctx, color: Theme.ink, lineWidth: 1.2, passes: 1, jitter: 0.4)
         ctx.draw(Text("N").font(.caption.bold()).foregroundColor(Theme.surface),
                  at: CGPoint(x: northR.midX, y: northR.midY))
-        ctx.draw(Text("S").font(.caption.bold()).foregroundColor(Theme.surface),
+        ctx.draw(Text("S").font(.caption.bold()).foregroundColor(Theme.ink),
                  at: CGPoint(x: southR.midX, y: southR.midY))
 
         let curEMF = emfHistory.last ?? 0
@@ -337,7 +340,7 @@ private struct FaradayView: View {
             if i == 0 { path.move(to: CGPoint(x: px, y: py)) }
             else      { path.addLine(to: CGPoint(x: px, y: py)) }
         }
-        ctx.stroke(path, with: .color(.yellow), lineWidth: 1.6)
+        ctx.stroke(path, with: .color(Theme.ink), lineWidth: 1.6)
     }
 
     private func fSlider(_ title: String, value: Binding<Double>,
@@ -411,7 +414,7 @@ private struct SolenoidView: View {
         for i in 0...nTurns {
             let z = -L/2 + L * Double(i) / Double(nTurns)
             Sketchy.line(from: toScreen(z, R), to: toScreen(z, -R),
-                         ctx: ctx, color: .cyan.opacity(0.45),
+                         ctx: ctx, color: Theme.ink.opacity(0.45),
                          lineWidth: 0.8, passes: 1, jitter: 0.3)
         }
 

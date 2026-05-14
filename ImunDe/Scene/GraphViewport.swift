@@ -137,24 +137,26 @@ private struct MotionGraphView: View {
         let p1 = CGPoint(x: toX(x1), y: track.midY - 14)
         let p2 = CGPoint(x: toX(x2), y: track.midY + 14)
         Sketchy.fillCircle(center: p1, radius: 8, ctx: ctx,
-                            fill: .cyan, stroke: Theme.ink, strokeWidth: 1.2)
+                            fill: Theme.bodyPalette[0], stroke: Theme.ink,
+                            strokeWidth: 1.2)
         Sketchy.fillCircle(center: p2, radius: 8, ctx: ctx,
-                            fill: .orange, stroke: Theme.ink, strokeWidth: 1.2)
+                            fill: Theme.bodyPalette[4], stroke: Theme.ink,
+                            strokeWidth: 1.2)
 
-        // x-t 그래프 frame
         let tEnd = max(8.0, t * 1.05)
         let yMax2 = trackLength * 1.1
         let plotInner = plot.insetBy(dx: 12, dy: 12)
         ctx.stroke(Path(roundedRect: plotInner, cornerRadius: 8),
                    with: .color(Theme.ink.opacity(0.45)), lineWidth: 1.0)
         drawCurve(ctx, in: plotInner, tEnd: tEnd, yMax: yMax2,
-                  fn: { min(trackLength, max(0, v1 * $0)) }, color: .cyan)
+                  fn: { min(trackLength, max(0, v1 * $0)) }, dashed: false)
         drawCurve(ctx, in: plotInner, tEnd: tEnd, yMax: yMax2,
-                  fn: { min(trackLength, max(0, v0 * $0 + 0.5 * a * $0 * $0)) }, color: .orange)
+                  fn: { min(trackLength, max(0, v0 * $0 + 0.5 * a * $0 * $0)) },
+                  dashed: true)
     }
 
     private func drawCurve(_ ctx: GraphicsContext, in r: CGRect, tEnd: Double,
-                           yMax: Double, fn: (Double) -> Double, color: Color) {
+                           yMax: Double, fn: (Double) -> Double, dashed: Bool) {
         var path = Path()
         let n = 200
         for i in 0...n {
@@ -166,7 +168,11 @@ private struct MotionGraphView: View {
             if i == 0 { path.move(to: CGPoint(x: px, y: py)) }
             else      { path.addLine(to: CGPoint(x: px, y: py)) }
         }
-        ctx.stroke(path, with: .color(color), lineWidth: 1.6)
+        let style: StrokeStyle = dashed
+            ? StrokeStyle(lineWidth: 1.3, lineCap: .round,
+                          lineJoin: .round, dash: [5, 3])
+            : StrokeStyle(lineWidth: 1.6, lineCap: .round, lineJoin: .round)
+        ctx.stroke(path, with: .color(Theme.ink), style: style)
     }
 }
 
@@ -302,12 +308,16 @@ private struct HeatTransferView: View {
                 p1.addLine(to: CGPoint(x: px, y: py1)); p2.addLine(to: CGPoint(x: px, y: py2))
             }
         }
-        ctx.stroke(p1, with: .color(.red), lineWidth: 1.6)
-        ctx.stroke(p2, with: .color(.cyan), lineWidth: 1.6)
+        ctx.stroke(p1, with: .color(Theme.ink), lineWidth: 1.5)
+        ctx.stroke(p2, with: .color(Theme.ink),
+                   style: StrokeStyle(lineWidth: 1.3, lineCap: .round,
+                                       lineJoin: .round, dash: [5, 3]))
     }
 
     private func tempColor(_ T: Double) -> Color {
+        // 차가움 = 옅은 회색, 뜨거움 = 짙은 회색
         let t = max(0, min(1, T / 100))
-        return Color(hue: (1 - t) * 0.6, saturation: 0.85, brightness: 1)
+        return Color.adaptive(light: Color(white: 0.85 - 0.65 * t),
+                              dark:  Color(white: 0.30 + 0.55 * t))
     }
 }

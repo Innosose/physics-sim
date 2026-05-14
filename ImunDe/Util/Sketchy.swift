@@ -30,11 +30,14 @@ struct SeededGenerator: RandomNumberGenerator {
 
 enum Sketchy {
     /// Hand-drawn-ish line: jittered samples, 1–3 overlapping passes.
+    /// `dash` applies an on/off pattern in points (CGFloat values), or nil
+    /// for a continuous stroke.
     static func line(from a: CGPoint, to b: CGPoint, ctx: GraphicsContext,
                      color: Color,
                      lineWidth: CGFloat = 1.4,
                      passes: Int = 2,
-                     jitter: CGFloat = 1.1) {
+                     jitter: CGFloat = 1.1,
+                     dash: [CGFloat]? = nil) {
         let dx = b.x - a.x, dy = b.y - a.y
         let len = (dx * dx + dy * dy).squareRoot()
         guard len > 0.5 else { return }
@@ -57,9 +60,10 @@ enum Sketchy {
             }
             let w = lineWidth * CGFloat.random(in: 0.85...1.18, using: &rng)
             let op = Double.random(in: 0.62...0.95, using: &rng)
-            ctx.stroke(path, with: .color(color.opacity(op)),
-                       style: StrokeStyle(lineWidth: w,
-                                          lineCap: .round, lineJoin: .round))
+            let style = (dash != nil)
+                ? StrokeStyle(lineWidth: w, lineCap: .round, lineJoin: .round, dash: dash!)
+                : StrokeStyle(lineWidth: w, lineCap: .round, lineJoin: .round)
+            ctx.stroke(path, with: .color(color.opacity(op)), style: style)
         }
     }
 

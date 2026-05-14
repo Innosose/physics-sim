@@ -81,27 +81,37 @@ private struct ReflectionView: View {
         let len: CGFloat = min(min(cx, size.width - cx) - 16,
                                min(mid, size.height - mid) - 16)
 
+        // 입사광 (실선, 굵게)
         Sketchy.line(from: CGPoint(x: cx - CGFloat(sin(θ1)) * len,
                                     y: mid - CGFloat(cos(θ1)) * len),
                      to: CGPoint(x: cx, y: mid),
-                     ctx: ctx, color: .yellow,
-                     lineWidth: 1.8, passes: 2, jitter: 0.6)
+                     ctx: ctx, color: Theme.ink,
+                     lineWidth: 1.9, passes: 2, jitter: 0.6)
 
+        // 반사광 (점선)
         Sketchy.line(from: CGPoint(x: cx, y: mid),
                      to: CGPoint(x: cx + CGFloat(sin(θ1)) * len,
                                   y: mid - CGFloat(cos(θ1)) * len),
-                     ctx: ctx, color: .cyan,
-                     lineWidth: 1.8, passes: 2, jitter: 0.6)
+                     ctx: ctx, color: Theme.ink,
+                     lineWidth: 1.5, passes: 2, jitter: 0.4,
+                     dash: [5, 3])
 
         let s2 = n1 * sin(θ1) / n2
         if abs(s2) <= 1 {
             let θ2 = asin(s2)
+            // 굴절광 (얇은 실선)
             Sketchy.line(from: CGPoint(x: cx, y: mid),
                          to: CGPoint(x: cx + CGFloat(sin(θ2)) * len,
                                       y: mid + CGFloat(cos(θ2)) * len),
-                         ctx: ctx, color: .orange,
-                         lineWidth: 1.8, passes: 2, jitter: 0.6)
+                         ctx: ctx, color: Theme.ink,
+                         lineWidth: 1.3, passes: 2, jitter: 0.5)
         }
+
+        // Legend
+        ctx.draw(
+            Text("실 입사 · ㅡㅡ 반사 · 얇 굴절")
+                .font(.system(size: 9)).foregroundStyle(Theme.mist),
+            at: CGPoint(x: size.width / 2, y: size.height - 8))
     }
 }
 
@@ -149,51 +159,43 @@ private struct LensView: View {
         let scale: CGFloat = (min(size.width, size.height * 1.6) / 2 - 20)
                              / CGFloat(maxExtent)
 
+        // Optical axis
         Sketchy.line(from: CGPoint(x: 10, y: cy),
                      to: CGPoint(x: size.width - 10, y: cy),
-                     ctx: ctx, color: Theme.ink.opacity(0.6),
-                     lineWidth: 1.2, passes: 1, jitter: 0.5)
+                     ctx: ctx, color: Theme.ink.opacity(0.55),
+                     lineWidth: 1.1, passes: 1, jitter: 0.4)
 
+        // Lens
         Sketchy.line(from: CGPoint(x: cx, y: cy - 80),
                      to: CGPoint(x: cx, y: cy + 80),
-                     ctx: ctx, color: .cyan,
+                     ctx: ctx, color: Theme.ink,
                      lineWidth: 1.8, passes: 2, jitter: 0.4)
 
+        // Focal points (filled ink circles)
         for s in [-1.0, 1.0] {
             let fx = cx + CGFloat(s * abs(fSigned)) * scale
             Sketchy.fillCircle(center: CGPoint(x: fx, y: cy), radius: 3.5,
-                               ctx: ctx, fill: .orange, stroke: Theme.ink,
+                               ctx: ctx, fill: Theme.ink, stroke: Theme.ink,
                                strokeWidth: 1.0)
         }
 
+        // Object (solid)
         let objX = cx - CGFloat(p) * scale
         Sketchy.line(from: CGPoint(x: objX, y: cy),
                      to: CGPoint(x: objX, y: cy - 40),
-                     ctx: ctx, color: .yellow,
+                     ctx: ctx, color: Theme.ink,
                      lineWidth: 1.8, passes: 2, jitter: 0.5)
 
         if q.isFinite {
             let imgX = cx + CGFloat(q) * scale
             let m = -q / p
             let h = -CGFloat(m) * 40
-            if q > 0 {
-                Sketchy.line(from: CGPoint(x: imgX, y: cy),
-                             to: CGPoint(x: imgX, y: cy - h),
-                             ctx: ctx, color: .green,
-                             lineWidth: 1.8, passes: 2, jitter: 0.5)
-            } else {
-                // virtual image — dashed via segments
-                let total = abs(h)
-                let segs = max(6, Int(total / 6))
-                for i in stride(from: 0, to: segs, by: 2) {
-                    let t0 = CGFloat(i) / CGFloat(segs)
-                    let t1 = CGFloat(i + 1) / CGFloat(segs)
-                    Sketchy.line(from: CGPoint(x: imgX, y: cy - h * t0),
-                                  to: CGPoint(x: imgX, y: cy - h * t1),
-                                  ctx: ctx, color: .gray,
-                                  lineWidth: 1.4, passes: 1, jitter: 0.3)
-                }
-            }
+            // 실상=solid, 허상=dashed (둘 다 ink)
+            Sketchy.line(from: CGPoint(x: imgX, y: cy),
+                         to: CGPoint(x: imgX, y: cy - h),
+                         ctx: ctx, color: Theme.ink,
+                         lineWidth: 1.6, passes: 2, jitter: 0.5,
+                         dash: q > 0 ? nil : [4, 3])
         }
     }
 }
@@ -276,14 +278,13 @@ private struct DoubleSlitView: View {
 
         let displaySamples: [(Double, Double)] = mode == .single ? singleOnly : combined
         let displayMax: Double = mode == .single ? singMax : combMax
-        let stripColor = wavelengthColor(lambdaNm)
 
         for (y, I) in displaySamples {
             let f = CGFloat((y + yMax) / (2 * yMax))
             let x = stripRect.minX + f * stripRect.width
             let bar = CGRect(x: x, y: stripRect.minY,
                              width: stripRect.width / CGFloat(n) + 1, height: stripRect.height)
-            ctx.fill(Path(bar), with: .color(stripColor.opacity(I / displayMax)))
+            ctx.fill(Path(bar), with: .color(Theme.ink.opacity(I / displayMax)))
         }
 
         let curveInner = curveRect.insetBy(dx: 0, dy: 3)
@@ -303,35 +304,19 @@ private struct DoubleSlitView: View {
         switch mode {
         case .both:
             ctx.stroke(curvePath(samples: combined, maxI: combMax),
-                       with: .color(.yellow), lineWidth: 1.6)
+                       with: .color(Theme.ink), lineWidth: 1.5)
         case .single:
             ctx.stroke(curvePath(samples: singleOnly, maxI: singMax),
-                       with: .color(.orange), lineWidth: 1.6)
+                       with: .color(Theme.ink), lineWidth: 1.5)
         case .compare:
             ctx.stroke(curvePath(samples: singleOnly, maxI: combMax),
-                       with: .color(.orange.opacity(0.85)),
-                       style: StrokeStyle(lineWidth: 1.2, dash: [3, 2]))
+                       with: .color(Theme.ink.opacity(0.85)),
+                       style: StrokeStyle(lineWidth: 1.1, dash: [4, 3]))
             ctx.stroke(curvePath(samples: combined, maxI: combMax),
-                       with: .color(.yellow), lineWidth: 1.6)
-            ctx.draw(Text("주황: 단일슬릿 회절 포락선   노랑: 이중슬릿 간섭")
-                        .font(.caption2).foregroundStyle(Theme.mist.opacity(0.85)),
+                       with: .color(Theme.ink), lineWidth: 1.5)
+            ctx.draw(Text("ㅡㅡ 단일슬릿 포락선   실선 이중슬릿 간섭")
+                        .font(.caption2).foregroundStyle(Theme.mist),
                      at: CGPoint(x: curveInner.midX, y: curveInner.minY + 10))
         }
-    }
-
-    private func wavelengthColor(_ wl: Double) -> Color {
-        var rr = 0.0, gg = 0.0, bb = 0.0
-        switch wl {
-        case 380..<440: rr = -(wl - 440) / 60; bb = 1
-        case 440..<490: gg = (wl - 440) / 50; bb = 1
-        case 490..<510: gg = 1; bb = -(wl - 510) / 20
-        case 510..<580: rr = (wl - 510) / 70; gg = 1
-        case 580..<645: rr = 1; gg = -(wl - 645) / 65
-        case 645...780: rr = 1
-        default: rr = 0.5; gg = 0.5; bb = 0.5
-        }
-        return Color(red: max(0, min(1, rr)),
-                     green: max(0, min(1, gg)),
-                     blue: max(0, min(1, bb)))
     }
 }

@@ -147,7 +147,8 @@ struct FreeFallCalculator: View {
                 } else {
                     Text("입력값 오류")
                         .font(.footnote)
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(Theme.ink)
+                        .italic()
                 }
             }
         }

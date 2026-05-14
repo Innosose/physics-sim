@@ -9,9 +9,12 @@ enum Curriculum: String, CaseIterable, Identifiable, Hashable {
 
     var accent: Color {
         switch self {
-        case .middle: return Color(red: 0.36, green: 0.54, blue: 0.62)  // 청회색 연필
-        case .high:   return Color(red: 0.50, green: 0.42, blue: 0.62)  // 보라 연필
-        case .free:   return Color(red: 0.74, green: 0.58, blue: 0.30)  // 황토 연필
+        case .middle: return Color.adaptive(light: Color(white: 0.18),
+                                            dark:  Color(white: 0.90))
+        case .high:   return Color.adaptive(light: Color(white: 0.42),
+                                            dark:  Color(white: 0.66))
+        case .free:   return Color.adaptive(light: Color(white: 0.65),
+                                            dark:  Color(white: 0.40))
         }
     }
 }

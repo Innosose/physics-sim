@@ -428,8 +428,7 @@ struct Mechanics2DViewport: View {
         if let b = world.bounds {
             guard p.x > b.min.x && p.x < b.max.x && p.y > b.min.y && p.y < b.max.y else { return }
         }
-        let palette: [Color] = [.red, .orange, .yellow, .green, .cyan, .blue, .purple, .pink, .mint, .teal]
-        let color = palette[world.bodies.count % palette.count]
+        let color = Theme.bodyPalette[world.bodies.count % Theme.bodyPalette.count]
         let r = Double.random(in: 0.06...0.13)
         let speed = Double.random(in: 0.3...0.8)
         let angle = Double.random(in: 0...(2 * .pi))
@@ -728,23 +727,25 @@ struct Mechanics2DViewport: View {
             if body.vel.lengthSquared > 1e-9 {
                 let end = mapPoint(body.pos + body.vel * vWorld,
                                    scale: scale, cx: cx, cy: cy, ext: ext)
-                drawArrow(ctx: ctx, from: start, to: end, color: .green)
+                drawArrow(ctx: ctx, from: start, to: end, color: Theme.ink, dashed: false)
             }
             let F = accels[i] * body.mass
             if F.lengthSquared > 1e-9 {
                 let end = mapPoint(body.pos + F * fWorld,
                                    scale: scale, cx: cx, cy: cy, ext: ext)
-                drawArrow(ctx: ctx, from: start, to: end, color: .orange)
+                drawArrow(ctx: ctx, from: start, to: end, color: Theme.ink, dashed: true)
             }
         }
     }
 
-    private func drawArrow(ctx: GraphicsContext, from: CGPoint, to: CGPoint, color: Color) {
+    private func drawArrow(ctx: GraphicsContext, from: CGPoint, to: CGPoint,
+                            color: Color, dashed: Bool = false) {
         let dx = to.x - from.x, dy = to.y - from.y
         let len = (dx * dx + dy * dy).squareRoot()
         guard len > 1.5 else { return }
         Sketchy.line(from: from, to: to, ctx: ctx, color: color,
-                     lineWidth: 1.5, passes: 1, jitter: 0.5)
+                     lineWidth: 1.5, passes: 1, jitter: 0.5,
+                     dash: dashed ? [4, 3] : nil)
         let nx = dx / len, ny = dy / len
         let s = min(CGFloat(9), len * 0.5)
         let h1 = CGPoint(x: to.x - nx * s - ny * s * 0.45,
@@ -805,12 +806,12 @@ struct Mechanics2DViewport: View {
                        style: StrokeStyle(lineWidth: 0.5, dash: [2, 2]))
         }
 
-        let entries: [(KeyPath<World.EnergyBreakdown, Double>, Color)] = [
-            (\.kinetic, .green),
-            (\.potential, .orange),
-            (\.total,    .yellow),
+        let entries: [(KeyPath<World.EnergyBreakdown, Double>, [CGFloat]?, CGFloat)] = [
+            (\.kinetic,   nil,         1.4),  // solid
+            (\.potential, [4, 3],      1.2),  // dashed
+            (\.total,     [1.5, 2.5],  1.6),  // dotted
         ]
-        for (kp, color) in entries {
+        for (kp, dash, lw) in entries {
             var path = Path()
             for (i, e) in energyHistory.enumerated() {
                 let f = CGFloat(i) / CGFloat(max(energyHistMax - 1, 1))
@@ -819,8 +820,17 @@ struct Mechanics2DViewport: View {
                 if i == 0 { path.move(to: CGPoint(x: px, y: py)) }
                 else      { path.addLine(to: CGPoint(x: px, y: py)) }
             }
-            ctx.stroke(path, with: .color(color), lineWidth: 1.2)
+            let style: StrokeStyle = dash == nil
+                ? StrokeStyle(lineWidth: lw, lineCap: .round, lineJoin: .round)
+                : StrokeStyle(lineWidth: lw, lineCap: .round,
+                              lineJoin: .round, dash: dash!)
+            ctx.stroke(path, with: .color(Theme.ink), style: style)
         }
+        // Legend
+        ctx.draw(Text("실 KE  ㅡㅡ PE  · · ΣE")
+                    .font(.system(size: 8).monospacedDigit())
+                    .foregroundStyle(Theme.mist),
+                 at: CGPoint(x: plotR.midX, y: plotR.maxY - 6))
     }
 
     private func mapPoint(_ p: Vec3, scale: CGFloat, cx: CGFloat, cy: CGFloat,
@@ -990,17 +1000,16 @@ struct Mechanics2DViewport: View {
 
         drawTwoCurve(ctx: ctx, in: posR, history: history,
                      keyA: { $0.pos.x }, keyB: { $0.pos.y },
-                     colorA: .cyan, colorB: .pink, leftLabel: "x", rightLabel: "y")
+                     leftLabel: "x", rightLabel: "y")
         drawTwoCurve(ctx: ctx, in: velR, history: history,
                      keyA: { $0.vel.x }, keyB: { $0.vel.y },
-                     colorA: .cyan, colorB: .pink, leftLabel: "vₓ", rightLabel: "v_y")
+                     leftLabel: "vₓ", rightLabel: "v_y")
     }
 
     private func drawTwoCurve(ctx: GraphicsContext, in r: CGRect,
                               history: [MotionSample],
                               keyA: (MotionSample) -> Double,
                               keyB: (MotionSample) -> Double,
-                              colorA: Color, colorB: Color,
                               leftLabel: String, rightLabel: String) {
         let valsA = history.map(keyA)
         let valsB = history.map(keyB)
@@ -1009,7 +1018,7 @@ struct Mechanics2DViewport: View {
         let span = max(hi - lo, 0.001)
 
         ctx.stroke(Path(roundedRect: r, cornerRadius: 4),
-                   with: .color(Theme.ink.opacity(0.25)), lineWidth: 0.6)
+                   with: .color(Theme.ink.opacity(0.35)), lineWidth: 0.7)
 
         if lo < 0 && hi > 0 {
             let zeroY = r.maxY - CGFloat((0 - lo) / span) * r.height
@@ -1020,7 +1029,8 @@ struct Mechanics2DViewport: View {
                        style: StrokeStyle(lineWidth: 0.5, dash: [2, 2]))
         }
 
-        for (vals, color) in [(valsA, colorA), (valsB, colorB)] {
+        // A: solid, B: dashed
+        for (vals, dashed) in [(valsA, false), (valsB, true)] {
             var p = Path()
             for (i, v) in vals.enumerated() {
                 let f = CGFloat(i) / CGFloat(max(motionHistMax - 1, 1))
@@ -1029,7 +1039,11 @@ struct Mechanics2DViewport: View {
                 if i == 0 { p.move(to: CGPoint(x: px, y: py)) }
                 else      { p.addLine(to: CGPoint(x: px, y: py)) }
             }
-            ctx.stroke(p, with: .color(color), lineWidth: 1.2)
+            let style: StrokeStyle = dashed
+                ? StrokeStyle(lineWidth: 1.1, lineCap: .round,
+                              lineJoin: .round, dash: [4, 3])
+                : StrokeStyle(lineWidth: 1.3, lineCap: .round, lineJoin: .round)
+            ctx.stroke(p, with: .color(Theme.ink), style: style)
         }
 
         // Current value labels at right edge
@@ -1038,11 +1052,11 @@ struct Mechanics2DViewport: View {
         let b = last.map(keyB) ?? 0
         ctx.draw(Text("\(leftLabel) \(String(format: "%+.2f", a))")
                     .font(.system(size: 8, design: .monospaced))
-                    .foregroundStyle(colorA),
+                    .foregroundStyle(Theme.ink),
                  at: CGPoint(x: r.maxX - 4, y: r.minY + 6), anchor: .trailing)
         ctx.draw(Text("\(rightLabel) \(String(format: "%+.2f", b))")
                     .font(.system(size: 8, design: .monospaced))
-                    .foregroundStyle(colorB),
+                    .foregroundStyle(Theme.mist),
                  at: CGPoint(x: r.maxX - 4, y: r.minY + 16), anchor: .trailing)
     }
 
