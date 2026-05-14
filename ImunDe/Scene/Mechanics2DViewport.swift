@@ -103,6 +103,8 @@ struct Mechanics2DViewport: View {
             .overlay(alignment: .bottom) { transportBar }
             .overlay(alignment: .bottomLeading) { settledBadge }
 
+            dataSection
+
             toggleRow
             presetParameterRow
             timeScaleRow
@@ -110,6 +112,47 @@ struct Mechanics2DViewport: View {
         }
         .onAppear { reset() }
         .onChange(of: preset.id) { _, _ in reset() }
+    }
+
+    @ViewBuilder
+    private var dataSection: some View {
+        if energyOn || graphsOn {
+            VStack(spacing: 6) {
+                if energyOn {
+                    TimelineView(.animation) { _ in
+                        Canvas { ctx, size in
+                            drawEnergyChart(ctx: ctx,
+                                             in: CGRect(origin: .zero, size: size))
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 96)
+                    .background(Theme.surface.opacity(0.92))
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .stroke(Theme.stroke, lineWidth: 1)
+                    )
+                }
+                if graphsOn {
+                    TimelineView(.animation) { _ in
+                        Canvas { ctx, size in
+                            drawMotionChart(ctx: ctx,
+                                             in: CGRect(origin: .zero, size: size))
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 128)
+                    .background(Theme.surface.opacity(0.92))
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .stroke(Theme.stroke, lineWidth: 1)
+                    )
+                }
+            }
+            .transition(.opacity.combined(with: .move(edge: .top)))
+        }
     }
 
     @ViewBuilder
@@ -834,12 +877,8 @@ struct Mechanics2DViewport: View {
         if rulerOn {
             drawRuler(ctx: ctx, scale: scale, cx: cx, cy: cy, ext: extent.center)
         }
-        if energyOn {
-            drawEnergyPanel(ctx: ctx, in: CGRect(origin: .zero, size: size))
-        }
-        if graphsOn {
-            drawGraphsPanel(ctx: ctx, in: CGRect(origin: .zero, size: size))
-        }
+        // Energy / graphs panels were moved to a dedicated section below
+        // the canvas (see `dataSection`), so they no longer overlay here.
         if let id = inspectedId,
            let body = world.bodies.first(where: { $0.id == id }) {
             drawInspector(ctx: ctx, in: CGRect(origin: .zero, size: size),
@@ -884,32 +923,11 @@ struct Mechanics2DViewport: View {
         let panelH: CGFloat = max(74, min(86, r.height * 0.28))
 
         // Place to the side opposite of the body's screen position so we
-        // stay inside the canvas. Then nudge away from other open panels.
+        // stay inside the canvas.
         var pX = (p.x < r.midX) ? p.x + pr + 10 : p.x - pr - 10 - panelW
         var pY = p.y - panelH / 2
         pX = min(max(pX, r.minX + 6), r.maxX - panelW - 6)
         pY = min(max(pY, r.minY + 6), r.maxY - panelH - 6)
-
-        // Avoid energy panel (top-right, ~228 × 100)
-        if energyOn {
-            let energyZone = CGRect(x: r.maxX - 240, y: r.minY,
-                                    width: 240, height: 108)
-            if energyZone.intersects(CGRect(x: pX, y: pY,
-                                            width: panelW, height: panelH)) {
-                pY = max(pY, energyZone.maxY + 6)
-                pY = min(pY, r.maxY - panelH - 6)
-            }
-        }
-        // Avoid graphs panel (bottom-left, ~228 × 148)
-        if graphsOn {
-            let graphsZone = CGRect(x: r.minX, y: r.maxY - 160,
-                                    width: 240, height: 160)
-            if graphsZone.intersects(CGRect(x: pX, y: pY,
-                                            width: panelW, height: panelH)) {
-                pY = min(pY, graphsZone.minY - panelH - 6)
-                pY = max(pY, r.minY + 6)
-            }
-        }
 
         let panel = CGRect(x: pX, y: pY, width: panelW, height: panelH)
         ctx.fill(Path(roundedRect: panel, cornerRadius: 8),
@@ -975,31 +993,24 @@ struct Mechanics2DViewport: View {
                      lineWidth: 1.5, passes: 1, jitter: 0.3)
     }
 
-    private func drawEnergyPanel(ctx: GraphicsContext, in r: CGRect) {
-        let panelW = max(150, min(220, r.width * 0.42))
-        let panelH = max(74, min(96, r.height * 0.30))
-        let panel = CGRect(x: r.maxX - panelW - 8, y: r.minY + 8,
-                           width: panelW, height: panelH)
-        ctx.fill(Path(roundedRect: panel, cornerRadius: 8),
-                 with: .color(Theme.surface.opacity(0.92)))
-        ctx.stroke(Path(roundedRect: panel, cornerRadius: 8),
-                   with: .color(Theme.ink.opacity(0.7)), lineWidth: 1.1)
-
+    /// Renders the energy chart into the given panel rect (no background —
+    /// caller's SwiftUI view provides that).
+    private func drawEnergyChart(ctx: GraphicsContext, in panel: CGRect) {
         let e = world.energyBreakdown()
         let total = e.total
-        // 헤더
-        ctx.draw(Text(String(format: "KE %.2f  PE %+.2f  ΣE %+.2f",
+        // Header
+        ctx.draw(Text(String(format: "KE %.2f   PE %+.2f   ΣE %+.2f",
                               e.kinetic, e.potential, total))
-                    .font(.caption2.monospacedDigit().weight(.semibold))
+                    .font(.caption.monospacedDigit().weight(.semibold))
                     .foregroundStyle(Theme.ink),
-                 at: CGPoint(x: panel.midX, y: panel.minY + 10))
+                 at: CGPoint(x: panel.midX, y: panel.minY + 13))
 
-        let plot = panel.insetBy(dx: 8, dy: 8)
-            .offsetBy(dx: 0, dy: 6)
-        let plotR = CGRect(x: plot.minX, y: plot.minY + 6,
-                           width: plot.width, height: plot.height - 6)
+        let plotR = CGRect(x: panel.minX + 10,
+                           y: panel.minY + 26,
+                           width: panel.width - 20,
+                           height: panel.height - 38)
         ctx.stroke(Path(roundedRect: plotR, cornerRadius: 4),
-                   with: .color(Theme.ink.opacity(0.25)), lineWidth: 0.6)
+                   with: .color(Theme.ink.opacity(0.22)), lineWidth: 0.6)
 
         guard energyHistory.count > 1 else {
             ctx.draw(Text("재생 중 에너지 추이 기록")
@@ -1232,17 +1243,9 @@ struct Mechanics2DViewport: View {
             || extY > initialExtent.height * 1.25
     }
 
-    private func drawGraphsPanel(ctx: GraphicsContext, in r: CGRect) {
-        let panelW = max(160, min(228, r.width * 0.50))
-        let panelH = max(108, min(150, r.height * 0.42))
-        let panel = CGRect(x: r.minX + 8,
-                           y: r.maxY - panelH - 8,
-                           width: panelW, height: panelH)
-        ctx.fill(Path(roundedRect: panel, cornerRadius: 8),
-                 with: .color(Theme.surface.opacity(0.92)))
-        ctx.stroke(Path(roundedRect: panel, cornerRadius: 8),
-                   with: .color(Theme.ink.opacity(0.7)), lineWidth: 1.1)
-
+    /// Renders the motion (x/y position + velocity) chart into the given
+    /// panel rect. Background and corner styling is the caller's job.
+    private func drawMotionChart(ctx: GraphicsContext, in panel: CGRect) {
         guard let body = graphTargetBody(),
               let history = motionHistory[body.id], history.count > 1 else {
             ctx.draw(Text("재생 중 위치·속도 추이 기록")
@@ -1253,11 +1256,14 @@ struct Mechanics2DViewport: View {
 
         let title = body.name ?? "선택 입자"
         ctx.draw(Text("\(title) — x·y(m) ⏐ vₓ·v_y(m/s)")
-                    .font(.caption2.monospacedDigit().weight(.semibold))
+                    .font(.caption.monospacedDigit().weight(.semibold))
                     .foregroundStyle(Theme.ink),
-                 at: CGPoint(x: panel.midX, y: panel.minY + 10))
+                 at: CGPoint(x: panel.midX, y: panel.minY + 13))
 
-        let inner = panel.insetBy(dx: 8, dy: 8).offsetBy(dx: 0, dy: 6)
+        let inner = CGRect(x: panel.minX + 10,
+                           y: panel.minY + 26,
+                           width: panel.width - 20,
+                           height: panel.height - 36)
         let subH = (inner.height - 6) / 2
         let posR = CGRect(x: inner.minX, y: inner.minY,
                           width: inner.width, height: subH - 2)
