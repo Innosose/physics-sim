@@ -1342,21 +1342,40 @@ struct Mechanics2DViewport: View {
         let idx = world.bodies.firstIndex(where: { $0.id == body.id }) ?? 0
         let a = idx < accels.count ? accels[idx] : .zero
         let ke = body.pinned ? 0 : 0.5 * body.mass * body.vel.lengthSquared
-        let lines: [String] = [
+        // Per-preset content rows — 공통 (이름, 질량, 속력, 가속도, KE)
+        // 위에 preset 별 추가 정보 (운동량 / 위치 / 전하 / 각도) 부착.
+        var lines: [String] = [
             body.name ?? (body.kind.rawValue),
             String(format: "m = %.2f", body.mass),
             String(format: "|v| = %.3f", body.vel.length),
             String(format: "|a| = %.3f", a.length),
             String(format: "KE = %.3f", ke),
         ]
+        switch preset.id {
+        case "collision1d", "freecollide", "kepler", "nbody":
+            lines.append(String(format: "p = %.3f", body.mass * body.vel.length))
+        case "freefall", "projectile":
+            lines.append(String(format: "(%.2f, %.2f) m", body.pos.x, body.pos.y))
+        case "lorentz", "efield":
+            lines.append(String(format: "q = %+.3f", body.charge))
+        case "pendulum":
+            if let pivot = world.bodies.first(where: { $0.pinned }) {
+                let dx = body.pos.x - pivot.pos.x
+                let dy = pivot.pos.y - body.pos.y
+                let θ = atan2(dx, dy) * 180 / .pi
+                lines.append(String(format: "θ = %+.1f°", θ))
+            }
+        default: break
+        }
 
         let p = mapPoint(body.pos, scale: scale, cx: cx, cy: cy, ext: ext)
         let pr = max(2, CGFloat(body.radius) * scale)
         Sketchy.circle(center: p, radius: pr + 5, ctx: ctx,
                         color: Theme.glow, lineWidth: 1.4, passes: 2, jitter: 0.04)
 
-        let panelW: CGFloat = max(112, min(132, r.width * 0.34))
-        let panelH: CGFloat = max(74, min(86, r.height * 0.28))
+        let panelW: CGFloat = max(118, min(140, r.width * 0.36))
+        // 6 lines × 14pt + 12pt 패딩 ≈ 96pt — 옛 86pt 는 5 line 기준.
+        let panelH: CGFloat = max(86, min(108, r.height * 0.32))
 
         // Skip rendering when canvas is too small for the panel — otherwise
         // the clamp invariant breaks (max(112, …) wins over r.maxX - panelW
