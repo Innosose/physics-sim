@@ -52,8 +52,8 @@ private struct WaveSumView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     PaperPicker(selection: $axis,
                                  options: Axis.allCases) { $0.rawValue }
-                    slider("f₁", value: $f1, range: 0.1...4, unit: "Hz")
-                    slider("f₂", value: $f2, range: 0.1...4, unit: "Hz")
+                    slider("진동수 f₁", value: $f1, range: 0.1...4, unit: "Hz")
+                    slider("진동수 f₂", value: $f2, range: 0.1...4, unit: "Hz")
                     ChipToggle(title: "두 번째 파 반대 진행 (정상파)",
                                 systemImage: "arrow.left.arrow.right",
                                 isOn: oppose,
@@ -253,21 +253,21 @@ private struct DopplerView: View {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(spacing: 14) {
-                        Text(String(format: "f′ 다가올 때 %.2f Hz", derived.fAhead))
+                        Text(String(format: "다가올 때 f′ = %.2f Hz", derived.fAhead))
                             .font(.caption.monospacedDigit().weight(.semibold))
                             .foregroundStyle(Theme.ink)
-                        Text(String(format: "멀어질 때 %.2f Hz", derived.fBehind))
+                        Text(String(format: "멀어질 때 = %.2f Hz", derived.fBehind))
                             .font(.caption.monospacedDigit().weight(.semibold))
                             .foregroundStyle(Theme.ink)
-                        Text(String(format: "M=%.2f", derived.mach))
+                        Text(String(format: "마하 수 M = %.2f", derived.mach))
                             .font(.caption.monospacedDigit().weight(.semibold))
                             .foregroundStyle(Theme.ink)
                         Spacer()
                     }
                     .padding(.horizontal, 4)
-                    slider("v_s", value: $sourceSpeed, range: 0...400, unit: "m/s")
-                    slider("c", value: $soundSpeed, range: 100...400, unit: "m/s")
-                    slider("f", value: $freq, range: 0.5...4, unit: "Hz")
+                    slider("음원 속도 v_s", value: $sourceSpeed, range: 0...400, unit: "m/s")
+                    slider("음속 c", value: $soundSpeed, range: 100...400, unit: "m/s")
+                    slider("진동수 f", value: $freq, range: 0.5...4, unit: "Hz")
                     playReset
                 }
             }

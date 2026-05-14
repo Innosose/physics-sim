@@ -33,6 +33,12 @@ struct Mechanics2DViewport: View {
     @State private var inspectedId: UUID? = nil
     @State private var energyHistory: [World.EnergyBreakdown] = []
     @State private var lorentzB: Double = 1.0
+    @State private var freefallH0: Double = 5
+    @State private var projectileV0: Double = 8
+    @State private var projectileAngle: Double = 45  // degrees
+    @State private var pendulumL: Double = 1.5
+    @State private var pendulumTheta0: Double = 60   // degrees
+    @State private var collisionE: Double = 1.0
     @State private var autoStopped = false
     @State private var initialExtent: CGSize = CGSize(width: 5, height: 5)
     @State private var maxObservedExtent: CGSize = .zero
@@ -409,7 +415,8 @@ struct Mechanics2DViewport: View {
             let θ = atan2(dx, dy)
             let θ2 = θ * θ, θ4 = θ2 * θ2
             let corr = 1 + θ2 / 16 + 11 * θ4 / 3072
-            return String(format: "T₀ = %.3fs   T(θ) = %.3fs", T0, T0 * corr)
+            return String(format: "이상 주기 T₀ = %.3fs    실제 주기 T = %.3fs",
+                          T0, T0 * corr)
 
         case "collision1d":
             let nonPinned = world.bodies.filter { !$0.pinned }
@@ -429,13 +436,14 @@ struct Mechanics2DViewport: View {
             guard r > 1e-6 else { return nil }
             let E = 0.5 * v * v - mu / r
             if E >= 0 {
-                return String(format: "r = %.2f   v = %.2f   (탈출 궤도)", r, v)
+                return String(format: "거리 r = %.2f   속도 v = %.2f   (탈출 궤도)", r, v)
             }
             // Kepler's 3rd law: T = 2π√(a³/GM). 학생들 친숙 — 장반경 a,
             // 이심률 e 같은 교과 외 양은 화면에 노출하지 않는다.
             let a = -mu / (2 * E)
             let T = 2 * .pi * (a * a * a / mu).squareRoot()
-            return String(format: "r = %.2f   v = %.2f   T = %.2fs", r, v, T)
+            return String(format: "거리 r = %.2f   속도 v = %.2f   주기 T = %.2fs",
+                          r, v, T)
 
         default:
             return nil
@@ -444,18 +452,56 @@ struct Mechanics2DViewport: View {
 
     @ViewBuilder
     private var presetParameterRow: some View {
-        if preset.id == "lorentz" {
-            HStack(spacing: 8) {
-                Text("B_z").font(.caption).foregroundStyle(Theme.mist)
-                PaperSlider(value: $lorentzB, in: -3...3)
-                Text(String(format: "%+.2f T", lorentzB))
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(Theme.ink)
-                    .frame(width: 64, alignment: .trailing)
+        VStack(alignment: .leading, spacing: 6) {
+            switch preset.id {
+            case "lorentz":
+                paramSlider("자기장 B_z", value: $lorentzB,
+                             range: -3...3, fmt: "%+.2f T")
+            case "freefall":
+                paramSlider("초기 높이 h_0", value: $freefallH0,
+                             range: 1...20, fmt: "%.1f m")
+            case "projectile":
+                paramSlider("초기 속도 v_0", value: $projectileV0,
+                             range: 1...20, fmt: "%.1f m/s")
+                paramSlider("발사각 θ", value: $projectileAngle,
+                             range: 0...90, fmt: "%.0f°")
+            case "pendulum":
+                paramSlider("줄 길이 L", value: $pendulumL,
+                             range: 0.5...3, fmt: "%.2f m")
+                paramSlider("초기 각도 θ", value: $pendulumTheta0,
+                             range: 5...90, fmt: "%.0f°")
+            case "collision1d":
+                paramSlider("반발계수 e", value: $collisionE,
+                             range: 0...1, fmt: "%.2f")
+            default:
+                EmptyView()
             }
-            .onChange(of: lorentzB) { _, v in
-                world.magneticB = Vec3(x: 0, y: 0, z: v)
-            }
+        }
+        .onChange(of: lorentzB) { _, v in
+            world.magneticB = Vec3(x: 0, y: 0, z: v)
+        }
+        .onChange(of: collisionE) { _, v in
+            // 라이브 — 다음 충돌부터 새 반발계수 적용
+            world.restitution = v
+        }
+        .onChange(of: freefallH0) { _, _ in reset() }
+        .onChange(of: projectileV0) { _, _ in reset() }
+        .onChange(of: projectileAngle) { _, _ in reset() }
+        .onChange(of: pendulumL) { _, _ in reset() }
+        .onChange(of: pendulumTheta0) { _, _ in reset() }
+    }
+
+    private func paramSlider(_ title: String, value: Binding<Double>,
+                              range: ClosedRange<Double>, fmt: String)
+        -> some View {
+        HStack(spacing: 8) {
+            Text(title).font(.caption).foregroundStyle(Theme.mist)
+                .frame(minWidth: 96, alignment: .leading)
+            PaperSlider(value: value, in: range)
+            Text(String(format: fmt, value.wrappedValue))
+                .font(.caption.monospacedDigit())
+                .foregroundStyle(Theme.ink)
+                .frame(width: 64, alignment: .trailing)
         }
     }
 
@@ -576,6 +622,7 @@ struct Mechanics2DViewport: View {
         } else {
             preset.load(world)
         }
+        applyUserParameters()
         lastTick = nil
         running = false
         autoStopped = false
@@ -591,6 +638,44 @@ struct Mechanics2DViewport: View {
         lorentzB = world.magneticB.z
         captureInitialExtent()
         redrawTick &+= 1
+    }
+
+    /// Overrides preset defaults with the user's current slider values.
+    /// Runs after preset.load so the initial state reflects user input.
+    private func applyUserParameters() {
+        switch preset.id {
+        case "freefall":
+            if let idx = world.bodies.firstIndex(where: { !$0.pinned }) {
+                world.bodies[idx].pos = Vec3(x: 0, y: freefallH0, z: 0)
+                world.bodies[idx].vel = .zero
+            }
+        case "projectile":
+            if let idx = world.bodies.firstIndex(where: { !$0.pinned }) {
+                let θ = projectileAngle * .pi / 180
+                world.bodies[idx].vel = Vec3(
+                    x: projectileV0 * cos(θ),
+                    y: projectileV0 * sin(θ),
+                    z: 0)
+            }
+        case "pendulum":
+            if let pivotIdx = world.bodies.firstIndex(where: { $0.pinned }),
+               let bobIdx   = world.bodies.firstIndex(where: { !$0.pinned }) {
+                let pivot = world.bodies[pivotIdx].pos
+                let θ = pendulumTheta0 * .pi / 180
+                world.bodies[bobIdx].pos = Vec3(
+                    x: pivot.x + pendulumL * sin(θ),
+                    y: pivot.y - pendulumL * cos(θ),
+                    z: 0)
+                world.bodies[bobIdx].vel = .zero
+                if let sIdx = world.springs.firstIndex(where: { $0.rigid }) {
+                    world.springs[sIdx].restLength = pendulumL
+                }
+            }
+        case "collision1d":
+            world.restitution = collisionE
+        default:
+            break
+        }
     }
 
     private func stepOnce() {
@@ -1220,10 +1305,12 @@ struct Mechanics2DViewport: View {
         guard !hasFixedBounds else { return }
         let xs = world.bodies.compactMap { $0.pos.x.isFinite ? $0.pos.x : nil }
         let ys = world.bodies.compactMap { $0.pos.y.isFinite ? $0.pos.y : nil }
-        let mx = (xs.map { abs($0) }.max() ?? 5) * 1.6
-        let my = (ys.map { abs($0) }.max() ?? 5) * 1.6
-        initialExtent = CGSize(width: max(5, CGFloat(mx)),
-                                height: max(5, CGFloat(my)))
+        // Tight initial view — body 가까이 보고 싶다. 행성이 멀리 가도
+        // mini-map이 전체 궤도를 보여주므로 main canvas는 시작 위치 기준.
+        let mx = (xs.map { abs($0) }.max() ?? 3) * 1.3
+        let my = (ys.map { abs($0) }.max() ?? 3) * 1.3
+        initialExtent = CGSize(width: max(3, CGFloat(mx)),
+                                height: max(3, CGFloat(my)))
         maxObservedExtent = initialExtent
     }
 

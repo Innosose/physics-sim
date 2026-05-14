@@ -55,8 +55,8 @@ private struct ReflectionView: View {
     private var derivedRow: some View {
         let d = derived
         let parts: [String] = [
-            d.theta2.map { String(format: "θ₂ = %.2f°", $0) } ?? "θ₂ = 전반사",
-            d.thetaC.map { String(format: "θ_c = %.2f°", $0) } ?? "θ_c = 없음",
+            d.theta2.map { String(format: "굴절각 θ₂ = %.2f°", $0) } ?? "굴절각 = 전반사",
+            d.thetaC.map { String(format: "임계각 θ_c = %.2f°", $0) } ?? "임계각 없음",
         ]
         return HStack(spacing: 14) {
             ForEach(parts, id: \.self) { p in
@@ -183,8 +183,8 @@ private struct LensView: View {
                                 alignment: .leading) {
                         diverging.toggle()
                     }
-                    slider("|f|", value: $f, range: 0.5...6, unit: "m")
-                    slider("p", value: $p, range: 0.3...10, unit: "m")
+                    slider("초점거리 |f|", value: $f, range: 0.5...6, unit: "m")
+                    slider("물체거리 p", value: $p, range: 0.3...10, unit: "m")
                 }
             }
             .scrollBounceBehavior(.basedOnSize)
@@ -195,12 +195,12 @@ private struct LensView: View {
 
     private var derivedRow: some View {
         HStack(spacing: 14) {
-            Text(q.isFinite ? String(format: "q = %+.2f m", q) : "q = ∞")
+            Text(q.isFinite ? String(format: "상거리 q = %+.2f m", q) : "상거리 q = ∞")
                 .font(.caption.monospacedDigit().weight(.semibold))
                 .foregroundStyle(Theme.ink)
             Text(magnification.isFinite
-                 ? String(format: "m = %+.2f", magnification)
-                 : "m = ∞")
+                 ? String(format: "배율 m = %+.2f", magnification)
+                 : "배율 m = ∞")
                 .font(.caption.monospacedDigit().weight(.semibold))
                 .foregroundStyle(Theme.ink)
             Text(imageKind)
@@ -302,10 +302,10 @@ private struct DoubleSlitView: View {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(spacing: 14) {
-                        Text(String(format: "Δy = %.2f mm", derived.deltaY * 1000))
+                        Text(String(format: "무늬 간격 Δy = %.2f mm", derived.deltaY * 1000))
                             .font(.caption.monospacedDigit().weight(.semibold))
                             .foregroundStyle(Theme.ink)
-                        Text(String(format: "y_a = %.2f mm", derived.yA * 1000))
+                        Text(String(format: "회절 영점 y_a = %.2f mm", derived.yA * 1000))
                             .font(.caption.monospacedDigit().weight(.semibold))
                             .foregroundStyle(Theme.ink)
                         Spacer()
@@ -313,11 +313,11 @@ private struct DoubleSlitView: View {
                     .padding(.horizontal, 4)
                     PaperPicker(selection: $mode,
                                  options: Mode.allCases) { $0.rawValue }
-                    slider("λ", value: $lambdaNm, range: 380...780, unit: "nm")
-                    slider("d", value: $dUm, range: 10...200, unit: "μm")
+                    slider("파장 λ", value: $lambdaNm, range: 380...780, unit: "nm")
+                    slider("슬릿 간격 d", value: $dUm, range: 10...200, unit: "μm")
                         .disabled(mode == .single)
-                    slider("a", value: $aUm, range: 2...30, unit: "μm")
-                    slider("D", value: $D, range: 0.3...3, unit: "m")
+                    slider("슬릿 폭 a", value: $aUm, range: 2...30, unit: "μm")
+                    slider("스크린 거리 D", value: $D, range: 0.3...3, unit: "m")
                 }
             }
             .scrollBounceBehavior(.basedOnSize)

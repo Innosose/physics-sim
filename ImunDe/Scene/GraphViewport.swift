@@ -212,10 +212,10 @@ private struct HeatTransferView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 8) {
-                    slider("T₁", value: $T1, range: 0...100, unit: "°C")
-                    slider("T₂", value: $T2, range: 0...100, unit: "°C")
+                    slider("온도 T₁", value: $T1, range: 0...100, unit: "°C")
+                    slider("온도 T₂", value: $T2, range: 0...100, unit: "°C")
                     slider("열용량 비", value: $capRatio, range: 0.1...5, unit: "")
-                    slider("h·A", value: $hA, range: 0.1...5, unit: "")
+                    slider("전달계수 h·A", value: $hA, range: 0.1...5, unit: "")
                     playReset
                 }
             }

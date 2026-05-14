@@ -42,9 +42,9 @@ private struct SimpleCircuitView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     PaperPicker(selection: $mode,
                                  options: Mode.allCases) { $0.rawValue }
-                    slider("V", value: $emf, range: 1...30, unit: "V")
-                    slider("R₁", value: $R1, range: 0.5...30, unit: "Ω")
-                    slider("R₂", value: $R2, range: 0.5...30, unit: "Ω")
+                    slider("전압 V", value: $emf, range: 1...30, unit: "V")
+                    slider("저항 R₁", value: $R1, range: 0.5...30, unit: "Ω")
+                    slider("저항 R₂", value: $R2, range: 0.5...30, unit: "Ω")
                 }
             }
             .scrollBounceBehavior(.basedOnSize)
@@ -158,11 +158,11 @@ private struct RLCView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 8) {
-                    slider("R", value: $R, range: 0.1...30, unit: "Ω")
-                    slider("L", value: $L, range: 0.05...3, unit: "H")
-                    slider("C", value: $C, range: 0.0005...0.05, unit: "F")
-                    slider("V₀", value: $V0, range: 0.1...30, unit: "V")
-                    slider("ω", value: $omega, range: 0.5...100, unit: "rad/s")
+                    slider("저항 R", value: $R, range: 0.1...30, unit: "Ω")
+                    slider("인덕턴스 L", value: $L, range: 0.05...3, unit: "H")
+                    slider("전기용량 C", value: $C, range: 0.0005...0.05, unit: "F")
+                    slider("전압 V₀", value: $V0, range: 0.1...30, unit: "V")
+                    slider("각진동수 ω", value: $omega, range: 0.5...100, unit: "rad/s")
                 }
             }
             .scrollBounceBehavior(.basedOnSize)
