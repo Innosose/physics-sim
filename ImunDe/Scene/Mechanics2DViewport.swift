@@ -876,47 +876,47 @@ struct Mechanics2DViewport: View {
         VStack(alignment: .leading, spacing: 6) {
             switch preset.id {
             case "lorentz":
-                paramSlider("자기장 B_z", value: $lorentzB,
-                             range: -3...3, fmt: "%+.2f T")
+                LabeledSlider("자기장 B_z", value: $lorentzB,
+                             range: -3...3, format: "%+.2f T")
             case "freefall":
-                paramSlider("초기 높이 h_0", value: $freefallH0,
-                             range: 1...20, fmt: "%.1f m")
-                paramSlider("초기 속도 v_0", value: $freefallV0,
-                             range: -10...10, fmt: "%+.1f m/s")
-                paramSlider("중력 g", value: $freefallG,
-                             range: 1...25, fmt: "%.1f m/s²")
+                LabeledSlider("초기 높이 h_0", value: $freefallH0,
+                             range: 1...20, format: "%.1f m")
+                LabeledSlider("초기 속도 v_0", value: $freefallV0,
+                             range: -10...10, format: "%+.1f m/s")
+                LabeledSlider("중력 g", value: $freefallG,
+                             range: 1...25, format: "%.1f m/s²")
             case "projectile":
-                paramSlider("초기 속도 v_0", value: $projectileV0,
-                             range: 1...20, fmt: "%.1f m/s")
-                paramSlider("발사각 θ", value: $projectileAngle,
-                             range: 0...90, fmt: "%.0f°")
-                paramSlider("초기 높이 h_0", value: $projectileH0,
-                             range: 0...15, fmt: "%.1f m")
-                paramSlider("중력 g", value: $projectileG,
-                             range: 1...25, fmt: "%.1f m/s²")
+                LabeledSlider("초기 속도 v_0", value: $projectileV0,
+                             range: 1...20, format: "%.1f m/s")
+                LabeledSlider("발사각 θ", value: $projectileAngle,
+                             range: 0...90, format: "%.0f°")
+                LabeledSlider("초기 높이 h_0", value: $projectileH0,
+                             range: 0...15, format: "%.1f m")
+                LabeledSlider("중력 g", value: $projectileG,
+                             range: 1...25, format: "%.1f m/s²")
             case "pendulum":
-                paramSlider("줄 길이 L", value: $pendulumL,
-                             range: 0.5...3, fmt: "%.2f m")
-                paramSlider("초기 각도 θ", value: $pendulumTheta0,
-                             range: 5...90, fmt: "%.0f°")
-                paramSlider("중력 g", value: $pendulumG,
-                             range: 1...25, fmt: "%.1f m/s²")
+                LabeledSlider("줄 길이 L", value: $pendulumL,
+                             range: 0.5...3, format: "%.2f m")
+                LabeledSlider("초기 각도 θ", value: $pendulumTheta0,
+                             range: 5...90, format: "%.0f°")
+                LabeledSlider("중력 g", value: $pendulumG,
+                             range: 1...25, format: "%.1f m/s²")
             case "collision1d":
-                paramSlider("반발계수 e", value: $collisionE,
-                             range: 0...1, fmt: "%.2f")
-                paramSlider("질량 m_1", value: $collisionM1,
-                             range: 0.1...5, fmt: "%.1f kg")
-                paramSlider("질량 m_2", value: $collisionM2,
-                             range: 0.1...5, fmt: "%.1f kg")
-                paramSlider("속도 v_1", value: $collisionV1,
-                             range: -5...5, fmt: "%+.1f m/s")
-                paramSlider("속도 v_2", value: $collisionV2,
-                             range: -5...5, fmt: "%+.1f m/s")
+                LabeledSlider("반발계수 e", value: $collisionE,
+                             range: 0...1, format: "%.2f")
+                LabeledSlider("질량 m_1", value: $collisionM1,
+                             range: 0.1...5, format: "%.1f kg")
+                LabeledSlider("질량 m_2", value: $collisionM2,
+                             range: 0.1...5, format: "%.1f kg")
+                LabeledSlider("속도 v_1", value: $collisionV1,
+                             range: -5...5, format: "%+.1f m/s")
+                LabeledSlider("속도 v_2", value: $collisionV2,
+                             range: -5...5, format: "%+.1f m/s")
             case "spring":
-                paramSlider("강성 k", value: $springK,
-                             range: 1...50, fmt: "%.1f N/m")
-                paramSlider("질량 m", value: $springM,
-                             range: 0.2...3, fmt: "%.2f kg")
+                LabeledSlider("강성 k", value: $springK,
+                             range: 1...50, format: "%.1f N/m")
+                LabeledSlider("질량 m", value: $springM,
+                             range: 0.2...3, format: "%.2f kg")
             default:
                 EmptyView()
             }
@@ -965,17 +965,6 @@ struct Mechanics2DViewport: View {
         case "projectile": world.gravity = Vec3(x: 0, y: -projectileG, z: 0)
         case "pendulum":   world.gravity = Vec3(x: 0, y: -pendulumG, z: 0)
         default: break
-        }
-    }
-
-    private func paramSlider(_ title: String, value: Binding<Double>,
-                              range: ClosedRange<Double>, fmt: String)
-        -> some View {
-        HStack(spacing: 8) {
-            Text(title).font(.caption).foregroundStyle(Theme.mist)
-                .frame(minWidth: 96, alignment: .leading)
-            PaperSlider(value: value, in: range)
-            EditableValue(value: value, range: range, format: fmt, width: 70)
         }
     }
 

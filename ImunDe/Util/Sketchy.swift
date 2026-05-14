@@ -399,3 +399,47 @@ struct ChipToggle: View {
         .accessibilityValue(Text(isOn ? "켜짐" : "꺼짐"))
     }
 }
+
+// MARK: - LabeledSlider — title + slider + editable value
+//
+// 5개 viewport 에 같은 helper (slider/fSlider/sSlider/paramSlider) 가
+// 중복 정의되어 있던 것을 통합. unit 으로 지정하면 "%.2f<unit>" 자동 조합,
+// format 으로 직접 printf 문자열을 넘길 수도 있음 (Mechanics2D paramSlider
+// 케이스).
+
+struct LabeledSlider: View {
+    let title: String
+    @Binding var value: Double
+    let range: ClosedRange<Double>
+    var unit: String = ""
+    var format: String? = nil
+    var width: CGFloat = 70
+
+    init(_ title: String, value: Binding<Double>, range: ClosedRange<Double>,
+         unit: String = "", format: String? = nil, width: CGFloat = 70) {
+        self.title = title
+        self._value = value
+        self.range = range
+        self.unit = unit
+        self.format = format
+        self.width = width
+    }
+
+    private var resolvedFormat: String {
+        format ?? "%.2f\(unit)"
+    }
+
+    var body: some View {
+        HStack(spacing: Spacing.s) {
+            Text(title)
+                .font(.caption)
+                .foregroundStyle(Theme.mist)
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+                .frame(minWidth: 96, alignment: .leading)
+            PaperSlider(value: $value, in: range)
+            EditableValue(value: $value, range: range,
+                           format: resolvedFormat, width: width)
+        }
+    }
+}

@@ -45,9 +45,9 @@ private struct MotionGraphView: View {
             .accessibilityHint(Text("아래 컨트롤로 변수를 조절합니다"))
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 8) {
-                    slider("v₁ (등속)", value: $v1, range: 0...10, unit: "m/s")
-                    slider("v₀ (등가속 초기)", value: $v0, range: 0...10, unit: "m/s")
-                    slider("a (가속도)", value: $a, range: -3...4, unit: "m/s²")
+                    LabeledSlider("v₁ (등속)", value: $v1, range: 0...10, unit: "m/s", width: 90)
+                    LabeledSlider("v₀ (등가속 초기)", value: $v0, range: 0...10, unit: "m/s", width: 90)
+                    LabeledSlider("a (가속도)", value: $a, range: -3...4, unit: "m/s²", width: 90)
                     playReset
                 }
             }
@@ -104,20 +104,6 @@ private struct MotionGraphView: View {
         return cart1Done && cart2Done
     }
 
-    private func slider(_ title: String, value: Binding<Double>,
-                        range: ClosedRange<Double>, unit: String) -> some View {
-        HStack(spacing: Spacing.s) {
-            Text(title)
-                .font(.caption)
-                .foregroundStyle(Theme.mist)
-                .lineLimit(1)
-                .minimumScaleFactor(0.85)
-                .frame(minWidth: 96, alignment: .leading)
-            PaperSlider(value: value, in: range)
-            EditableValue(value: value, range: range,
-                           format: "%.2f\(unit)", width: 90)
-        }
-    }
 
     private func draw(ctx: GraphicsContext, size: CGSize, t: Double) {
         let trackH = size.height * 0.30
@@ -219,10 +205,10 @@ private struct HeatTransferView: View {
             .accessibilityHint(Text("아래 컨트롤로 변수를 조절합니다"))
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 8) {
-                    slider("온도 T₁", value: $T1, range: 0...100, unit: "°C")
-                    slider("온도 T₂", value: $T2, range: 0...100, unit: "°C")
-                    slider("열용량 비", value: $capRatio, range: 0.1...5, unit: "")
-                    slider("전달계수 h·A", value: $hA, range: 0.1...5, unit: "")
+                    LabeledSlider("온도 T₁", value: $T1, range: 0...100, unit: "°C", width: 80)
+                    LabeledSlider("온도 T₂", value: $T2, range: 0...100, unit: "°C", width: 80)
+                    LabeledSlider("열용량 비", value: $capRatio, range: 0.1...5, width: 80)
+                    LabeledSlider("전달계수 h·A", value: $hA, range: 0.1...5, width: 80)
                     playReset
                 }
             }
@@ -275,20 +261,6 @@ private struct HeatTransferView: View {
         if heatSettled { running = false }
     }
 
-    private func slider(_ title: String, value: Binding<Double>,
-                        range: ClosedRange<Double>, unit: String) -> some View {
-        HStack(spacing: Spacing.s) {
-            Text(title)
-                .font(.caption)
-                .foregroundStyle(Theme.mist)
-                .lineLimit(1)
-                .minimumScaleFactor(0.85)
-                .frame(minWidth: 96, alignment: .leading)
-            PaperSlider(value: value, in: range)
-            EditableValue(value: value, range: range,
-                           format: "%.2f\(unit)", width: 80)
-        }
-    }
 
     private func draw(ctx: GraphicsContext, size: CGSize, t: Double) {
         let topH: CGFloat = 80

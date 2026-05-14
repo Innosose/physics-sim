@@ -53,8 +53,8 @@ private struct WaveSumView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     PaperPicker(selection: $axis,
                                  options: Axis.allCases) { $0.rawValue }
-                    slider("진동수 f₁", value: $f1, range: 0.1...4, unit: "Hz")
-                    slider("진동수 f₂", value: $f2, range: 0.1...4, unit: "Hz")
+                    LabeledSlider("진동수 f₁", value: $f1, range: 0.1...4, unit: "Hz")
+                    LabeledSlider("진동수 f₂", value: $f2, range: 0.1...4, unit: "Hz")
                     ChipToggle(title: "두 번째 파 반대 진행 (정상파)",
                                 systemImage: "arrow.left.arrow.right",
                                 isOn: oppose,
@@ -103,20 +103,6 @@ private struct WaveSumView: View {
         elapsed += dt
     }
 
-    private func slider(_ title: String, value: Binding<Double>,
-                        range: ClosedRange<Double>, unit: String) -> some View {
-        HStack(spacing: Spacing.s) {
-            Text(title)
-                .font(.caption)
-                .foregroundStyle(Theme.mist)
-                .lineLimit(1)
-                .minimumScaleFactor(0.85)
-                .frame(minWidth: 96, alignment: .leading)
-            PaperSlider(value: value, in: range)
-            EditableValue(value: value, range: range,
-                           format: "%.2f\(unit)", width: 70)
-        }
-    }
 
     private func draw(ctx: GraphicsContext, size: CGSize, t: Double) {
         let h = size.height / 3
@@ -274,10 +260,10 @@ private struct DopplerView: View {
                         Spacer()
                     }
                     .padding(.horizontal, 4)
-                    slider("음원 속도 v_s", value: $sourceSpeed, range: 0...400, unit: "m/s")
-                    slider("관찰자 속도 v_o", value: $observerSpeed, range: -200...200, unit: "m/s")
-                    slider("음속 c", value: $soundSpeed, range: 100...400, unit: "m/s")
-                    slider("진동수 f", value: $freq, range: 0.5...4, unit: "Hz")
+                    LabeledSlider("음원 속도 v_s", value: $sourceSpeed, range: 0...400, unit: "m/s", width: 80)
+                    LabeledSlider("관찰자 속도 v_o", value: $observerSpeed, range: -200...200, unit: "m/s", width: 80)
+                    LabeledSlider("음속 c", value: $soundSpeed, range: 100...400, unit: "m/s", width: 80)
+                    LabeledSlider("진동수 f", value: $freq, range: 0.5...4, unit: "Hz", width: 80)
                     playReset
                 }
             }
@@ -331,21 +317,6 @@ private struct DopplerView: View {
         lastTick = now
         elapsed += dt
         if sourceAtWall { running = false }
-    }
-
-    private func slider(_ title: String, value: Binding<Double>,
-                        range: ClosedRange<Double>, unit: String) -> some View {
-        HStack(spacing: Spacing.s) {
-            Text(title)
-                .font(.caption)
-                .foregroundStyle(Theme.mist)
-                .lineLimit(1)
-                .minimumScaleFactor(0.85)
-                .frame(minWidth: 96, alignment: .leading)
-            PaperSlider(value: value, in: range)
-            EditableValue(value: value, range: range,
-                           format: "%.2f\(unit)", width: 80)
-        }
     }
 
     private func draw(ctx: GraphicsContext, size: CGSize, t: Double) {

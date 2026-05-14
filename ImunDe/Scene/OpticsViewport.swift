@@ -76,26 +76,12 @@ private struct ReflectionView: View {
 
     private var controls: some View {
         VStack(alignment: .leading, spacing: 8) {
-            slider("입사각 θ₁", value: $incidenceDeg, range: 0...89, unit: "°")
-            slider("위쪽 n₁", value: $n1, range: 1...2.5, unit: "")
-            slider("아래쪽 n₂", value: $n2, range: 1...2.5, unit: "")
+            LabeledSlider("입사각 θ₁", value: $incidenceDeg, range: 0...89, unit: "°")
+            LabeledSlider("위쪽 n₁", value: $n1, range: 1...2.5, unit: "")
+            LabeledSlider("아래쪽 n₂", value: $n2, range: 1...2.5, unit: "")
         }
     }
 
-    private func slider(_ title: String, value: Binding<Double>,
-                        range: ClosedRange<Double>, unit: String) -> some View {
-        HStack(spacing: Spacing.s) {
-            Text(title)
-                .font(.caption)
-                .foregroundStyle(Theme.mist)
-                .lineLimit(1)
-                .minimumScaleFactor(0.85)
-                .frame(minWidth: 96, alignment: .leading)
-            PaperSlider(value: value, in: range)
-            EditableValue(value: value, range: range,
-                           format: "%.2f\(unit)", width: 70)
-        }
-    }
 
     private func draw(ctx: GraphicsContext, size: CGSize) {
         let mid = size.height / 2
@@ -198,8 +184,8 @@ private struct LensView: View {
                                 alignment: .leading) {
                         diverging.toggle()
                     }
-                    slider("초점거리 |f|", value: $f, range: 0.5...6, unit: "m")
-                    slider("물체거리 p", value: $p, range: 0.3...10, unit: "m")
+                    LabeledSlider("초점거리 |f|", value: $f, range: 0.5...6, unit: "m")
+                    LabeledSlider("물체거리 p", value: $p, range: 0.3...10, unit: "m")
                 }
             }
             .scrollBounceBehavior(.basedOnSize)
@@ -226,20 +212,6 @@ private struct LensView: View {
         .padding(.horizontal, 4)
     }
 
-    private func slider(_ title: String, value: Binding<Double>,
-                        range: ClosedRange<Double>, unit: String) -> some View {
-        HStack(spacing: Spacing.s) {
-            Text(title)
-                .font(.caption)
-                .foregroundStyle(Theme.mist)
-                .lineLimit(1)
-                .minimumScaleFactor(0.85)
-                .frame(minWidth: 96, alignment: .leading)
-            PaperSlider(value: value, in: range)
-            EditableValue(value: value, range: range,
-                           format: "%.2f\(unit)", width: 70)
-        }
-    }
 
     private func draw(ctx: GraphicsContext, size: CGSize) {
         let cx = size.width * 0.5
@@ -338,11 +310,11 @@ private struct DoubleSlitView: View {
                     .padding(.horizontal, 4)
                     PaperPicker(selection: $mode,
                                  options: Mode.allCases) { $0.rawValue }
-                    slider("파장 λ", value: $lambdaNm, range: 380...780, unit: "nm")
-                    slider("슬릿 간격 d", value: $dUm, range: 10...200, unit: "μm")
+                    LabeledSlider("파장 λ", value: $lambdaNm, range: 380...780, unit: "nm", width: 80)
+                    LabeledSlider("슬릿 간격 d", value: $dUm, range: 10...200, unit: "μm", width: 80)
                         .disabled(mode == .single)
-                    slider("슬릿 폭 a", value: $aUm, range: 2...30, unit: "μm")
-                    slider("스크린 거리 D", value: $D, range: 0.3...3, unit: "m")
+                    LabeledSlider("슬릿 폭 a", value: $aUm, range: 2...30, unit: "μm", width: 80)
+                    LabeledSlider("스크린 거리 D", value: $D, range: 0.3...3, unit: "m", width: 80)
                 }
             }
             .scrollBounceBehavior(.basedOnSize)
@@ -351,20 +323,6 @@ private struct DoubleSlitView: View {
         .padding(8)
     }
 
-    private func slider(_ title: String, value: Binding<Double>,
-                        range: ClosedRange<Double>, unit: String) -> some View {
-        HStack(spacing: Spacing.s) {
-            Text(title)
-                .font(.caption)
-                .foregroundStyle(Theme.mist)
-                .lineLimit(1)
-                .minimumScaleFactor(0.85)
-                .frame(minWidth: 96, alignment: .leading)
-            PaperSlider(value: value, in: range)
-            EditableValue(value: value, range: range,
-                           format: "%.2f\(unit)", width: 80)
-        }
-    }
 
     private func draw(ctx: GraphicsContext, size: CGSize) {
         let r = CGRect(x: 0, y: 0, width: size.width, height: size.height)

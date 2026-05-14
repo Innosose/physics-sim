@@ -47,9 +47,9 @@ private struct SimpleCircuitView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     PaperPicker(selection: $mode,
                                  options: Mode.allCases) { $0.rawValue }
-                    slider("전압 V", value: $emf, range: 1...30, unit: "V")
-                    slider("저항 R₁", value: $R1, range: 0.5...30, unit: "Ω")
-                    slider("저항 R₂", value: $R2, range: 0.5...30, unit: "Ω")
+                    LabeledSlider("전압 V", value: $emf, range: 1...30, unit: "V", width: 80)
+                    LabeledSlider("저항 R₁", value: $R1, range: 0.5...30, unit: "Ω", width: 80)
+                    LabeledSlider("저항 R₂", value: $R2, range: 0.5...30, unit: "Ω", width: 80)
                 }
             }
             .scrollBounceBehavior(.basedOnSize)
@@ -58,20 +58,6 @@ private struct SimpleCircuitView: View {
         .padding(8)
     }
 
-    private func slider(_ title: String, value: Binding<Double>,
-                        range: ClosedRange<Double>, unit: String) -> some View {
-        HStack(spacing: Spacing.s) {
-            Text(title)
-                .font(.caption)
-                .foregroundStyle(Theme.mist)
-                .lineLimit(1)
-                .minimumScaleFactor(0.85)
-                .frame(minWidth: 96, alignment: .leading)
-            PaperSlider(value: value, in: range)
-            EditableValue(value: value, range: range,
-                           format: "%.2f\(unit)", width: 80)
-        }
-    }
 
     private func draw(ctx: GraphicsContext, size: CGSize) {
         let r = CGRect(origin: .zero, size: size).insetBy(dx: 30, dy: 30)
@@ -173,11 +159,11 @@ private struct RLCView: View {
                 .accessibilityHint(Text("아래 슬라이더로 회로 파라미터를 조절합니다"))
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 8) {
-                    slider("저항 R", value: $R, range: 0.1...30, unit: "Ω")
-                    slider("인덕턴스 L", value: $L, range: 0.05...3, unit: "H")
-                    slider("전기용량 C", value: $C, range: 0.0005...0.05, unit: "F")
-                    slider("전압 V₀", value: $V0, range: 0.1...30, unit: "V")
-                    slider("각진동수 ω", value: $omega, range: 0.5...100, unit: "rad/s")
+                    LabeledSlider("저항 R", value: $R, range: 0.1...30, unit: "Ω", width: 90)
+                    LabeledSlider("인덕턴스 L", value: $L, range: 0.05...3, unit: "H", width: 90)
+                    LabeledSlider("전기용량 C", value: $C, range: 0.0005...0.05, unit: "F", width: 90)
+                    LabeledSlider("전압 V₀", value: $V0, range: 0.1...30, unit: "V", width: 90)
+                    LabeledSlider("각진동수 ω", value: $omega, range: 0.5...100, unit: "rad/s", width: 90)
                 }
             }
             .scrollBounceBehavior(.basedOnSize)
@@ -186,20 +172,6 @@ private struct RLCView: View {
         .padding(8)
     }
 
-    private func slider(_ title: String, value: Binding<Double>,
-                        range: ClosedRange<Double>, unit: String) -> some View {
-        HStack(spacing: Spacing.s) {
-            Text(title)
-                .font(.caption)
-                .foregroundStyle(Theme.mist)
-                .lineLimit(1)
-                .minimumScaleFactor(0.85)
-                .frame(minWidth: 96, alignment: .leading)
-            PaperSlider(value: value, in: range)
-            EditableValue(value: value, range: range,
-                           format: "%.2f\(unit)", width: 90)
-        }
-    }
 
     private func draw(ctx: GraphicsContext, size: CGSize) {
 
@@ -270,8 +242,8 @@ private struct FaradayView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 8) {
-                    fSlider("N (코일 감은 수)", value: $nTurns, range: 20...500, unit: "회")
-                    fSlider("진동 속도 ω", value: $speed, range: 0.2...5, unit: "rad/s")
+                    LabeledSlider("N (코일 감은 수)", value: $nTurns, range: 20...500, format: "%.1f회", width: 90)
+                    LabeledSlider("진동 속도 ω", value: $speed, range: 0.2...5, format: "%.1frad/s", width: 90)
                     faradayPlayReset
                 }
             }
@@ -393,21 +365,6 @@ private struct FaradayView: View {
         }
         ctx.stroke(path, with: .color(Theme.ink), lineWidth: 1.6)
     }
-
-    private func fSlider(_ title: String, value: Binding<Double>,
-                         range: ClosedRange<Double>, unit: String) -> some View {
-        HStack(spacing: Spacing.s) {
-            Text(title)
-                .font(.caption)
-                .foregroundStyle(Theme.mist)
-                .lineLimit(1)
-                .minimumScaleFactor(0.85)
-                .frame(minWidth: 96, alignment: .leading)
-            PaperSlider(value: value, in: range)
-            EditableValue(value: value, range: range,
-                           format: "%.1f\(unit)", width: 90)
-        }
-    }
 }
 
 // MARK: - SolenoidView
@@ -433,10 +390,10 @@ private struct SolenoidView: View {
                 .accessibilityHint(Text("아래 슬라이더로 회로 파라미터를 조절합니다"))
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 8) {
-                    sSlider("n (권선수/m)", value: $nPerM, range: 100...2000, fmt: "%.0f /m")
-                    sSlider("I (전류)",    value: $current, range: 0.1...10,   fmt: "%.1f A")
-                    sSlider("길이 L",      value: $soleL,   range: 1...5,       fmt: "%.1f m")
-                    sSlider("반지름 R",    value: $soleR,   range: 0.3...1.5,   fmt: "%.2f m")
+                    LabeledSlider("n (권선수/m)", value: $nPerM, range: 100...2000, format: "%.0f /m", width: 90)
+                    LabeledSlider("I (전류)",    value: $current, range: 0.1...10,   format: "%.1f A", width: 90)
+                    LabeledSlider("길이 L",      value: $soleL,   range: 1...5,       format: "%.1f m", width: 90)
+                    LabeledSlider("반지름 R",    value: $soleR,   range: 0.3...1.5,   format: "%.2f m", width: 90)
                 }
             }
             .scrollBounceBehavior(.basedOnSize)
@@ -563,17 +520,4 @@ private struct SolenoidView: View {
         }
     }
 
-    private func sSlider(_ title: String, value: Binding<Double>,
-                         range: ClosedRange<Double>, fmt: String) -> some View {
-        HStack(spacing: Spacing.s) {
-            Text(title)
-                .font(.caption)
-                .foregroundStyle(Theme.mist)
-                .lineLimit(1)
-                .minimumScaleFactor(0.85)
-                .frame(minWidth: 96, alignment: .leading)
-            PaperSlider(value: value, in: range)
-            EditableValue(value: value, range: range, format: fmt, width: 90)
-        }
-    }
 }
