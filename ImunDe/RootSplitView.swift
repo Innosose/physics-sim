@@ -238,9 +238,17 @@ private struct PresetList: View {
                                 RoundedRectangle(cornerRadius: 2, style: .continuous)
                                     .fill(curriculum.accent)
                                     .frame(width: 3)
-                                Text(p.title)
-                                    .font(.body.weight(.semibold))
-                                    .foregroundStyle(Theme.ink)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(p.title)
+                                        .font(.body.weight(.semibold))
+                                        .foregroundStyle(Theme.ink)
+                                    if !p.subtitle.isEmpty {
+                                        Text(p.subtitle)
+                                            .font(.caption)
+                                            .foregroundStyle(Theme.mist)
+                                            .lineLimit(2)
+                                    }
+                                }
                             }
                             .padding(.vertical, 4)
                         }

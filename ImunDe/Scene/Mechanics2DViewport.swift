@@ -25,6 +25,7 @@ struct Mechanics2DViewport: View {
     @State private var timeScale: Double = 1.0
     @State private var inspectedId: UUID? = nil
     @State private var energyHistory: [World.EnergyBreakdown] = []
+    @State private var lorentzB: Double = 1.0
     @AppStorage("hasDraggedBody") private var hasDraggedBody = false
 
     private let energyHistMax = 240
@@ -81,6 +82,7 @@ struct Mechanics2DViewport: View {
             }
 
             toggleRow
+            presetParameterRow
             timeScaleRow
             controls
         }
@@ -136,11 +138,29 @@ struct Mechanics2DViewport: View {
         .tint(on ? Theme.glow : Theme.mist)
     }
 
+    @ViewBuilder
+    private var presetParameterRow: some View {
+        if preset.id == "lorentz" {
+            HStack(spacing: 8) {
+                Text("B_z").font(.caption).foregroundStyle(Theme.mist)
+                Slider(value: $lorentzB, in: -3...3).tint(Theme.glow)
+                Text(String(format: "%+.2f T", lorentzB))
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(Theme.glow)
+                    .frame(width: 72, alignment: .trailing)
+            }
+            .onChange(of: lorentzB) { _, v in
+                world.magneticB = Vec3(x: 0, y: 0, z: v)
+            }
+        }
+    }
+
     private var timeScaleRow: some View {
         HStack(spacing: 8) {
-            Image(systemName: "timer")
-                .font(.caption2)
+            Text(String(format: "t=%.2fs", world.time))
+                .font(.caption2.monospacedDigit())
                 .foregroundStyle(Theme.mist)
+                .frame(width: 70, alignment: .leading)
             Slider(value: $timeScale, in: 0.25...4).tint(Theme.glow)
             Text(String(format: "%.2fx", timeScale))
                 .font(.caption2.monospacedDigit())
@@ -242,6 +262,7 @@ struct Mechanics2DViewport: View {
         inspectedId = nil
         energyHistory.removeAll()
         trailsOn = world.trailEnabled
+        lorentzB = world.magneticB.z
         redrawTick &+= 1
     }
 
