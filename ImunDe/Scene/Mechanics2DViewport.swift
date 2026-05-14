@@ -1338,29 +1338,31 @@ struct Mechanics2DViewport: View {
             let pr = max(2, CGFloat(body.radius) * scale)
             guard pr.isFinite else { continue }
 
-            // Grab feedback — 사용자가 잡고 있으면 옅은 cream halo 를
-            // body 뒤에 깔고 진한 accent ring 을 위에 두름.
+            // Grab feedback — 진한 솔리드 body 위에 cobalt selection ring.
+            // 이전: cream halo + 색연필 톤 (0.55 fill). 6 opus 합의 — pro
+            // 도구 컨벤션은 솔리드 fill + 강조 ring (Figma/Sketch 선택 동작).
             let isGrabbed = (grabbedID == body.id)
             if isGrabbed {
-                let haloR = pr + 8
+                let haloR = pr + 6
                 ctx.fill(
                     Path(ellipseIn: CGRect(x: p.x - haloR, y: p.y - haloR,
                                             width: haloR * 2, height: haloR * 2)),
-                    with: .color(Theme.glow.opacity(0.22)))
+                    with: .color(Theme.glow.opacity(0.16)))
             }
 
-            // 연필 톤 — 옅은 색연필 칠 위에 sketchy 잉크 윤곽.
+            // 솔리드 fill — 작은 점일수록 옅은 색은 식별 불가. Tufte 데이터-
+            // 잉크 비율 + WCAG 시인성 모두 1.0 fill 을 권장.
             ctx.fill(
                 Path(ellipseIn: CGRect(x: p.x - pr, y: p.y - pr,
                                        width: pr * 2, height: pr * 2)),
-                with: .color(body.color.opacity(0.55)))
+                with: .color(body.color))
             Sketchy.circle(center: p, radius: pr, ctx: ctx,
-                            color: Theme.ink, lineWidth: 1.3, passes: 2,
-                            jitter: 0.025)
+                            color: Theme.ink, lineWidth: 0.8, passes: 1,
+                            jitter: 0)
 
             if isGrabbed {
-                Sketchy.circle(center: p, radius: pr + 4, ctx: ctx,
-                                color: Theme.glow, lineWidth: 2.4)
+                Sketchy.circle(center: p, radius: pr + 3, ctx: ctx,
+                                color: Theme.glow, lineWidth: 2.0)
             }
         }
 
@@ -1428,8 +1430,8 @@ struct Mechanics2DViewport: View {
 
         let p = mapPoint(body.pos, scale: scale, cx: cx, cy: cy, ext: ext)
         let pr = max(2, CGFloat(body.radius) * scale)
-        Sketchy.circle(center: p, radius: pr + 5, ctx: ctx,
-                        color: Theme.glow, lineWidth: 1.4, passes: 2, jitter: 0.04)
+        Sketchy.circle(center: p, radius: pr + 4, ctx: ctx,
+                        color: Theme.glow, lineWidth: 1.2)
 
         let panelW: CGFloat = max(118, min(140, r.width * 0.36))
         // 6 lines × 14pt + 12pt 패딩 ≈ 96pt — 옛 86pt 는 5 line 기준.
@@ -1560,9 +1562,9 @@ struct Mechanics2DViewport: View {
         }
 
         let entries: [(KeyPath<World.EnergyBreakdown, Double>, [CGFloat]?, CGFloat, Color)] = [
-            (\.kinetic,   nil,    1.4, Theme.ink),  // solid ink
-            (\.potential, [4, 3], 1.2, Theme.ink),  // dashed ink
-            (\.total,     nil,    1.8, Theme.glow), // solid cream — emphasis
+            (\.kinetic,   nil,    1.4, Theme.ink),    // solid ink
+            (\.potential, [4, 3], 1.2, Theme.ink),    // dashed ink
+            (\.total,     nil,    1.8, Theme.energy), // solid gold — energy semantic
         ]
         for (kp, dash, lw, color) in entries {
             var path = Path()
