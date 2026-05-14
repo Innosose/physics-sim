@@ -230,7 +230,8 @@ private struct FaradayView: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            TimelineView(running ? .animation : .animation(minimumInterval: 1.0)) { tl in
+            TimelineView(.animation(minimumInterval: running ? nil : 1.0,
+                                     paused: scenePhase != .active)) { tl in
                 Canvas { ctx, size in draw(ctx: ctx, size: size, t: elapsed) }
                     .onChange(of: tl.date) { _, d in
                         advance(to: d.timeIntervalSinceReferenceDate)
@@ -249,6 +250,7 @@ private struct FaradayView: View {
         }
         .padding(8)
         .onChange(of: scenePhase) { _, phase in
+            if phase == .background { running = false }
             if phase == .active { lastTick = nil }
         }
     }

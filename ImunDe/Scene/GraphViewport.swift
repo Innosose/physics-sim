@@ -28,7 +28,8 @@ private struct MotionGraphView: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            TimelineView(running ? .animation : .animation(minimumInterval: 1.0)) { tl in
+            TimelineView(.animation(minimumInterval: running ? nil : 1.0,
+                                     paused: scenePhase != .active)) { tl in
                 Canvas { ctx, size in
                     draw(ctx: ctx, size: size, t: elapsed)
                 }
@@ -53,6 +54,7 @@ private struct MotionGraphView: View {
         }
         .padding(8)
         .onChange(of: scenePhase) { _, phase in
+            if phase == .background { running = false }
             if phase == .active { lastTick = nil }
         }
     }
@@ -174,7 +176,8 @@ private struct HeatTransferView: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            TimelineView(running ? .animation : .animation(minimumInterval: 1.0)) { tl in
+            TimelineView(.animation(minimumInterval: running ? nil : 1.0,
+                                     paused: scenePhase != .active)) { tl in
                 Canvas { ctx, size in
                     draw(ctx: ctx, size: size, t: elapsed)
                 }
@@ -200,6 +203,7 @@ private struct HeatTransferView: View {
         }
         .padding(8)
         .onChange(of: scenePhase) { _, phase in
+            if phase == .background { running = false }
             if phase == .active { lastTick = nil }
         }
     }

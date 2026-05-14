@@ -92,11 +92,15 @@ struct Mechanics2DViewport: View {
             }
 
             ZStack {
-                // 일시정지 시 TimelineView schedule 을 1Hz 로 throttle —
-                // 매 vsync 마다 Canvas draw 가 도는 wasted GPU 비용 제거.
-                // pan/drag/zoom 같은 @State 변경은 schedule 과 무관하게
-                // 즉시 redraw 트리거하므로 인터랙션 60fps 유지.
-                TimelineView(running ? .animation : .animation(minimumInterval: 1.0)) { tl in
+                // 일시정지: 1Hz throttle. 백그라운드 (scenePhase != .active):
+                // schedule 을 paused 로 완전 정지 — iOS background CPU 정책
+                // 위반으로 인한 SIGTERM 방지. paused timeline 은 view 가
+                // 살아있어도 schedule callback 이 전혀 fire 되지 않음.
+                TimelineView(
+                    .animation(
+                        minimumInterval: running ? nil : 1.0,
+                        paused: scenePhase != .active)
+                ) { tl in
                     Canvas { ctx, size in
                         draw(ctx: ctx, size: size)
                     }
@@ -188,10 +192,14 @@ struct Mechanics2DViewport: View {
             // .active 가 아닌 모든 상태에서 drag cleanup —
             // .inactive (Control Center pulldown / 알림 / 통화) 도 포함.
             if phase != .active { cancelActiveDrag() }
-            // .background 진입 시 sim 도 자동 일시정지 — kinetic 처럼
-            // 영원히 실행되는 preset 이 사용자가 자리 비운 동안 배터리
-            // 소모하는 것 방지. 사용자가 돌아와 재생 버튼으로 재개.
-            if phase == .background { running = false }
+            // .background 진입 시 sim 일시정지 + 모든 outstanding Task cancel.
+            // SIGTERM 방지 — iOS 가 백그라운드 앱의 CPU 활동을 모니터링하므로
+            // TimelineView paused 외에도 명시적으로 정리.
+            if phase == .background {
+                running = false
+                fadeTask?.cancel()
+                fadeTask = nil
+            }
             // foreground 복귀 시 lastTick 리셋 — 백그라운드 동안 누적된
             // wall-clock 갭이 첫 프레임 dt 를 폭주시키는 것 차단.
             if phase == .active { lastTick = nil }
