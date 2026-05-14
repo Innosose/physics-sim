@@ -154,16 +154,17 @@ struct SketchButtonStyle: ButtonStyle {
         let bg: Color     = prominent ? Theme.ink : Theme.surface
         let fg: Color     = prominent ? Theme.surface : Theme.ink
         let border: Color = prominent ? Color.clear : Theme.stroke
-        let shape = RoundedRectangle(cornerRadius: 10, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
         return configuration.label
             .padding(.horizontal, 14)
-            .padding(.vertical, 9)
+            .padding(.vertical, 12)        // 32 → 44pt 충족용 V padding ↑
+            .frame(minHeight: 44)          // HIG 44pt 보강
             .background(shape.fill(bg))
             .overlay(shape.stroke(border, lineWidth: 1))
             .foregroundStyle(fg)
             .scaleEffect(pressed ? 0.97 : 1.0)
             .opacity(pressed ? 0.82 : 1.0)
-            .animation(.spring(duration: 0.15), value: pressed)
+            .animation(Motion.press, value: pressed)
     }
 }
 
@@ -225,7 +226,7 @@ struct ChipPressStyle: ButtonStyle {
         configuration.label
             .scaleEffect(configuration.isPressed ? 0.94 : 1.0)
             .opacity(configuration.isPressed ? 0.82 : 1.0)
-            .animation(.spring(duration: 0.18), value: configuration.isPressed)
+            .animation(Motion.press, value: configuration.isPressed)
     }
 }
 
@@ -249,6 +250,8 @@ struct EditableValue: View {
     @State private var draft: String = ""
     @State private var editing: Bool = false
     @FocusState private var focused: Bool
+
+    private var displayed: String { String(format: format, value) }
 
     var body: some View {
         Group {
@@ -278,7 +281,7 @@ struct EditableValue: View {
                         }
                     }
             } else {
-                Text(String(format: format, value))
+                Text(displayed)
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(Theme.ink)
                     .contentShape(Rectangle())
@@ -286,6 +289,17 @@ struct EditableValue: View {
             }
         }
         .frame(width: width, alignment: .trailing)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text("값"))
+        .accessibilityValue(Text(displayed))
+        .accessibilityHint(Text("두 번 탭하여 편집"))
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAdjustableAction { direction in
+            let span = range.upperBound - range.lowerBound
+            let step = span / 20
+            let delta = (direction == .increment) ? step : -step
+            value = min(max(value + delta, range.lowerBound), range.upperBound)
+        }
     }
 
     private func startEditing() {
@@ -326,6 +340,7 @@ struct PaperSlider: View {
     @Binding var value: Double
     let range: ClosedRange<Double>
     var height: CGFloat = 24
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     init(value: Binding<Double>, in range: ClosedRange<Double>, height: CGFloat = 24) {
         self._value = value
@@ -367,8 +382,13 @@ struct PaperSlider: View {
                     .shadow(color: Theme.ink.opacity(0.10), radius: 3, x: 0, y: 1)
                     .offset(x: handleX - 11)
             }
+            // Touch target — 44pt hit area per HIG. Visual stays at `height`
+            // (default 24pt) but the drag-receiving area extends to 44pt
+            // vertically via padded contentShape.
             .frame(height: height)
+            .padding(.vertical, max(0, (44 - height) / 2))
             .contentShape(Rectangle())
+            .padding(.vertical, -max(0, (44 - height) / 2))
             .gesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { g in
@@ -379,6 +399,11 @@ struct PaperSlider: View {
             )
         }
         .frame(height: height)
+        // Custom slider doesn't auto-expose value to VoiceOver / Switch
+        // Control — wire the standard semantics so AX users can adjust.
+        .accessibilityRepresentation {
+            Slider(value: $value, in: range)
+        }
     }
 }
 
@@ -389,6 +414,7 @@ struct PaperPicker<T: Hashable>: View {
     let options: [T]
     let label: (T) -> String
     @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Namespace private var pillNS
 
     var body: some View {
@@ -396,14 +422,13 @@ struct PaperPicker<T: Hashable>: View {
             ForEach(options, id: \.self) { opt in
                 let isActive = selection == opt
                 Button {
-                    withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
-                        selection = opt
-                    }
+                    let anim: Animation? = reduceMotion ? nil : Motion.slide
+                    withAnimation(anim) { selection = opt }
                 } label: {
                     Text(label(opt))
-                        .font(.system(size: 12, weight: isActive ? .semibold : .regular))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 6)
+                        .font(.system(.footnote, design: .default)
+                                .weight(isActive ? .semibold : .regular))
+                        .frame(maxWidth: .infinity, minHeight: 32)
                         .foregroundStyle(isActive ? Theme.surface : Theme.mist)
                         .background {
                             if isActive {
@@ -414,15 +439,16 @@ struct PaperPicker<T: Hashable>: View {
                         }
                 }
                 .buttonStyle(.chipPress)
+                .accessibilityAddTraits(isActive ? [.isButton, .isSelected] : .isButton)
             }
         }
         .padding(3)
         .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
+            RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
                 .fill(Theme.crest.opacity(0.5))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
+            RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
                 .stroke(Theme.stroke, lineWidth: 1)
         )
         .opacity(isEnabled ? 1 : 0.55)
@@ -438,26 +464,38 @@ struct ChipToggle: View {
     var alignment: Alignment = .center
     let action: () -> Void
     @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    /// On 상태 표시는 색만이 아니라 leading 아이콘도 — 색맹 사용자가
+    /// 켜짐/꺼짐을 식별할 수 있도록.
+    private var effectiveIcon: String {
+        isOn ? "checkmark.circle.fill" : systemImage
+    }
 
     var body: some View {
         Button(action: action) {
-            Label(title, systemImage: systemImage)
-                .font(.system(size: 11, weight: isOn ? .semibold : .regular))
+            Label(title, systemImage: effectiveIcon)
+                .font(.system(.footnote, design: .default)
+                        .weight(isOn ? .semibold : .regular))
                 .foregroundStyle(isOn ? Theme.surface : Theme.mist)
-                .frame(maxWidth: .infinity, alignment: alignment)
+                .frame(maxWidth: .infinity, minHeight: 44, alignment: alignment)
                 .padding(.vertical, alignment == .leading ? 7 : 6)
                 .padding(.horizontal, alignment == .leading ? 10 : 4)
                 .background(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    RoundedRectangle(cornerRadius: Radius.chip, style: .continuous)
                         .fill(isOn ? Theme.ink : Theme.crest.opacity(0.5))
                 )
+                // 색맹 / 모노크롬용 보강 — On 상태에서도 옅은 stroke 유지
+                // (색상만이 아니라 outline 변화로도 구분됨).
                 .overlay(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .stroke(isOn ? Color.clear : Theme.stroke, lineWidth: 1)
+                    RoundedRectangle(cornerRadius: Radius.chip, style: .continuous)
+                        .stroke(isOn ? Theme.ink.opacity(0.25) : Theme.stroke, lineWidth: 1)
                 )
                 .opacity(isEnabled ? 1 : 0.45)
         }
         .buttonStyle(.chipPress)
-        .animation(.smooth(duration: 0.2), value: isOn)
+        .animation(reduceMotion ? nil : Motion.toggle, value: isOn)
+        .accessibilityAddTraits(.isToggle)
+        .accessibilityValue(Text(isOn ? "켜짐" : "꺼짐"))
     }
 }
