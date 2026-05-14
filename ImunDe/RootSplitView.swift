@@ -30,7 +30,6 @@ struct RootSplitView: View {
             detailColumn
         }
         .navigationSplitViewStyle(.balanced)
-        .preferredCompactColumn(.sidebar)
         .onChange(of: sidebarItem) { _, _ in detailSelection = nil }
         .sheet(isPresented: $showSettings) { SettingsView() }
         .sheet(item: $presentedCalculator) { topic in
