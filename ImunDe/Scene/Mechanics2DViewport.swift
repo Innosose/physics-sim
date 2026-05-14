@@ -1255,6 +1255,11 @@ struct Mechanics2DViewport: View {
         let panelW: CGFloat = max(112, min(132, r.width * 0.34))
         let panelH: CGFloat = max(74, min(86, r.height * 0.28))
 
+        // Skip rendering when canvas is too small for the panel — otherwise
+        // the clamp invariant breaks (max(112, …) wins over r.maxX - panelW
+        // - 6) and the panel renders off the right edge.
+        guard r.width >= panelW + 12, r.height >= panelH + 12 else { return }
+
         // Place to the side opposite of the body's screen position so we
         // stay inside the canvas.
         var pX = (p.x < r.midX) ? p.x + pr + 10 : p.x - pr - 10 - panelW
@@ -1374,8 +1379,12 @@ struct Mechanics2DViewport: View {
         ]
         for (kp, dash, lw, color) in entries {
             var path = Path()
+            // Denominator = actual count, not max capacity — otherwise the
+            // first few seconds of recording (history.count << energyHistMax)
+            // get squashed into the leftmost ~12% of the chart.
+            let denom = CGFloat(max(energyHistory.count - 1, 1))
             for (i, e) in energyHistory.enumerated() {
-                let f = CGFloat(i) / CGFloat(max(energyHistMax - 1, 1))
+                let f = CGFloat(i) / denom
                 let px = plotR.minX + f * plotR.width
                 let py = plotR.maxY - CGFloat((e[keyPath: kp] - lo) / span) * plotR.height
                 if i == 0 { path.move(to: CGPoint(x: px, y: py)) }
@@ -1639,8 +1648,9 @@ struct Mechanics2DViewport: View {
         // A: solid, B: dashed
         for (vals, dashed) in [(valsA, false), (valsB, true)] {
             var p = Path()
+            let denom = CGFloat(max(history.count - 1, 1))
             for (i, v) in vals.enumerated() {
-                let f = CGFloat(i) / CGFloat(max(motionHistMax - 1, 1))
+                let f = CGFloat(i) / denom
                 let px = r.minX + f * r.width
                 let py = r.maxY - CGFloat((v - lo) / span) * r.height
                 if i == 0 { p.move(to: CGPoint(x: px, y: py)) }

@@ -378,8 +378,9 @@ private struct FaradayView: View {
         guard emfHistory.count > 1 else { return }
         let peak = max(emfHistory.map { abs($0) }.max() ?? 1, 0.001)
         var path = Path()
+        let denom = CGFloat(max(emfHistory.count - 1, 1))
         for (i, v) in emfHistory.enumerated() {
-            let f = CGFloat(i) / CGFloat(histLen)
+            let f = CGFloat(i) / denom
             let px = inner.minX + f * inner.width
             let py = inner.midY - CGFloat(v / peak) * (inner.height / 2 - 4)
             if i == 0 { path.move(to: CGPoint(x: px, y: py)) }
