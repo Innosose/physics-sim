@@ -28,14 +28,20 @@ final class World {
     var trailEnabled: Bool = false
     var trailMax: Int = 60
 
+    /// NaN/Inf 가 step 안에서 발생해 위치/속도가 sanitize 된 경우 true.
+    /// View 가 이 플래그를 보고 `running = false` 로 일시정지 + 사용자에게
+    /// 발산 알림. View 가 한 번 처리한 뒤 false 로 리셋한다.
+    var didRecoverFromNaN: Bool = false
+
     func step(dt: Double) {
         guard !bodies.isEmpty else { time += dt; return }
-        // NaN/Inf sanitize — 근접 특이점에서 발생한 비정상 상태가 다음
-        // step 으로 전파되면 Canvas 렌더 단계에서 좌표계 계산이 폭주.
-        // computeAccel/applyBounds 진입 전 미리 정상화.
+        // NaN/Inf sanitize at step START — 이전 step 잔재가 computeAccel
+        // 로 들어가 Inf 폭주하는 것 방지. 발견 시 didRecoverFromNaN 플래그를
+        // 세워 View 가 sim 을 일시정지하고 사용자에게 알림.
         for i in bodies.indices where !(bodies[i].pos.isFinite && bodies[i].vel.isFinite) {
             bodies[i].pos = .zero
             bodies[i].vel = .zero
+            didRecoverFromNaN = true
         }
         switch integrator {
         case .euler:          stepEuler(dt: dt)
@@ -59,6 +65,14 @@ final class World {
                 let alive = Set(bodies.map { $0.id })
                 trails = trails.filter { alive.contains($0.key) }
             }
+        }
+        // step END 의 second sanitize — 한 프레임 NaN 좌표가 Canvas 로
+        // 새어나가는 것 차단. computeAccel/Verlet 이 r²→0 근처에서 만든
+        // Inf 가 trails/bounds 통과 후 여기서 잡힘.
+        for i in bodies.indices where !(bodies[i].pos.isFinite && bodies[i].vel.isFinite) {
+            bodies[i].pos = .zero
+            bodies[i].vel = .zero
+            didRecoverFromNaN = true
         }
         time += dt
     }
@@ -144,14 +158,14 @@ final class World {
                 pe += -b.mass * Vec3.dot(gravity, b.pos)
             }
         }
+        // Plummer-softened PE — computeAccel 와 일관.
+        let softening2: Double = 1e-4
         if pairwiseGravity {
             let n = bodies.count
             for i in 0..<n {
                 for j in (i + 1)..<n {
-                    let r = (bodies[j].pos - bodies[i].pos).length
-                    if r > 1e-6 {
-                        pe -= G * bodies[i].mass * bodies[j].mass / r
-                    }
+                    let r = ((bodies[j].pos - bodies[i].pos).lengthSquared + softening2).squareRoot()
+                    pe -= G * bodies[i].mass * bodies[j].mass / r
                 }
             }
         }
@@ -167,10 +181,8 @@ final class World {
             let n = bodies.count
             for i in 0..<n {
                 for j in (i + 1)..<n {
-                    let r = (bodies[j].pos - bodies[i].pos).length
-                    if r > 1e-6 {
-                        pe += kCoulomb * bodies[i].charge * bodies[j].charge / r
-                    }
+                    let r = ((bodies[j].pos - bodies[i].pos).lengthSquared + softening2).squareRoot()
+                    pe += kCoulomb * bodies[i].charge * bodies[j].charge / r
                 }
             }
         }
@@ -194,25 +206,25 @@ final class World {
             // 옛 (drag * mass) 곱셈은 a = -drag·v 가 되어 질량과 무관,
             // 종단속도 추론(F_drag = mg → v_∞ = mg/b)을 깨뜨림.
             if drag > 0 { f -= vel[i] * drag }
+            // Plummer softening: f ∝ d / (r² + ε²)^(3/2). 옛 hard-cutoff
+            // (r²<1e-3 skip) 은 figure-8 같이 r≈0 근처를 통과하는 canonical
+            // 궤도를 깨뜨림. ε² = 1e-4 (ε ≈ 1cm) 로 매우 작아 r>0.1m 에선
+            // 1/r² 와 거의 동일, 근접에선 부드럽게 bounded.
+            let softening2: Double = 1e-4
             if pairwiseGravity {
                 for j in 0..<n where j != i {
                     let d = pos[j] - pos[i]
-                    let r2 = d.lengthSquared
-                    // 근접 특이점 softening. 옛 1e-6 은 r≈1mm 에서 r⁻³ 항이
-                    // 1e9 까지 폭주해 한 step 만에 Inf 가속 → NaN 위치.
-                    // 1e-3 (r≈32mm) 로 조여 numerical blow-up 차단.
-                    if r2 < 1e-3 { continue }
-                    let r = r2.squareRoot()
-                    f += d * (G * bodies[i].mass * bodies[j].mass / (r2 * r))
+                    let r2 = d.lengthSquared + softening2
+                    let inv = pow(r2, -1.5)
+                    f += d * (G * bodies[i].mass * bodies[j].mass * inv)
                 }
             }
             if pairwiseCoulomb {
                 for j in 0..<n where j != i {
                     let d = pos[i] - pos[j]
-                    let r2 = d.lengthSquared
-                    if r2 < 1e-3 { continue }
-                    let r = r2.squareRoot()
-                    f += d * (kCoulomb * bodies[i].charge * bodies[j].charge / (r2 * r))
+                    let r2 = d.lengthSquared + softening2
+                    let inv = pow(r2, -1.5)
+                    f += d * (kCoulomb * bodies[i].charge * bodies[j].charge * inv)
                 }
             }
             for s in springs where !s.rigid {

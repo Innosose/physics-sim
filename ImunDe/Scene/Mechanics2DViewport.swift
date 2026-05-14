@@ -189,9 +189,11 @@ struct Mechanics2DViewport: View {
         .onChange(of: scenePhase) { _, phase in
             // .active 가 아닌 모든 상태에서 drag cleanup —
             // .inactive (Control Center pulldown / 알림 / 통화) 도 포함.
-            // iOS 26 에서 .inactive 가 gesture 인터럽트를 항상 알리지
-            // 않는다는 보고가 있어 보수적으로 모든 비-active 케이스 처리.
             if phase != .active { cancelActiveDrag() }
+            // .background 진입 시 sim 도 자동 일시정지 — kinetic 처럼
+            // 영원히 실행되는 preset 이 사용자가 자리 비운 동안 배터리
+            // 소모하는 것 방지. 사용자가 돌아와 재생 버튼으로 재개.
+            if phase == .background { running = false }
             // foreground 복귀 시 lastTick 리셋 — 백그라운드 동안 누적된
             // wall-clock 갭이 첫 프레임 dt 를 폭주시키는 것 차단.
             if phase == .active { lastTick = nil }
@@ -1429,10 +1431,13 @@ struct Mechanics2DViewport: View {
                 .map { $0.vel.length }.max() ?? 0
             if maxV > 0.05 { hasEverMoved = true }
         }
-        if world.bodies.contains(where: {
-            !$0.pos.isFinite || !$0.vel.isFinite
-        }) {
-            reset()
+        // World.step 이 NaN/Inf 를 sanitize 한 경우 — 모든 body 가 원점에
+        // 모여 있는 상태. 자동 reset 대신 일시정지 + autoStopped 표시.
+        // 학생이 슬라이더 값을 조정하거나 수동으로 reset 할 수 있게.
+        if world.didRecoverFromNaN {
+            running = false
+            autoStopped = true
+            world.didRecoverFromNaN = false
         }
         if allBodiesAtRest() { running = false; autoStopped = true }
     }
