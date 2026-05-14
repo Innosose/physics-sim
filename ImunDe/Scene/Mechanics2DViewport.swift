@@ -92,15 +92,12 @@ struct Mechanics2DViewport: View {
             }
 
             ZStack {
-                // 일시정지: 1Hz throttle. 백그라운드 (scenePhase != .active):
-                // schedule 을 paused 로 완전 정지 — iOS background CPU 정책
-                // 위반으로 인한 SIGTERM 방지. paused timeline 은 view 가
-                // 살아있어도 schedule callback 이 전혀 fire 되지 않음.
-                TimelineView(
-                    .animation(
-                        minimumInterval: running ? nil : 1.0,
-                        paused: scenePhase != .active)
-                ) { tl in
+                // 일시정지 시 1Hz throttle. paused: scenePhase 게이팅은
+                // BackBoardServices vsync 재구독 IPC churn 을 유발해 콘솔에
+                // "Failed to register update sync ... invalid destination port"
+                // 가 폭주하므로 사용하지 않음. iOS 가 백그라운드에서 자체적으로
+                // CADisplayLink 를 throttle 하는 것에 의존.
+                TimelineView(running ? .animation : .animation(minimumInterval: 1.0)) { tl in
                     Canvas { ctx, size in
                         draw(ctx: ctx, size: size)
                     }
