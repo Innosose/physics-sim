@@ -2,6 +2,7 @@ import SwiftUI
 
 struct OpticsViewport: View {
     let scene: Preset.OpticsScene
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         ZStack {
@@ -12,6 +13,7 @@ struct OpticsViewport: View {
             case .doubleSlit:  DoubleSlitView()
             }
         }
+        .id(colorScheme)
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 14, style: .continuous)

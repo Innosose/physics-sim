@@ -2,6 +2,7 @@ import SwiftUI
 
 struct GraphViewport: View {
     let preset: Preset
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         ZStack {
@@ -12,6 +13,7 @@ struct GraphViewport: View {
             default:            Text("준비 중").foregroundStyle(Theme.mist)
             }
         }
+        .id(colorScheme)
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 14, style: .continuous)

@@ -12,14 +12,14 @@ struct Preset: Identifiable, Hashable, @unchecked Sendable {
     var curriculumLabel: String? { Preset.curriculumLabels[id] }
 
     private static let formulas: [String: String] = [
-        "freefall":    "y(t) = h₀ + v₀ t − ½ g t²",
-        "projectile":  "x(t) = v₀ cosθ · t,    y(t) = h₀ + v₀ sinθ · t − ½ g t²",
-        "pendulum":    "T₀ = 2π √(L/g),    T(θ_max) ≈ T₀·(1 + θ²/16 + 11θ⁴/3072 + …)",
-        "collision1d": "v₁′ = ((m₁ − e m₂)·v₁ + (1+e)·m₂·v₂) / (m₁+m₂)",
-        "kepler":      "a = −GM / (2E),    E = ½v² − GM/r,    T = 2π √(a³/GM)",
+        "freefall":    "y(t) = h_0 + v_0 t − ½ g t²",
+        "projectile":  "x(t) = v_0 cos θ · t,    y(t) = h_0 + v_0 sin θ · t − ½ g t²",
+        "pendulum":    "T_0 = 2π √(L/g),    T(θ_{max}) ≈ T_0·(1 + θ²/16 + 11 θ⁴/3072 + …)",
+        "collision1d": "v_1′ = ((m_1 − e m_2)·v_1 + (1+e)·m_2·v_2) / (m_1 + m_2)",
+        "kepler":      "a = −GM / (2E),    E = ½ v² − GM/r,    T = 2π √(a³/GM)",
         "circuit":     "V = I R,    P = V I = I² R = V² / R",
         "doppler":     "f′ = f · (c + v_o) / (c − v_s)",
-        "reflection":  "n₁ sinθ₁ = n₂ sinθ₂,    sinθ_c = n₂ / n₁",
+        "reflection":  "n_1 sin θ_1 = n_2 sin θ_2,    sin θ_c = n_2 / n_1",
         "lens":        "1/f = 1/p + 1/q,    m = − q / p",
         "doubleslit":  "Δy = λ D / d,    회절 영점: y_a = λ D / a",
     ]

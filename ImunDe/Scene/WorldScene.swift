@@ -61,11 +61,10 @@ struct ConceptCard: View {
             .buttonStyle(.plain)
 
             if expanded, let formula = preset.formula {
-                Text(formula)
-                    .font(.system(.callout, design: .serif))
+                Text(AttributedString.formula(formula, baseSize: 15))
                     .foregroundStyle(Theme.ink)
                     .textSelection(.enabled)
-                    .lineSpacing(4)
+                    .lineSpacing(6)
                     .padding(10)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(

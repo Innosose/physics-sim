@@ -78,6 +78,49 @@ extension Font {
     static var themeLabel: Font    { .system(size: 13, weight: .regular) }
 }
 
+// MARK: - Formula rendering
+
+extension AttributedString {
+    /// Render a physics formula string with proper sub/superscripts.
+    /// Recognized syntax: `_x` (single char subscript), `_{xx}` (group subscript),
+    /// `^x`, `^{xx}` (superscripts). Existing Unicode glyphs (₀ ² ′ etc.)
+    /// pass through unchanged.
+    static func formula(_ s: String, baseSize: CGFloat = 15) -> AttributedString {
+        let base: Font = .system(size: baseSize, design: .serif)
+        let small: Font = .system(size: baseSize * 0.72, design: .serif)
+        var result = AttributedString()
+        var i = s.startIndex
+        while i < s.endIndex {
+            let c = s[i]
+            if (c == "_" || c == "^"), let token = nextToken(in: s, after: i) {
+                var attr = AttributedString(token.text)
+                attr.font = small
+                attr.baselineOffset = (c == "_") ? -baseSize * 0.22 : baseSize * 0.36
+                result.append(attr)
+                i = token.endIndex
+            } else {
+                var attr = AttributedString(String(c))
+                attr.font = base
+                result.append(attr)
+                i = s.index(after: i)
+            }
+        }
+        return result
+    }
+
+    private static func nextToken(in s: String, after marker: String.Index)
+        -> (text: String, endIndex: String.Index)? {
+        let start = s.index(after: marker)
+        guard start < s.endIndex else { return nil }
+        if s[start] == "{" {
+            guard let close = s[start..<s.endIndex].firstIndex(of: "}") else { return nil }
+            let inner = String(s[s.index(after: start)..<close])
+            return (inner, s.index(after: close))
+        }
+        return (String(s[start]), s.index(after: start))
+    }
+}
+
 extension View {
     func themeCard(cornerRadius: CGFloat = 14) -> some View {
         modifier(ThemeCard(cornerRadius: cornerRadius))

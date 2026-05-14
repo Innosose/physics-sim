@@ -2,6 +2,7 @@ import SwiftUI
 
 struct CircuitViewport: View {
     let scene: Preset.CircuitScene
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         ZStack {
@@ -13,6 +14,7 @@ struct CircuitViewport: View {
             case .solenoid: SolenoidView()
             }
         }
+        .id(colorScheme)
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 14, style: .continuous)

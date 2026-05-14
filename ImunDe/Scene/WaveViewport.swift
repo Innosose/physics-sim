@@ -2,6 +2,7 @@ import SwiftUI
 
 struct WaveViewport: View {
     let scene: Preset.WaveScene
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         ZStack {
@@ -11,6 +12,7 @@ struct WaveViewport: View {
             case .doppler: DopplerView()
             }
         }
+        .id(colorScheme)
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 14, style: .continuous)

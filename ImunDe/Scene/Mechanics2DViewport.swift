@@ -34,8 +34,10 @@ struct Mechanics2DViewport: View {
     @State private var energyHistory: [World.EnergyBreakdown] = []
     @State private var lorentzB: Double = 1.0
     @State private var autoStopped = false
+    @State private var maxObservedExtent: CGSize = .zero
     @GestureState private var pinchDelta: CGFloat = 1.0
     @AppStorage("hasDraggedBody") private var hasDraggedBody = false
+    @Environment(\.colorScheme) private var colorScheme
 
     private let energyHistMax = 240
     private let motionHistMax = 240
@@ -53,6 +55,7 @@ struct Mechanics2DViewport: View {
                 Canvas { ctx, size in
                     draw(ctx: ctx, size: size)
                 }
+                .id(colorScheme)
                 .onChange(of: tl.date) { _, newDate in
                     advance(to: newDate.timeIntervalSinceReferenceDate)
                 }
@@ -125,25 +128,59 @@ struct Mechanics2DViewport: View {
 
     private var hasMovableBody: Bool { world.bodies.contains { !$0.pinned } }
 
+    private struct ChipMask {
+        var vectors = true
+        var energy = true
+        var trails = true
+        var graphs = true
+        var ruler = true
+    }
+
+    private var chipMask: ChipMask {
+        switch preset.id {
+        case "kinetic":
+            // 많은 입자 — 자취/그래프/벡터는 화면을 어지럽힘
+            return ChipMask(vectors: false, trails: false, graphs: false)
+        case "freecollide":
+            return ChipMask(trails: false, graphs: false)
+        case "efield":
+            // 전기력선이 이미 그려짐, 자취 중복
+            return ChipMask(trails: false)
+        default:
+            return ChipMask()
+        }
+    }
+
     private var toggleRow: some View {
-        HStack(spacing: 5) {
-            ChipToggle(title: "벡터", systemImage: "arrow.up.right", isOn: vectorsOn) {
-                vectorsOn.toggle(); haptic(.light)
+        let mask = chipMask
+        return HStack(spacing: 5) {
+            if mask.vectors {
+                ChipToggle(title: "벡터", systemImage: "arrow.up.right", isOn: vectorsOn) {
+                    vectorsOn.toggle(); haptic(.light)
+                }
             }
-            ChipToggle(title: "에너지", systemImage: "chart.bar.fill", isOn: energyOn) {
-                energyOn.toggle(); haptic(.light)
+            if mask.energy {
+                ChipToggle(title: "에너지", systemImage: "chart.bar.fill", isOn: energyOn) {
+                    energyOn.toggle(); haptic(.light)
+                }
             }
-            ChipToggle(title: "자취", systemImage: "scribble", isOn: trailsOn) {
-                trailsOn.toggle(); haptic(.light)
-                world.trailEnabled = trailsOn
-                if !trailsOn { world.trails.removeAll() }
+            if mask.trails {
+                ChipToggle(title: "자취", systemImage: "scribble", isOn: trailsOn) {
+                    trailsOn.toggle(); haptic(.light)
+                    world.trailEnabled = trailsOn
+                    if !trailsOn { world.trails.removeAll() }
+                }
             }
-            ChipToggle(title: "그래프", systemImage: "chart.xyaxis.line", isOn: graphsOn) {
-                graphsOn.toggle(); haptic(.light)
-                if !graphsOn { motionHistory.removeAll() }
+            if mask.graphs {
+                ChipToggle(title: "그래프", systemImage: "chart.xyaxis.line", isOn: graphsOn) {
+                    graphsOn.toggle(); haptic(.light)
+                    if !graphsOn { motionHistory.removeAll() }
+                }
             }
-            ChipToggle(title: "자", systemImage: "ruler", isOn: rulerOn) {
-                rulerOn.toggle(); haptic(.light)
+            if mask.ruler {
+                ChipToggle(title: "자", systemImage: "ruler", isOn: rulerOn) {
+                    rulerOn.toggle(); haptic(.light)
+                }
             }
         }
     }
@@ -435,6 +472,8 @@ struct Mechanics2DViewport: View {
         rulerEnd = Vec3(x: 1.5, y: 0, z: 0)
         trailsOn = world.trailEnabled
         lorentzB = world.magneticB.z
+        maxObservedExtent = .zero
+        updateMaxObservedExtent()
         redrawTick &+= 1
     }
 
@@ -445,6 +484,7 @@ struct Mechanics2DViewport: View {
         for _ in 0..<sub { world.step(dt: h) }
         recordEnergy()
         recordMotion()
+        updateMaxObservedExtent()
         if world.bodies.contains(where: { !$0.pos.isFinite || !$0.vel.isFinite }) {
             reset()
         }
@@ -642,6 +682,7 @@ struct Mechanics2DViewport: View {
         for _ in 0..<sub { world.step(dt: h) }
         recordEnergy()
         recordMotion()
+        updateMaxObservedExtent()
         if world.bodies.contains(where: {
             !$0.pos.isFinite || !$0.vel.isFinite
         }) {
@@ -1064,13 +1105,19 @@ struct Mechanics2DViewport: View {
                 x: max(0.5, (b.max.x - b.min.x) / 2),
                 y: max(0.5, (b.max.y - b.min.y) / 2))
         }
+        return Extent(center: .zero,
+                      x: max(5, Double(maxObservedExtent.width)),
+                      y: max(5, Double(maxObservedExtent.height)))
+    }
+
+    private func updateMaxObservedExtent() {
+        guard world.bounds == nil else { return }
         let xs = world.bodies.compactMap { $0.pos.x.isFinite ? $0.pos.x : nil }
         let ys = world.bodies.compactMap { $0.pos.y.isFinite ? $0.pos.y : nil }
-        let mx = xs.map { abs($0) }.max() ?? 5
-        let my = ys.map { abs($0) }.max() ?? 5
-        return Extent(center: .zero,
-                      x: max(5, mx * 1.4),
-                      y: max(5, my * 1.4))
+        let mx = (xs.map { abs($0) }.max() ?? 5) * 1.4
+        let my = (ys.map { abs($0) }.max() ?? 5) * 1.4
+        maxObservedExtent.width = max(maxObservedExtent.width, CGFloat(mx))
+        maxObservedExtent.height = max(maxObservedExtent.height, CGFloat(my))
     }
 
     private func drawGraphsPanel(ctx: GraphicsContext, in r: CGRect) {
