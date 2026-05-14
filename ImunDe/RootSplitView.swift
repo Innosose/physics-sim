@@ -230,10 +230,55 @@ private struct WelcomeView: View {
 private struct PresetList: View {
     let curriculum: Curriculum
     @Binding var selection: DetailItem?
+    @State private var searchText: String = ""
+    @AppStorage("favoritePresets") private var favoritesRaw: String = ""
 
-    var body: some View {
-        let groups = PresetCatalog.grouped(for: curriculum)
-        List(selection: Binding(
+    private var favorites: Set<String> {
+        Set(favoritesRaw.split(separator: ",").map(String.init))
+    }
+
+    private func toggleFavorite(_ id: String) {
+        var current = favorites
+        if current.contains(id) { current.remove(id) }
+        else                    { current.insert(id) }
+        favoritesRaw = current.sorted().joined(separator: ",")
+    }
+
+    private var trimmedQuery: String {
+        searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    }
+
+    private var isSearching: Bool { !trimmedQuery.isEmpty }
+
+    private var allPresets: [Preset] {
+        PresetCatalog.grouped(for: curriculum).flatMap { $0.1 }
+    }
+
+    private var filteredGroups: [(SimCategory, [Preset])] {
+        let baseGroups = PresetCatalog.grouped(for: curriculum)
+        guard isSearching else { return baseGroups }
+        let q = trimmedQuery
+        return baseGroups.compactMap { (cat, presets) in
+            let matched = presets.filter { matches(preset: $0, query: q) }
+            return matched.isEmpty ? nil : (cat, matched)
+        }
+    }
+
+    private func matches(preset p: Preset, query q: String) -> Bool {
+        if p.title.lowercased().contains(q) { return true }
+        if p.subtitle.lowercased().contains(q) { return true }
+        if let f = p.formula, f.lowercased().contains(q) { return true }
+        if let l = p.curriculumLabel, l.lowercased().contains(q) { return true }
+        if p.category.rawValue.lowercased().contains(q) { return true }
+        return false
+    }
+
+    private var favoritePresets: [Preset] {
+        allPresets.filter { favorites.contains($0.id) }
+    }
+
+    private var listSelection: Binding<Preset?> {
+        Binding(
             get: {
                 if case .preset(let p) = selection { return p }
                 return nil
@@ -242,40 +287,107 @@ private struct PresetList: View {
                 if let p = newValue { selection = .preset(p) }
                 else                { selection = nil }
             }
-        )) {
+        )
+    }
+
+    var body: some View {
+        let groups = filteredGroups
+        let favs = favoritePresets
+
+        List(selection: listSelection) {
+            if !favs.isEmpty && !isSearching {
+                Section {
+                    ForEach(favs) { p in
+                        presetLink(p)
+                    }
+                } header: {
+                    sectionHeader(
+                        title: "즐겨찾기",
+                        count: favs.count,
+                        leadingIcon: "star.fill",
+                        iconColor: Theme.glow)
+                }
+            }
+
             ForEach(groups, id: \.0) { (cat, presets) in
                 Section {
                     ForEach(presets) { p in
-                        NavigationLink(value: p) {
-                            PresetRow(preset: p, curriculum: curriculum)
-                        }
+                        presetLink(p)
                     }
                 } header: {
-                    HStack(spacing: 6) {
-                        Text(cat.rawValue.uppercased())
-                            .font(.system(size: 10, weight: .semibold))
-                            .foregroundStyle(Theme.mist)
-                            .tracking(0.6)
-                        Spacer()
-                        Text("\(presets.count)")
-                            .font(.system(size: 10, weight: .medium).monospacedDigit())
-                            .foregroundStyle(Theme.mist.opacity(0.6))
-                    }
-                    .textCase(nil)
+                    sectionHeader(title: cat.rawValue.uppercased(),
+                                  count: presets.count)
                 }
             }
         }
         .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
         .background(ImunDeBackground())
+        .overlay {
+            if isSearching && groups.isEmpty {
+                ContentUnavailableView.search(text: searchText)
+                    .background(ImunDeBackground())
+            }
+        }
         .navigationTitle(curriculum.rawValue)
         .navigationBarTitleDisplayMode(.inline)
+        .searchable(text: $searchText,
+                    placement: .navigationBarDrawer(displayMode: .always),
+                    prompt: "제목·공식·개념 검색")
+    }
+
+    @ViewBuilder
+    private func presetLink(_ p: Preset) -> some View {
+        let isFav = favorites.contains(p.id)
+        NavigationLink(value: p) {
+            PresetRow(preset: p, curriculum: curriculum, isFavorite: isFav)
+        }
+        .swipeActions(edge: .trailing) {
+            Button {
+                toggleFavorite(p.id)
+            } label: {
+                Label(isFav ? "해제" : "즐겨찾기",
+                      systemImage: isFav ? "star.slash.fill" : "star.fill")
+            }
+            .tint(Theme.glow)
+        }
+        .contextMenu {
+            Button {
+                toggleFavorite(p.id)
+            } label: {
+                Label(isFav ? "즐겨찾기 해제" : "즐겨찾기에 추가",
+                      systemImage: isFav ? "star.slash" : "star")
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func sectionHeader(title: String, count: Int,
+                                leadingIcon: String? = nil,
+                                iconColor: Color = Theme.mist) -> some View {
+        HStack(spacing: 6) {
+            if let icon = leadingIcon {
+                Image(systemName: icon)
+                    .font(.system(size: 9))
+                    .foregroundStyle(iconColor)
+            }
+            Text(title)
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(Theme.mist)
+                .tracking(0.6)
+            Spacer()
+            Text("\(count)")
+                .font(.system(size: 10, weight: .medium).monospacedDigit())
+                .foregroundStyle(Theme.mist.opacity(0.6))
+        }
+        .textCase(nil)
     }
 }
 
 private struct PresetRow: View {
     let preset: Preset
     let curriculum: Curriculum
+    var isFavorite: Bool = false
 
     var body: some View {
         HStack(spacing: 12) {
@@ -288,9 +400,16 @@ private struct PresetRow: View {
                     .foregroundStyle(curriculum.accent)
             }
             VStack(alignment: .leading, spacing: 2) {
-                Text(preset.title)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(Theme.ink)
+                HStack(spacing: 5) {
+                    Text(preset.title)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Theme.ink)
+                    if isFavorite {
+                        Image(systemName: "star.fill")
+                            .font(.system(size: 9))
+                            .foregroundStyle(Theme.glow)
+                    }
+                }
                 if !preset.subtitle.isEmpty {
                     Text(preset.subtitle)
                         .font(.system(size: 11))
