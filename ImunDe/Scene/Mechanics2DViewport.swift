@@ -69,6 +69,7 @@ struct Mechanics2DViewport: View {
     @GestureState private var isPinching: Bool = false
     @State private var longPressProgress: Double = 0
     @State private var pointerWorldPos: Vec3? = nil
+    @State private var pointerIsLive: Bool = false  // false = stale (손가락 뗀 후)
     @AppStorage("hasDraggedBody") private var hasDraggedBody = false
     @Environment(\.colorScheme) private var colorScheme
 
@@ -238,6 +239,7 @@ struct Mechanics2DViewport: View {
         }
         // 커서 월드좌표 — 상태바에 표시. CAD/COMSOL 표준 컨벤션.
         pointerWorldPos = screenToWorld(v.location)
+        pointerIsLive = true
 
         let dx = v.location.x - dragStart.x
         let dy = v.location.y - dragStart.y
@@ -295,7 +297,20 @@ struct Mechanics2DViewport: View {
             handleTap(at: dragStart)
         }
         cancelActiveDrag()
-        pointerWorldPos = nil
+        // 마지막 좌표 5 초간 stale (회색) 유지 — 학생이 값 확인 후 손
+        // 떼는 자연스런 동선. 영구 유지는 노이즈, 즉시 hide 는 단절.
+        pointerIsLive = false
+        let captured = pointerWorldPos
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(5))
+            // 5 초 후에도 같은 좌표면 hide; 그 사이 새 드래그가 갱신했다면
+            // 이 task 는 옛 좌표를 보고 hide 하지 말아야 함.
+            if !pointerIsLive,
+               let cur = pointerWorldPos, let cap = captured,
+               cur.x == cap.x, cur.y == cap.y {
+                pointerWorldPos = nil
+            }
+        }
     }
 
     private func classifyHit(at p: CGPoint) -> DragMode {
@@ -323,7 +338,8 @@ struct Mechanics2DViewport: View {
         dragMode = .none
         didMoveBeyondSlop = false
         longPressProgress = 0
-        pointerWorldPos = nil
+        // 시스템 cancel 경로 — 좌표바도 stale 처리 (pointerOnEnded 와 동일).
+        pointerIsLive = false
     }
 
     @ViewBuilder
@@ -658,25 +674,25 @@ struct Mechanics2DViewport: View {
         }
     }
 
-    /// 커서 월드좌표 표시 — 손가락이 캔버스 위에 있는 동안만 노출.
-    /// Desmos 컨벤션의 `(x, y) m` — 한국 교과서 표기와 가깝고 단위가
-    /// 명확. 작은 화면이라 단일 라인 압축.
+    /// 커서 월드좌표 표시. Desmos 컨벤션의 `(x, y) m` — 한국 교과서 표기.
+    /// 손가락이 캔버스 위면 live (ink), 떼면 5초간 stale (mist) 표시 후
+    /// hide. 즉시 hide 는 학생이 값 확인 직전에 사라지는 UX 단절 (Opus
+    /// Agent 3 — "PhET 측정 도구도 stale 좌표 유지 패턴").
     @ViewBuilder
     private var coordStatusBar: some View {
         if let p = pointerWorldPos, p.isFinite {
             Text("(\(SciFormat.fixed(p.x, places: 2)), \(SciFormat.fixed(p.y, places: 2))) m")
                 .font(.caption2.weight(.medium).monospacedDigit())
-                .foregroundStyle(Theme.ink)
+                .foregroundStyle(pointerIsLive ? Theme.ink : Theme.mist)
                 .padding(.horizontal, 8).padding(.vertical, 3)
                 .background(
                     RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .fill(Theme.surface.opacity(0.88))
+                        .fill(Theme.surface.opacity(pointerIsLive ? 0.88 : 0.7))
                         .overlay(
                             RoundedRectangle(cornerRadius: 6, style: .continuous)
                                 .stroke(Theme.stroke, lineWidth: 0.5)
                         )
                 )
-                .padding(.leading, 8).padding(.top, 8)
                 .allowsHitTesting(false)
                 .transition(.opacity)
         }
@@ -1453,19 +1469,25 @@ struct Mechanics2DViewport: View {
                     with: .color(Theme.glow.opacity(0.16)))
             }
 
-            // 솔리드 fill — 작은 점일수록 옅은 색은 식별 불가. Tufte 데이터-
-            // 잉크 비율 + WCAG 시인성 모두 1.0 fill 을 권장.
+            // 솔리드 fill + 옅은 윤곽 — Material Design dark theme:
+            // "use 5–10% white overlay, not full borders". 0.6 opacity ink
+            // 가 다크 모드 halation 을 막으면서 라이트 모드 시인성도 보존.
             ctx.fill(
                 Path(ellipseIn: CGRect(x: p.x - pr, y: p.y - pr,
                                        width: pr * 2, height: pr * 2)),
                 with: .color(body.color))
             Sketchy.circle(center: p, radius: pr, ctx: ctx,
-                            color: Theme.ink, lineWidth: 0.8, passes: 1,
-                            jitter: 0)
+                            color: Theme.ink.opacity(0.6),
+                            lineWidth: 0.6, passes: 1, jitter: 0)
 
+            // Selection ring: 안쪽 cobalt + 바깥 ink hairline 으로 인접
+            // grayscale body (white@92%) 대비 WCAG 1.4.11 보강.
             if isGrabbed {
                 Sketchy.circle(center: p, radius: pr + 3, ctx: ctx,
                                 color: Theme.glow, lineWidth: 2.0)
+                Sketchy.circle(center: p, radius: pr + 4.2, ctx: ctx,
+                                color: Theme.ink.opacity(0.35),
+                                lineWidth: 0.6)
             }
         }
 
@@ -1774,8 +1796,10 @@ struct Mechanics2DViewport: View {
         let yEnd = (topW / spacing).rounded(.up) * spacing
 
         // 격자선 — 0.5pt 옅은 ink. 너무 빽빽한 zoom 보호 (분당 100 라인 cap).
+        // 0.08 → 0.10 (다크에서 white@8% 가 캔버스 회색과 거의 동일해 보임 —
+        // Datawrapper / CleanChart 다크 권장 5–10% 상단).
         guard spacingPx >= 8 else { return }
-        let lineColor = Theme.ink.opacity(0.08)
+        let lineColor = Theme.ink.opacity(0.10)
         var x = xStart
         while x <= xEnd {
             let sx = cx + CGFloat(x - ext.x) * scale
