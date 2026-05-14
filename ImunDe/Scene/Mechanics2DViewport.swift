@@ -131,7 +131,12 @@ struct Mechanics2DViewport: View {
             .gesture(pointerGesture)
             .simultaneousGesture(
                 MagnifyGesture()
-                    .updating($pinchDelta) { value, state, _ in state = value.magnification }
+                    .updating($pinchDelta) { value, state, _ in
+                        // [0.05, 20] clamp — 시스템이 비정상 magnification
+                        // 값을 전달하면 viewScale 폭주.
+                        let m = value.magnification
+                        state = m.isFinite ? min(20, max(0.05, m)) : 1.0
+                    }
                     .updating($isPinching) { _, state, _ in state = true }
                     .onEnded { value in
                         zoomScale = min(max(zoomScale * value.magnification, 0.3), 8.0)
@@ -386,8 +391,12 @@ struct Mechanics2DViewport: View {
 
     private func applyPan(translation: CGSize) {
         if case .pan(let initial) = dragMode {
-            panOffset = CGSize(width: initial.width + translation.width,
-                                height: initial.height + translation.height)
+            // ±1e5 pt cap — 미니맵 탭 / 누적 pan 이 cx/cy 를 통해 grid·축
+            // 그리기 좌표 폭주시키는 것 차단.
+            let cap: CGFloat = 100000
+            let w = min(cap, max(-cap, initial.width + translation.width))
+            let h = min(cap, max(-cap, initial.height + translation.height))
+            panOffset = CGSize(width: w, height: h)
         }
     }
 
@@ -599,10 +608,11 @@ struct Mechanics2DViewport: View {
         let wy = -Double((tap.y - mapCy) / s) + extent.center.y
         let mainScale = viewScale()
         let mainExtent = computeExtent()
+        let cap: CGFloat = 100000
+        let dx = min(cap, max(-cap, -CGFloat(wx - mainExtent.center.x) * mainScale))
+        let dy = min(cap, max(-cap,  CGFloat(wy - mainExtent.center.y) * mainScale))
         withAnimation(reduceMotion ? nil : .easeOut(duration: 0.3)) {
-            panOffset = CGSize(
-                width:  -CGFloat(wx - mainExtent.center.x) * mainScale,
-                height:  CGFloat(wy - mainExtent.center.y) * mainScale)
+            panOffset = CGSize(width: dx, height: dy)
         }
         haptic(.light)
     }
@@ -646,8 +656,10 @@ struct Mechanics2DViewport: View {
             let center = CGPoint(
                 x: cx + CGFloat(orbit.cx - extent.center.x) * scale,
                 y: cy - CGFloat(orbit.cy - extent.center.y) * scale)
-            let majorPx = CGFloat(orbit.a) * scale
-            let minorPx = CGFloat(orbit.b) * scale
+            // 궤도 a, b 가 parabolic 경계 (energy → 0⁻) 에서 폭주.
+            // ±2e4 pt cap — CG ellipse path 안전 범위.
+            let majorPx = min(20000, CGFloat(orbit.a) * scale)
+            let minorPx = min(20000, CGFloat(orbit.b) * scale)
             var path = Path()
             path.addEllipse(in: CGRect(
                 x: -majorPx, y: -minorPx,
@@ -668,7 +680,7 @@ struct Mechanics2DViewport: View {
             let p = CGPoint(
                 x: cx + CGFloat(body.pos.x - extent.center.x) * scale,
                 y: cy - CGFloat(body.pos.y - extent.center.y) * scale)
-            let r = max(1.6, CGFloat(body.radius) * scale * 0.6)
+            let r = min(200, max(1.6, CGFloat(body.radius) * scale * 0.6))
             ctx.fill(
                 Path(ellipseIn: CGRect(
                     x: p.x - r, y: p.y - r,
@@ -1552,7 +1564,9 @@ struct Mechanics2DViewport: View {
             // body 가 많을 때 (kinetic ~80) 는 3pt 까지 허용, 그 외엔 4pt
             // (8pt 직경) — 옛 2pt floor 는 시각 acuity 한계 미만.
             let radiusFloor: CGFloat = world.bodies.count > 50 ? 3 : 4
-            let pr = max(radiusFloor, CGFloat(body.radius) * scale)
+            // 상한 1e4 — 극단 zoom + 큰 radius 조합으로 CG path 가 받을
+            // 수 없는 CGRect 크기가 되는 것 차단.
+            let pr = min(10000, max(radiusFloor, CGFloat(body.radius) * scale))
             guard pr.isFinite else { continue }
 
             // Grab feedback — 진한 솔리드 body 위에 cobalt selection ring.
@@ -1617,7 +1631,9 @@ struct Mechanics2DViewport: View {
             // body 가 많을 때 (kinetic ~80) 는 3pt 까지 허용, 그 외엔 4pt
             // (8pt 직경) — 옛 2pt floor 는 시각 acuity 한계 미만.
             let radiusFloor: CGFloat = world.bodies.count > 50 ? 3 : 4
-            let pr = max(radiusFloor, CGFloat(body.radius) * scale)
+            // 상한 1e4 — 극단 zoom + 큰 radius 조합으로 CG path 가 받을
+            // 수 없는 CGRect 크기가 되는 것 차단.
+            let pr = min(10000, max(radiusFloor, CGFloat(body.radius) * scale))
             ctx.draw(
                 Text(name).font(.caption2.weight(.medium))
                     .foregroundStyle(Theme.mist.opacity(0.9)),
@@ -1631,7 +1647,7 @@ struct Mechanics2DViewport: View {
                                         body: PhysicsBody, scale: CGFloat,
                                         cx: CGFloat, cy: CGFloat, ext: CGPoint) {
         let p = mapPoint(body.pos, scale: scale, cx: cx, cy: cy, ext: ext)
-        let pr = max(2, CGFloat(body.radius) * scale)
+        let pr = min(10000, max(2, CGFloat(body.radius) * scale))
         Sketchy.circle(center: p, radius: pr + 4, ctx: ctx,
                         color: Theme.glow, lineWidth: 1.2)
     }
@@ -2207,8 +2223,11 @@ struct Mechanics2DViewport: View {
         let ys = world.bodies.compactMap { $0.pos.y.isFinite ? $0.pos.y : nil }
         let mx = (xs.map { abs($0) }.max() ?? 5) * 1.4
         let my = (ys.map { abs($0) }.max() ?? 5) * 1.4
-        maxObservedExtent.width = max(maxObservedExtent.width, CGFloat(mx))
-        maxObservedExtent.height = max(maxObservedExtent.height, CGFloat(my))
+        // 1e6 m cap — 도주 body 가 잡히기 전 한 step 만으로 maxObserved 가
+        // 거대해져 mini-map / scale 계산이 폭주하는 것 차단.
+        let cap: CGFloat = 1e6
+        maxObservedExtent.width = min(cap, max(maxObservedExtent.width, CGFloat(mx)))
+        maxObservedExtent.height = min(cap, max(maxObservedExtent.height, CGFloat(my)))
     }
 
     private var needsMiniMap: Bool {

@@ -74,6 +74,18 @@ final class World {
             bodies[i].vel = .zero
             didRecoverFromNaN = true
         }
+        // Per-substep velocity cap — Plummer ε² 경계에서 한 substep 만으로
+        // |v| 가 1e5 m/s 까지 도달 가능. View 의 runaway 감지는 sub 모든
+        // substep 끝에만 발동하므로, 그 사이 좌표가 폭주해 mapPoint clamp
+        // 한계 (±1e4 pt) 도 우회할 수 있음. 1e4 m/s 로 substep 단위에서 cap.
+        let vCap: Double = 1e4
+        for i in bodies.indices where !bodies[i].pinned {
+            let speed = bodies[i].vel.length
+            if speed > vCap {
+                bodies[i].vel = bodies[i].vel * (vCap / speed)
+                didRecoverFromNaN = true
+            }
+        }
         time += dt
     }
 
