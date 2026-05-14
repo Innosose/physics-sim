@@ -425,11 +425,11 @@ struct ChipToggle: View {
                     RoundedRectangle(cornerRadius: Radius.chip, style: .continuous)
                         .fill(isOn ? Theme.ink : Theme.crest.opacity(0.5))
                 )
-                // 색맹 / 모노크롬용 보강 — On 상태에서도 옅은 stroke 유지
-                // (색상만이 아니라 outline 변화로도 구분됨).
+                // ON 상태에만 옅은 stroke 유지 (색맹/모노크롬용 a11y 보강).
+                // OFF 상태는 Theme.crest fill 이 이미 분리하므로 stroke 불필요.
                 .overlay(
                     RoundedRectangle(cornerRadius: Radius.chip, style: .continuous)
-                        .stroke(isOn ? Theme.ink.opacity(0.25) : Theme.stroke, lineWidth: 1)
+                        .stroke(isOn ? Theme.ink.opacity(0.25) : Color.clear, lineWidth: 1)
                 )
                 .opacity(isEnabled ? 1 : 0.45)
         }
@@ -516,16 +516,17 @@ struct TransportButtons: View {
     }
 }
 
-// MARK: - ViewportFrame — 5개 viewport 의 공통 chrome (둥근 사각형 + 1pt 보더)
+// MARK: - ViewportFrame — 5개 viewport 의 공통 chrome (둥근 사각형 마스킹)
+//
+// 옛 1pt Theme.stroke 보더는 제거 — Theme.deep (canvas) vs Theme.void (page)
+// 톤 단차로 이미 분리됨. iOS 26 HIG Liquid Glass / Toss / Desmos / Algodoo
+// 모두 "stroke 보다 톤+여백 우선" 컨벤션. 또한 bounded sim 의 world.bounds
+// 벽 사각형과 외곽 chrome 이 이중-사각형으로 충돌하던 시각적 혼동 해소.
 
 struct ViewportFrame: ViewModifier {
     func body(content: Content) -> some View {
         content
             .clipShape(RoundedRectangle(cornerRadius: Radius.viewport, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: Radius.viewport, style: .continuous)
-                    .stroke(Theme.stroke, lineWidth: 1)
-            )
     }
 }
 

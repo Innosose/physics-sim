@@ -396,10 +396,6 @@ struct Mechanics2DViewport: View {
                     .background(
                         RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
                             .fill(Theme.surface)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
-                                    .stroke(Theme.stroke, lineWidth: 0.5)
-                            )
                     )
                 }
                 if graphsOn {
@@ -414,10 +410,6 @@ struct Mechanics2DViewport: View {
                     .background(
                         RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
                             .fill(Theme.surface)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
-                                    .stroke(Theme.stroke, lineWidth: 0.5)
-                            )
                     )
                 }
             }
@@ -439,10 +431,7 @@ struct Mechanics2DViewport: View {
                 // Reduce Transparency 시 ink 로 콘트라스트 보장. 일반은 mist.
                 .foregroundStyle(reduceTransparency ? Theme.ink : Theme.mist)
                 .padding(.horizontal, 10).padding(.vertical, 4)
-                .background(
-                    Capsule().fill(Theme.surface)
-                        .overlay(Capsule().stroke(Theme.stroke, lineWidth: 0.5))
-                )
+                .background(Capsule().fill(Theme.surface))
                 .padding(.bottom, 56)  // transportBar (~44pt) 위 살짝 띄움
                 .allowsHitTesting(false)
         }
@@ -551,10 +540,6 @@ struct Mechanics2DViewport: View {
             .background(
                 RoundedRectangle(cornerRadius: Radius.small, style: .continuous)
                     .fill(Theme.surface.opacity(0.92))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: Radius.small, style: .continuous)
-                            .stroke(Theme.stroke, lineWidth: 0.5)
-                    )
             )
             .padding(10)
             .contentShape(Rectangle())
@@ -726,10 +711,6 @@ struct Mechanics2DViewport: View {
                 .background(
                     RoundedRectangle(cornerRadius: Radius.small, style: .continuous)
                         .fill(Theme.surface.opacity(pointerIsLive ? 0.88 : 0.7))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: Radius.small, style: .continuous)
-                                .stroke(Theme.stroke, lineWidth: 0.5)
-                        )
                 )
                 .allowsHitTesting(false)
                 .transition(.opacity)
@@ -772,10 +753,6 @@ struct Mechanics2DViewport: View {
             .background(
                 RoundedRectangle(cornerRadius: Radius.small, style: .continuous)
                     .fill(Theme.surface.opacity(0.82))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: Radius.small, style: .continuous)
-                            .stroke(Theme.stroke, lineWidth: 0.5)
-                    )
             )
             .padding(.trailing, 8).padding(.bottom, 56)  // transportBar 위
             .allowsHitTesting(false)
@@ -796,10 +773,6 @@ struct Mechanics2DViewport: View {
             .background(
                 RoundedRectangle(cornerRadius: Radius.chip, style: .continuous)
                     .fill(Theme.surface.opacity(0.6))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: Radius.chip, style: .continuous)
-                            .stroke(Theme.ink.opacity(0.22), lineWidth: 0.8)
-                    )
             )
         }
     }
@@ -1059,10 +1032,7 @@ struct Mechanics2DViewport: View {
                 .font(.caption2.weight(.semibold))
                 .foregroundStyle(reduceTransparency ? Theme.ink : Theme.mist)
                 .padding(.horizontal, 10).padding(.vertical, 3)
-                .background(
-                    Capsule().fill(Theme.surface)
-                        .overlay(Capsule().stroke(Theme.stroke, lineWidth: 0.5))
-                )
+                .background(Capsule().fill(Theme.surface))
                 .padding(.leading, 8).padding(.bottom, 8)
                 .allowsHitTesting(false)
                 .transition(.opacity)
@@ -1687,10 +1657,6 @@ struct Mechanics2DViewport: View {
                 .background(
                     RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
                         .fill(Theme.surface)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
-                                .stroke(Theme.stroke, lineWidth: 0.5)
-                        )
                 )
                 .allowsHitTesting(false)
                 // VO 라벨: 6줄 전체 joined 는 5초 polling 으로 끝까지 못
