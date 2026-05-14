@@ -173,52 +173,6 @@ extension ButtonStyle where Self == SketchButtonStyle {
     static var sketchProminent: SketchButtonStyle { SketchButtonStyle(prominent: true) }
 }
 
-// MARK: - Animatable sketchy shapes (for .trim-based draw-in).
-
-struct SketchyLineShape: Shape {
-    var jitter: CGFloat = 0.5
-    var seed: UInt64 = 0xCAFEBABE
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        var rng = SeededGenerator(seed)
-        let samples = max(6, Int(rect.width / 5))
-        let midY = rect.midY
-        path.move(to: CGPoint(x: rect.minX, y: midY))
-        for i in 1...samples {
-            let t = CGFloat(i) / CGFloat(samples)
-            let env = sin(.pi * Double(t)) * Double(jitter)
-            let dy = CGFloat.random(in: -1...1, using: &rng) * CGFloat(env)
-            path.addLine(to: CGPoint(x: rect.minX + rect.width * t,
-                                     y: midY + dy))
-        }
-        return path
-    }
-}
-
-struct SketchyCircleShape: Shape {
-    var jitter: CGFloat = 0.025
-    var seed: UInt64 = 0xDEADBEEF
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        var rng = SeededGenerator(seed)
-        let r = min(rect.width, rect.height) / 2
-        let c = CGPoint(x: rect.midX, y: rect.midY)
-        let n = max(28, Int(r * 1.4))
-        let startAngle = Double.random(in: -0.2...0.2, using: &rng)
-        for i in 0...n {
-            let t = Double(i) / Double(n)
-            let angle = startAngle + t * 2 * .pi
-            let jr = 1 + CGFloat.random(in: -jitter...jitter, using: &rng)
-            let rr = r * jr
-            let p = CGPoint(x: c.x + rr * CGFloat(cos(angle)),
-                            y: c.y + rr * CGFloat(sin(angle)))
-            if i == 0 { path.move(to: p) }
-            else      { path.addLine(to: p) }
-        }
-        return path
-    }
-}
-
 // MARK: - Chip press style — visual feedback for .plain chip buttons.
 
 struct ChipPressStyle: ButtonStyle {

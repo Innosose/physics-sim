@@ -513,27 +513,6 @@ struct Mechanics2DViewport: View {
         }
     }
 
-    private func chipToggle(_ title: String, systemImage: String, on: Bool,
-                             action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Label(title, systemImage: systemImage)
-                .font(.system(size: 11, weight: on ? .semibold : .regular))
-                .foregroundStyle(on ? Theme.surface : Theme.mist)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 6)
-                .padding(.horizontal, 4)
-                .background(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(on ? Theme.ink : Theme.crest.opacity(0.5))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .stroke(on ? Color.clear : Theme.stroke, lineWidth: 1)
-                )
-        }
-        .buttonStyle(.chipPress)
-    }
-
     @ViewBuilder
     private var presetDerivedRow: some View {
         if let text = derivedValueText() {

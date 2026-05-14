@@ -183,43 +183,10 @@ extension AttributedString {
     }
 }
 
-extension View {
-    func themeCard(cornerRadius: CGFloat = 14) -> some View {
-        modifier(ThemeCard(cornerRadius: cornerRadius))
-    }
-}
-
-private struct ThemeCard: ViewModifier {
-    let cornerRadius: CGFloat
-    func body(content: Content) -> some View {
-        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-        return content
-            .background(shape.fill(Theme.surface))
-            .overlay(shape.stroke(Theme.stroke, lineWidth: 1))
-            .shadow(color: Theme.ink.opacity(0.06), radius: 4, x: 0, y: 2)
-    }
-}
-
-struct PropertyDivider: View {
-    var body: some View {
-        Rectangle()
-            .fill(Theme.divider)
-            .frame(height: 1)
-            .padding(.vertical, 4)
-    }
-}
-
 // MARK: - Paper background
 
 struct ImunDeBackground: View {
-    var topGlow: Color = Theme.glow.opacity(0.0)
-
     var body: some View {
-        ZStack {
-            Theme.void.ignoresSafeArea()
-            LinearGradient(colors: [topGlow, .clear],
-                           startPoint: .top, endPoint: .center)
-                .ignoresSafeArea()
-        }
+        Theme.void.ignoresSafeArea()
     }
 }
