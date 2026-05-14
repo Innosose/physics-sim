@@ -152,9 +152,14 @@ private struct WelcomeView: View {
         ZStack {
             ImunDeBackground()
             VStack(alignment: .leading, spacing: 28) {
-                Text("이문데")
-                    .font(.system(size: 30, weight: .bold))
-                    .foregroundStyle(Theme.ink)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("이문데")
+                        .font(.system(size: 30, weight: .bold))
+                        .foregroundStyle(Theme.ink)
+                    Text("물리학 I · II · 2022 개정 과학과")
+                        .font(.themeHeader)
+                        .foregroundStyle(Theme.mist)
+                }
 
                 VStack(alignment: .leading, spacing: 0) {
                     ForEach(Array(entries.enumerated()), id: \.offset) { i, entry in
@@ -188,11 +193,16 @@ private struct WelcomeView: View {
 
                 Spacer()
 
-                Text(hasSidebarSelection
-                     ? "목록에서 시뮬레이션을 고르세요."
-                     : "사이드바에서 학년을 고르세요.")
-                    .font(.system(size: 12))
-                    .foregroundStyle(Theme.mist)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(hasSidebarSelection
+                         ? "목록에서 시뮬레이션을 고르세요."
+                         : "사이드바에서 학년을 고르세요.")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Theme.mist)
+                    Text("교육과정 기준 · 2022 개정 과학과 교육과정")
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundStyle(Theme.mistDisabled)
+                }
             }
             .frame(maxWidth: 360, alignment: .leading)
             .padding(.horizontal, 32)
