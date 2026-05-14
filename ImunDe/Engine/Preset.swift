@@ -19,7 +19,7 @@ struct Preset: Identifiable, Hashable, @unchecked Sendable {
 
     enum OpticsScene: Hashable { case reflection, lens, doubleSlit }
     enum WaveScene: Hashable   { case waveSum, doppler }
-    enum CircuitScene: Hashable { case circuit, rlc }
+    enum CircuitScene: Hashable { case circuit, rlc, faraday, solenoid }
 
     static func == (a: Preset, b: Preset) -> Bool { a.id == b.id }
     func hash(into hasher: inout Hasher) { hasher.combine(id) }

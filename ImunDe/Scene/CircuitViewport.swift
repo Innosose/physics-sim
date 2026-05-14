@@ -7,8 +7,10 @@ struct CircuitViewport: View {
         ZStack {
             Theme.deep
             switch scene {
-            case .circuit: SimpleCircuitView()
-            case .rlc:     RLCView()
+            case .circuit:  SimpleCircuitView()
+            case .rlc:      RLCView()
+            case .faraday:  FaradayView()
+            case .solenoid: SolenoidView()
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
@@ -195,5 +197,299 @@ private struct RLCView: View {
         ctx.draw(Text("1/|Z(ω)| — 공명 위치 ω₀=\(String(format: "%.2f", omega0))")
                     .font(.caption).foregroundStyle(.secondary),
                  at: CGPoint(x: r.minX + 80, y: r.minY + 12))
+    }
+}
+
+// MARK: - FaradayView
+
+private struct FaradayView: View {
+    @State private var nTurns: Double = 200
+    @State private var speed: Double = 1.5
+    @State private var elapsed: Double = 0
+    @State private var lastTick: TimeInterval? = nil
+    @State private var running: Bool = false
+    @State private var emfHistory: [Double] = []
+
+    private let amplitude: Double = 3.0
+    private let coilRadius: Double = 0.9
+    private let histLen = 300
+
+    private func magnetPos(_ t: Double) -> Double { amplitude * sin(speed * t) }
+    private func magnetVel(_ t: Double) -> Double { amplitude * speed * cos(speed * t) }
+    private func emf(x: Double, v: Double) -> Double {
+        let R2 = coilRadius * coilRadius
+        let dPhiDx = -3 * R2 * coilRadius * x / pow(R2 + x * x, 2.5)
+        return -nTurns * 0.006 * dPhiDx * v
+    }
+
+    var body: some View {
+        VStack(spacing: 8) {
+            TimelineView(.animation) { tl in
+                Canvas { ctx, size in draw(ctx: ctx, size: size, t: elapsed) }
+                    .onChange(of: tl.date) { _, d in
+                        advance(to: d.timeIntervalSinceReferenceDate)
+                    }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            VStack(alignment: .leading, spacing: 8) {
+                fSlider("N (코일 감은 수)", value: $nTurns, range: 20...500, unit: "회")
+                fSlider("진동 속도 ω", value: $speed, range: 0.2...5, unit: "rad/s")
+                faradayPlayReset
+            }
+        }
+        .padding(8)
+    }
+
+    private var faradayPlayReset: some View {
+        HStack(spacing: 8) {
+            Button { running.toggle() } label: {
+                Label(running ? "일시정지" : "재생",
+                      systemImage: running ? "pause.fill" : "play.fill")
+                    .font(.callout.weight(.semibold)).frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.glassProminent).tint(Theme.glow)
+            Button { elapsed = 0; lastTick = nil; running = false; emfHistory = [] } label: {
+                Label("처음부터", systemImage: "arrow.counterclockwise")
+                    .font(.callout.weight(.semibold)).frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.glass)
+        }
+    }
+
+    private func advance(to now: TimeInterval) {
+        guard let last = lastTick else { lastTick = now; return }
+        guard running else { lastTick = now; return }
+        let dt = min(now - last, 0.05)
+        lastTick = now
+        elapsed += dt
+        let x = magnetPos(elapsed), v = magnetVel(elapsed)
+        emfHistory.append(emf(x: x, v: v))
+        if emfHistory.count > histLen { emfHistory.removeFirst() }
+    }
+
+    private func draw(ctx: GraphicsContext, size: CGSize, t: Double) {
+        let sceneH = size.height * 0.52
+        drawScene(ctx: ctx, in: CGRect(x: 0, y: 0, width: size.width, height: sceneH), t: t)
+        drawScope(ctx: ctx, in: CGRect(x: 0, y: sceneH + 4,
+                                        width: size.width, height: size.height - sceneH - 4))
+    }
+
+    private func drawScene(ctx: GraphicsContext, in r: CGRect, t: Double) {
+        let cx = r.midX, cy = r.midY
+        let worldW: Double = 10.0
+        let scale = CGFloat(r.width) / CGFloat(worldW)
+        let Rpx = CGFloat(coilRadius) * scale
+
+        // Coil rings
+        for i in 0..<10 {
+            let f = CGFloat(i) / 9
+            let xOff = (f - 0.5) * Rpx * 0.55
+            let path = Path(ellipseIn: CGRect(x: cx + xOff - Rpx * 0.12, y: cy - Rpx,
+                                              width: Rpx * 0.24, height: Rpx * 2))
+            ctx.stroke(path, with: .color(.cyan.opacity(0.65)), lineWidth: 1.5)
+        }
+
+        // Bar magnet
+        let mx = CGFloat(magnetPos(t)) * scale
+        let mW = scale * 1.2, mH = scale * 0.45
+        let northR = CGRect(x: cx + mx - mW, y: cy - mH / 2, width: mW, height: mH)
+        let southR = CGRect(x: cx + mx,      y: cy - mH / 2, width: mW, height: mH)
+        ctx.fill(Path(roundedRect: northR, cornerRadius: 5), with: .color(.red.opacity(0.85)))
+        ctx.fill(Path(roundedRect: southR, cornerRadius: 5), with: .color(.blue.opacity(0.85)))
+        ctx.draw(Text("N").font(.caption.bold()).foregroundColor(.white),
+                 at: CGPoint(x: northR.midX, y: northR.midY))
+        ctx.draw(Text("S").font(.caption.bold()).foregroundColor(.white),
+                 at: CGPoint(x: southR.midX, y: southR.midY))
+
+        let curEMF = emfHistory.last ?? 0
+        let dir = curEMF > 0.01 ? "↑" : curEMF < -0.01 ? "↓" : "·"
+        ctx.draw(
+            Text(String(format: "ε = %.2f V  %@", curEMF, dir))
+                .font(.caption.weight(.semibold)).foregroundStyle(Theme.glow),
+            at: CGPoint(x: r.midX, y: r.maxY - 8))
+    }
+
+    private func drawScope(ctx: GraphicsContext, in r: CGRect) {
+        let inner = r.insetBy(dx: 8, dy: 6)
+        ctx.stroke(Path(roundedRect: inner, cornerRadius: 6),
+                   with: .color(Theme.ink.opacity(0.18)), lineWidth: 1)
+        var zero = Path()
+        zero.move(to: CGPoint(x: inner.minX, y: inner.midY))
+        zero.addLine(to: CGPoint(x: inner.maxX, y: inner.midY))
+        ctx.stroke(zero, with: .color(Theme.ink.opacity(0.3)),
+                   style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
+        ctx.draw(Text("EMF").font(.caption2).foregroundStyle(Theme.mist),
+                 at: CGPoint(x: inner.minX + 20, y: inner.minY + 8))
+        guard emfHistory.count > 1 else { return }
+        let peak = max(emfHistory.map { abs($0) }.max() ?? 1, 0.001)
+        var path = Path()
+        for (i, v) in emfHistory.enumerated() {
+            let f = CGFloat(i) / CGFloat(histLen)
+            let px = inner.minX + f * inner.width
+            let py = inner.midY - CGFloat(v / peak) * (inner.height / 2 - 4)
+            if i == 0 { path.move(to: CGPoint(x: px, y: py)) }
+            else      { path.addLine(to: CGPoint(x: px, y: py)) }
+        }
+        ctx.stroke(path, with: .color(.yellow), lineWidth: 1.6)
+    }
+
+    private func fSlider(_ title: String, value: Binding<Double>,
+                         range: ClosedRange<Double>, unit: String) -> some View {
+        HStack {
+            Text(title).font(.caption).foregroundStyle(Theme.mist)
+            Slider(value: value, in: range).tint(Theme.glow)
+            Text(String(format: "%.1f%@", value.wrappedValue, unit))
+                .font(.caption.monospacedDigit()).foregroundStyle(Theme.glow)
+                .frame(width: 90, alignment: .trailing)
+        }
+    }
+}
+
+// MARK: - SolenoidView
+
+private struct SolenoidView: View {
+    @State private var nPerM: Double = 500
+    @State private var current: Double = 2.0
+    @State private var soleL: Double = 3.0
+    @State private var soleR: Double = 0.9
+
+    private var B0mT: Double { 4 * .pi * 1e-7 * nPerM * current * 1000 }
+
+    var body: some View {
+        VStack(spacing: 8) {
+            Canvas { ctx, size in draw(ctx: ctx, size: size) }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            VStack(alignment: .leading, spacing: 8) {
+                sSlider("n (권선수/m)", value: $nPerM, range: 100...2000, fmt: "%.0f")
+                sSlider("I (전류)", value: $current, range: 0.1...10, fmt: "%.1f A")
+                sSlider("길이 L", value: $soleL, range: 1...5, fmt: "%.1f")
+                sSlider("반지름 R", value: $soleR, range: 0.3...1.5, fmt: "%.2f")
+            }
+        }
+        .padding(8)
+    }
+
+    private func draw(ctx: GraphicsContext, size: CGSize) {
+        let L = soleL, R = soleR
+        let extZ = max(L * 1.6, 6.0)
+        let extR = max(R * 3.5, 3.5)
+        let scale = min(CGFloat(size.width) / CGFloat(2 * extZ),
+                        CGFloat(size.height * 0.85) / CGFloat(2 * extR))
+        let cx = size.width / 2, cy = size.height * 0.43
+
+        func toScreen(_ z: Double, _ r: Double) -> CGPoint {
+            CGPoint(x: cx + CGFloat(z) * scale, y: cy - CGFloat(r) * scale)
+        }
+
+        // Field lines (upper half, mirrored below)
+        let nLines = 7
+        for k in 0..<nLines {
+            let r0 = R * Double(k) / Double(nLines) * 0.95
+            traceAndDraw(ctx: ctx, startZ: -L/2 + 0.02, startR: r0,
+                         L: L, R: R, size: size, toScreen: toScreen)
+            if r0 > 0.01 {
+                traceAndDraw(ctx: ctx, startZ: -L/2 + 0.02, startR: -r0,
+                             L: L, R: R, size: size, toScreen: toScreen)
+            }
+        }
+
+        // Solenoid body outline
+        let tl = toScreen(-L/2, R), br = toScreen(L/2, -R)
+        ctx.stroke(Path(CGRect(x: tl.x, y: tl.y, width: br.x - tl.x, height: br.y - tl.y)),
+                   with: .color(Theme.ink.opacity(0.6)), lineWidth: 2)
+
+        // Turn marks (vertical lines on body)
+        let nTurns = max(4, Int(L * 4))
+        for i in 0...nTurns {
+            let z = -L/2 + L * Double(i) / Double(nTurns)
+            var p = Path()
+            p.move(to: toScreen(z, R)); p.addLine(to: toScreen(z, -R))
+            ctx.stroke(p, with: .color(.cyan.opacity(0.28)), lineWidth: 0.8)
+        }
+
+        // Dashed axis
+        var ax = Path()
+        ax.move(to: toScreen(-extZ + 0.5, 0))
+        ax.addLine(to: toScreen(extZ - 0.5, 0))
+        ctx.stroke(ax, with: .color(Theme.ink.opacity(0.2)),
+                   style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
+
+        // Label
+        ctx.draw(
+            Text(String(format: "B₀ = μ₀nI = %.2f mT", B0mT))
+                .font(.caption.weight(.semibold)).foregroundStyle(Theme.glow),
+            at: CGPoint(x: cx, y: size.height - 10))
+    }
+
+    private func traceAndDraw(ctx: GraphicsContext,
+                               startZ: Double, startR: Double,
+                               L: Double, R: Double,
+                               size: CGSize,
+                               toScreen: (Double, Double) -> CGPoint) {
+        var z = startZ, r = startR
+        var pts: [CGPoint] = []
+        let step = 0.05
+        let halfL = L / 2
+        var hasExited = false
+
+        for _ in 0..<2500 {
+            let p = toScreen(z, r)
+            if p.x < -30 || p.x > size.width + 30 ||
+               p.y < -30 || p.y > size.height + 30 { break }
+            pts.append(p)
+
+            let inside = abs(z) <= halfL && abs(r) <= R
+            if !inside { hasExited = true }
+            if hasExited && inside { break }
+
+            let bz: Double, br: Double
+            if inside {
+                bz = 1.0; br = 0.0
+            } else {
+                let m = R * R * L
+                let rr2 = z * z + r * r
+                guard rr2 > 0.01 else { break }
+                let rr5 = pow(rr2, 2.5)
+                bz = m * (2*z*z - r*r) / rr5
+                br = m * 3*z*r / rr5
+            }
+            let mag = (bz*bz + br*br).squareRoot()
+            guard mag > 1e-12 else { break }
+            z += step * bz / mag
+            r += step * br / mag
+        }
+
+        guard pts.count > 1 else { return }
+        var path = Path()
+        path.move(to: pts[0])
+        for p in pts.dropFirst() { path.addLine(to: p) }
+        ctx.stroke(path, with: .color(Theme.glow.opacity(0.6)), lineWidth: 1.2)
+
+        // Arrowhead at midpoint
+        let mid = pts.count / 2
+        if mid > 0 && mid < pts.count {
+            let a = pts[mid - 1], b = pts[mid]
+            let dx = b.x - a.x, dy = b.y - a.y
+            let len = (dx*dx + dy*dy).squareRoot()
+            guard len > 0.5 else { return }
+            let nx = dx/len, ny = dy/len, s: CGFloat = 6
+            var head = Path()
+            head.move(to: b)
+            head.addLine(to: CGPoint(x: b.x - nx*s - ny*s*0.5, y: b.y - ny*s + nx*s*0.5))
+            head.move(to: b)
+            head.addLine(to: CGPoint(x: b.x - nx*s + ny*s*0.5, y: b.y - ny*s - nx*s*0.5))
+            ctx.stroke(head, with: .color(Theme.glow.opacity(0.85)), lineWidth: 1.2)
+        }
+    }
+
+    private func sSlider(_ title: String, value: Binding<Double>,
+                         range: ClosedRange<Double>, fmt: String) -> some View {
+        HStack {
+            Text(title).font(.caption).foregroundStyle(Theme.mist)
+            Slider(value: value, in: range).tint(Theme.glow)
+            Text(String(format: fmt, value.wrappedValue))
+                .font(.caption.monospacedDigit()).foregroundStyle(Theme.glow)
+                .frame(width: 90, alignment: .trailing)
+        }
     }
 }

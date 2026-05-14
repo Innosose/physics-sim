@@ -144,6 +144,20 @@ enum PresetCatalog {
                kind: .circuit(.rlc),
                load: { _ in }),
 
+        Preset(id: "faraday",
+               title: "패러데이 전자기 유도",
+               curriculum: .high, category: .electromagnetism,
+               calculatorTopic: nil,
+               kind: .circuit(.faraday),
+               load: { _ in }),
+
+        Preset(id: "solenoid",
+               title: "솔레노이드 자기장",
+               curriculum: .high, category: .electromagnetism,
+               calculatorTopic: nil,
+               kind: .circuit(.solenoid),
+               load: { _ in }),
+
         Preset(id: "doubleslit",
                title: "이중 슬릿",
                curriculum: .high, category: .optics,
