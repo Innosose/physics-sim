@@ -58,8 +58,13 @@ private struct SimpleCircuitView: View {
 
     private func slider(_ title: String, value: Binding<Double>,
                         range: ClosedRange<Double>, unit: String) -> some View {
-        HStack {
-            Text(title).font(.caption).foregroundStyle(Theme.mist)
+        HStack(spacing: Spacing.s) {
+            Text(title)
+                .font(.caption)
+                .foregroundStyle(Theme.mist)
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+                .frame(minWidth: 96, alignment: .leading)
             PaperSlider(value: value, in: range)
             EditableValue(value: value, range: range,
                            format: "%.2f\(unit)", width: 80)
@@ -178,8 +183,13 @@ private struct RLCView: View {
 
     private func slider(_ title: String, value: Binding<Double>,
                         range: ClosedRange<Double>, unit: String) -> some View {
-        HStack {
-            Text(title).font(.caption).foregroundStyle(Theme.mist)
+        HStack(spacing: Spacing.s) {
+            Text(title)
+                .font(.caption)
+                .foregroundStyle(Theme.mist)
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+                .frame(minWidth: 96, alignment: .leading)
             PaperSlider(value: value, in: range)
             EditableValue(value: value, range: range,
                            format: "%.2f\(unit)", width: 90)
@@ -380,8 +390,13 @@ private struct FaradayView: View {
 
     private func fSlider(_ title: String, value: Binding<Double>,
                          range: ClosedRange<Double>, unit: String) -> some View {
-        HStack {
-            Text(title).font(.caption).foregroundStyle(Theme.mist)
+        HStack(spacing: Spacing.s) {
+            Text(title)
+                .font(.caption)
+                .foregroundStyle(Theme.mist)
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+                .frame(minWidth: 96, alignment: .leading)
             PaperSlider(value: value, in: range)
             EditableValue(value: value, range: range,
                            format: "%.1f\(unit)", width: 90)
@@ -541,8 +556,13 @@ private struct SolenoidView: View {
 
     private func sSlider(_ title: String, value: Binding<Double>,
                          range: ClosedRange<Double>, fmt: String) -> some View {
-        HStack {
-            Text(title).font(.caption).foregroundStyle(Theme.mist)
+        HStack(spacing: Spacing.s) {
+            Text(title)
+                .font(.caption)
+                .foregroundStyle(Theme.mist)
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+                .frame(minWidth: 96, alignment: .leading)
             PaperSlider(value: value, in: range)
             EditableValue(value: value, range: range, format: fmt, width: 90)
         }

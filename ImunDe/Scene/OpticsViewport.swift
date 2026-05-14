@@ -82,8 +82,13 @@ private struct ReflectionView: View {
 
     private func slider(_ title: String, value: Binding<Double>,
                         range: ClosedRange<Double>, unit: String) -> some View {
-        HStack {
-            Text(title).font(.caption).foregroundStyle(Theme.mist)
+        HStack(spacing: Spacing.s) {
+            Text(title)
+                .font(.caption)
+                .foregroundStyle(Theme.mist)
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+                .frame(minWidth: 96, alignment: .leading)
             PaperSlider(value: value, in: range)
             EditableValue(value: value, range: range,
                            format: "%.2f\(unit)", width: 70)
@@ -218,8 +223,13 @@ private struct LensView: View {
 
     private func slider(_ title: String, value: Binding<Double>,
                         range: ClosedRange<Double>, unit: String) -> some View {
-        HStack {
-            Text(title).font(.caption).foregroundStyle(Theme.mist)
+        HStack(spacing: Spacing.s) {
+            Text(title)
+                .font(.caption)
+                .foregroundStyle(Theme.mist)
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+                .frame(minWidth: 96, alignment: .leading)
             PaperSlider(value: value, in: range)
             EditableValue(value: value, range: range,
                            format: "%.2f\(unit)", width: 70)
@@ -335,8 +345,13 @@ private struct DoubleSlitView: View {
 
     private func slider(_ title: String, value: Binding<Double>,
                         range: ClosedRange<Double>, unit: String) -> some View {
-        HStack {
-            Text(title).font(.caption).foregroundStyle(Theme.mist)
+        HStack(spacing: Spacing.s) {
+            Text(title)
+                .font(.caption)
+                .foregroundStyle(Theme.mist)
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+                .frame(minWidth: 96, alignment: .leading)
             PaperSlider(value: value, in: range)
             EditableValue(value: value, range: range,
                            format: "%.2f\(unit)", width: 80)
