@@ -70,7 +70,12 @@ struct Mechanics2DViewport: View {
     private var tapEnabled: Bool { preset.id == "freecollide" }
 
     var body: some View {
-        VStack(spacing: 10) {
+        // Body-level read so SwiftUI's dependency tracker invalidates the
+        // view (and every Canvas it owns) when the theme changes. Reading
+        // inside the Canvas renderer closure does NOT trigger redraw —
+        // SwiftUI only tracks deps read during body evaluation.
+        _ = colorScheme
+        return VStack(spacing: 10) {
             if preset.id == "nbody" {
                 PaperPicker(selection: $nBodyVariant,
                             options: NBodyVariant.allCases) { $0.rawValue }
@@ -80,7 +85,6 @@ struct Mechanics2DViewport: View {
             ZStack {
                 TimelineView(.animation) { tl in
                     Canvas { ctx, size in
-                        let _ = colorScheme  // closure capture → re-render on theme change
                         draw(ctx: ctx, size: size)
                     }
                     .onChange(of: tl.date) { _, newDate in

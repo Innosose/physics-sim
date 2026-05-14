@@ -37,9 +37,9 @@ private struct ReflectionView: View {
     }
 
     var body: some View {
-        VStack(spacing: 8) {
+        _ = colorScheme  // body-level read for dependency tracking
+        return VStack(spacing: 8) {
             Canvas { ctx, size in
-                let _ = colorScheme
                 draw(ctx: ctx, size: size)
             }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -173,9 +173,9 @@ private struct LensView: View {
     }
 
     var body: some View {
-        VStack(spacing: 8) {
+        _ = colorScheme
+        return VStack(spacing: 8) {
             Canvas { ctx, size in
-                let _ = colorScheme
                 draw(ctx: ctx, size: size)
             }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -300,9 +300,9 @@ private struct DoubleSlitView: View {
     }
 
     var body: some View {
-        VStack(spacing: 8) {
+        _ = colorScheme
+        return VStack(spacing: 8) {
             Canvas { ctx, size in
-                let _ = colorScheme
                 draw(ctx: ctx, size: size)
             }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)

@@ -35,9 +35,9 @@ private struct SimpleCircuitView: View {
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        VStack(spacing: 8) {
+        _ = colorScheme
+        return VStack(spacing: 8) {
             Canvas { ctx, size in
-                let _ = colorScheme
                 draw(ctx: ctx, size: size)
             }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -155,9 +155,9 @@ private struct RLCView: View {
     private var omega0: Double { 1 / (L * C).squareRoot() }
 
     var body: some View {
-        VStack(spacing: 8) {
+        _ = colorScheme
+        return VStack(spacing: 8) {
             Canvas { ctx, size in
-                let _ = colorScheme
                 draw(ctx: ctx, size: size)
             }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -401,9 +401,9 @@ private struct SolenoidView: View {
     private var B0mT: Double { 4 * .pi * 1e-7 * nPerM * current * 1000 }
 
     var body: some View {
-        VStack(spacing: 8) {
+        _ = colorScheme
+        return VStack(spacing: 8) {
             Canvas { ctx, size in
-                let _ = colorScheme
                 draw(ctx: ctx, size: size)
             }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
