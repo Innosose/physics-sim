@@ -40,6 +40,9 @@ private struct MotionGraphView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(Text("그래프 시각화"))
+            .accessibilityHint(Text("아래 컨트롤로 변수를 조절합니다"))
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 8) {
                     slider("v₁ (등속)", value: $v1, range: 0...10, unit: "m/s")
@@ -211,6 +214,9 @@ private struct HeatTransferView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(Text("그래프 시각화"))
+            .accessibilityHint(Text("아래 컨트롤로 변수를 조절합니다"))
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 8) {
                     slider("온도 T₁", value: $T1, range: 0...100, unit: "°C")

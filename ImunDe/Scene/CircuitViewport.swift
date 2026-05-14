@@ -40,6 +40,9 @@ private struct SimpleCircuitView: View {
                 draw(ctx: ctx, size: size)
             }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(Text("회로 시각화"))
+                .accessibilityHint(Text("아래 슬라이더로 회로 파라미터를 조절합니다"))
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 8) {
                     PaperPicker(selection: $mode,
@@ -165,6 +168,9 @@ private struct RLCView: View {
                 draw(ctx: ctx, size: size)
             }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(Text("회로 시각화"))
+                .accessibilityHint(Text("아래 슬라이더로 회로 파라미터를 조절합니다"))
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 8) {
                     slider("저항 R", value: $R, range: 0.1...30, unit: "Ω")
@@ -422,6 +428,9 @@ private struct SolenoidView: View {
                 draw(ctx: ctx, size: size)
             }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(Text("회로 시각화"))
+                .accessibilityHint(Text("아래 슬라이더로 회로 파라미터를 조절합니다"))
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 8) {
                     sSlider("n (권선수/m)", value: $nPerM, range: 100...2000, fmt: "%.0f /m")

@@ -42,6 +42,9 @@ private struct ReflectionView: View {
                 draw(ctx: ctx, size: size)
             }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(Text("광학 시각화"))
+                .accessibilityHint(Text("아래 슬라이더로 광학 파라미터를 조절합니다"))
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 8) {
                     derivedRow
@@ -183,6 +186,9 @@ private struct LensView: View {
                 draw(ctx: ctx, size: size)
             }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(Text("광학 시각화"))
+                .accessibilityHint(Text("아래 슬라이더로 광학 파라미터를 조절합니다"))
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 8) {
                     derivedRow
@@ -315,6 +321,9 @@ private struct DoubleSlitView: View {
                 draw(ctx: ctx, size: size)
             }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(Text("광학 시각화"))
+                .accessibilityHint(Text("아래 슬라이더로 광학 파라미터를 조절합니다"))
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(spacing: 14) {

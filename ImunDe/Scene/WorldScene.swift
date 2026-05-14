@@ -41,11 +41,12 @@ struct WorldScene: View {
 struct ConceptCard: View {
     let preset: Preset
     @State private var expanded = true
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Button {
-                withAnimation(.spring(duration: 0.25)) { expanded.toggle() }
+                withAnimation(reduceMotion ? nil : .spring(duration: 0.25)) { expanded.toggle() }
             } label: {
                 HStack(spacing: 8) {
                     Text(preset.curriculumLabel ?? "")
@@ -76,7 +77,7 @@ struct ConceptCard: View {
                             )
                     )
                     .padding(.top, 8)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
+                    .transition(reduceMotion ? .opacity : .opacity.combined(with: .move(edge: .top)))
             }
         }
         .padding(.horizontal, 12)

@@ -1002,6 +1002,7 @@ struct Mechanics2DViewport: View {
                 }
                 .buttonStyle(.plain)
                 .glassEffect(playButtonGlass, in: Circle())
+                .accessibilityLabel(Text(running ? "일시정지" : "재생"))
 
                 Button {
                     stepOnce()
@@ -1016,6 +1017,7 @@ struct Mechanics2DViewport: View {
                 .buttonStyle(.plain)
                 .glassEffect(.regular.interactive(), in: Circle())
                 .disabled(running)
+                .accessibilityLabel(Text("한 프레임 진행"))
 
                 Button {
                     reset()
@@ -1029,6 +1031,7 @@ struct Mechanics2DViewport: View {
                 }
                 .buttonStyle(.plain)
                 .glassEffect(.regular.interactive(), in: Circle())
+                .accessibilityLabel(Text("초기화"))
             }
         }
         .padding(.bottom, 8)

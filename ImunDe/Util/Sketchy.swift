@@ -121,6 +121,7 @@ enum Sketchy {
 
 struct SketchButtonStyle: ButtonStyle {
     var prominent: Bool = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func makeBody(configuration: Configuration) -> some View {
         let pressed = configuration.isPressed
@@ -137,7 +138,7 @@ struct SketchButtonStyle: ButtonStyle {
             .foregroundStyle(fg)
             .scaleEffect(pressed ? 0.97 : 1.0)
             .opacity(pressed ? 0.82 : 1.0)
-            .animation(Motion.press, value: pressed)
+            .animation(reduceMotion ? nil : Motion.press, value: pressed)
     }
 }
 
@@ -149,11 +150,12 @@ extension ButtonStyle where Self == SketchButtonStyle {
 // MARK: - Chip press style — visual feedback for .plain chip buttons.
 
 struct ChipPressStyle: ButtonStyle {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .scaleEffect(configuration.isPressed ? 0.94 : 1.0)
             .opacity(configuration.isPressed ? 0.82 : 1.0)
-            .animation(Motion.press, value: configuration.isPressed)
+            .animation(reduceMotion ? nil : Motion.press, value: configuration.isPressed)
     }
 }
 

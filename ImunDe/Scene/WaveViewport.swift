@@ -46,6 +46,9 @@ private struct WaveSumView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(Text("파동 시각화"))
+            .accessibilityHint(Text("아래 슬라이더로 파라미터를 조절합니다"))
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 8) {
                     PaperPicker(selection: $axis,
@@ -253,6 +256,9 @@ private struct DopplerView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(Text("파동 시각화"))
+            .accessibilityHint(Text("아래 슬라이더로 파라미터를 조절합니다"))
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(spacing: 14) {

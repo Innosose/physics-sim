@@ -53,7 +53,7 @@ struct RootSplitView: View {
                                     .foregroundStyle(c.accent)
                             }
                             Text(c.rawValue)
-                                .font(.system(size: 14, weight: .semibold))
+                                .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(Theme.ink)
                         }
                         .padding(.vertical, 3)
@@ -62,10 +62,10 @@ struct RootSplitView: View {
             } header: {
                 VStack(alignment: .leading, spacing: 3) {
                     Text("이문데")
-                        .font(.system(size: 22, weight: .bold))
+                        .font(.title2.weight(.bold))
                         .foregroundStyle(Theme.ink)
                     Text("이런 문제 데이터베이스")
-                        .font(.system(size: 11))
+                        .font(.footnote)
                         .foregroundStyle(Theme.mist)
                 }
                 .padding(.vertical, 8)
@@ -141,6 +141,7 @@ private struct WelcomeView: View {
     var onSelectCurriculum: ((Curriculum) -> Void)? = nil
 
     @State private var appear = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private let entries: [(curriculum: Curriculum, sub: String)] = [
         (.middle, "역학 · 빛 · 회로 · 열"),
@@ -154,7 +155,7 @@ private struct WelcomeView: View {
             VStack(alignment: .leading, spacing: 28) {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("이문데")
-                        .font(.system(size: 30, weight: .bold))
+                        .font(.largeTitle.weight(.bold))
                         .foregroundStyle(Theme.ink)
                     Text("물리학 I · II · 2022 개정 과학과")
                         .font(.themeHeader)
@@ -173,10 +174,10 @@ private struct WelcomeView: View {
                                     .foregroundStyle(entry.curriculum.accent)
                                     .frame(width: 18)
                                 Text(entry.curriculum.rawValue)
-                                    .font(.system(size: 14, weight: .medium))
+                                    .font(.subheadline.weight(.medium))
                                     .foregroundStyle(Theme.ink)
                                 Text(entry.sub)
-                                    .font(.system(size: 12))
+                                    .font(.footnote)
                                     .foregroundStyle(Theme.mist)
                                 Spacer(minLength: 0)
                             }
@@ -198,7 +199,7 @@ private struct WelcomeView: View {
                     Text(hasSidebarSelection
                          ? "목록에서 시뮬레이션을 고르세요."
                          : "사이드바에서 학년을 고르세요.")
-                        .font(.system(size: 12))
+                        .font(.footnote)
                         .foregroundStyle(Theme.mist)
                     Text("교육과정 기준 · 2022 개정 과학과 교육과정")
                         .font(.caption2.monospacedDigit())
@@ -212,7 +213,8 @@ private struct WelcomeView: View {
         }
         .ignoresSafeArea()
         .onAppear {
-            withAnimation(.easeOut(duration: 0.25)) { appear = true }
+            if reduceMotion { appear = true }
+            else { withAnimation(.easeOut(duration: 0.25)) { appear = true } }
         }
     }
 }
@@ -370,7 +372,7 @@ private struct PresetList: View {
             Spacer()
             Text("\(count)")
                 .font(.caption2.weight(.medium).monospacedDigit())
-                .foregroundStyle(Theme.mist.opacity(0.6))
+                .foregroundStyle(Theme.mist)
         }
         .textCase(nil)
     }
@@ -394,7 +396,7 @@ private struct PresetRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 5) {
                     Text(preset.title)
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.subheadline.weight(.semibold))
                         .foregroundStyle(Theme.ink)
                     if isFavorite {
                         Image(systemName: "star.fill")
@@ -404,7 +406,7 @@ private struct PresetRow: View {
                 }
                 if !preset.subtitle.isEmpty {
                     Text(preset.subtitle)
-                        .font(.system(size: 11))
+                        .font(.caption)
                         .foregroundStyle(Theme.mist)
                         .lineLimit(1)
                 }
