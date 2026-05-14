@@ -51,6 +51,7 @@ struct Mechanics2DViewport: View {
     @State private var springK: Double = 5.0
     @State private var springM: Double = 1.0
     @State private var autoStopped = false
+    @State private var hasEverMoved = false
     @State private var initialExtent: CGSize = CGSize(width: 5, height: 5)
     @State private var maxObservedExtent: CGSize = .zero
     @GestureState private var pinchDelta: CGFloat = 1.0
@@ -150,12 +151,9 @@ struct Mechanics2DViewport: View {
                     }
                     .frame(maxWidth: .infinity)
                     .frame(height: 96)
-                    .background(Theme.surface.opacity(0.92))
-                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .stroke(Theme.stroke, lineWidth: 1)
-                    )
+                    .glassEffect(.regular,
+                                  in: RoundedRectangle(cornerRadius: 10,
+                                                       style: .continuous))
                 }
                 if graphsOn {
                     TimelineView(.animation) { _ in
@@ -166,12 +164,9 @@ struct Mechanics2DViewport: View {
                     }
                     .frame(maxWidth: .infinity)
                     .frame(height: 128)
-                    .background(Theme.surface.opacity(0.92))
-                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .stroke(Theme.stroke, lineWidth: 1)
-                    )
+                    .glassEffect(.regular,
+                                  in: RoundedRectangle(cornerRadius: 10,
+                                                       style: .continuous))
                 }
             }
             .transition(.opacity.combined(with: .move(edge: .top)))
@@ -188,10 +183,9 @@ struct Mechanics2DViewport: View {
         if let t = text {
             Text(t)
                 .font(.caption2)
-                .foregroundStyle(Theme.mist.opacity(0.7))
-                .padding(.horizontal, 8).padding(.vertical, 4)
-                .background(Theme.surface.opacity(0.5))
-                .clipShape(Capsule())
+                .foregroundStyle(Theme.mist.opacity(0.9))
+                .padding(.horizontal, 10).padding(.vertical, 4)
+                .glassEffect(.regular, in: Capsule())
                 .padding(10)
                 .allowsHitTesting(false)
         }
@@ -271,12 +265,8 @@ struct Mechanics2DViewport: View {
                 }
             }
             .frame(width: 96, height: 72)
-            .background(Theme.surface.opacity(0.78))
-            .overlay(
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
-                    .stroke(Theme.stroke, lineWidth: 1)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+            .glassEffect(.regular,
+                          in: RoundedRectangle(cornerRadius: 6, style: .continuous))
             .padding(10)
             .allowsHitTesting(false)
             .transition(.opacity)
@@ -343,9 +333,8 @@ struct Mechanics2DViewport: View {
                       systemImage: "arrow.up.left.and.down.right.magnifyingglass")
                     .font(.caption2.weight(.medium).monospacedDigit())
                     .foregroundStyle(Theme.glow)
-                    .padding(.horizontal, 8).padding(.vertical, 4)
-                    .background(Theme.surface.opacity(0.75))
-                    .clipShape(Capsule())
+                    .padding(.horizontal, 10).padding(.vertical, 4)
+                    .glassEffect(.regular.interactive(), in: Capsule())
             }
             .buttonStyle(.plain)
             .padding(10)
@@ -526,23 +515,44 @@ struct Mechanics2DViewport: View {
             // 라이브 — 다음 충돌부터 새 반발계수 적용
             world.restitution = v
         }
+        // 중력 g 는 world 속성 — 시뮬 재시작 없이 라이브로 반영.
+        .onChange(of: liveGravitySignature) { _, _ in applyLiveGravity() }
         // Single .onChange covering every preset's init-condition slider —
         // 17개 개별 onChange 체인은 Swift type-checker가 timeout 시켜서
         // joined signature 하나로 묶었다.
         .onChange(of: paramResetSignature) { _, _ in reset() }
     }
 
-    /// Concatenation of every slider whose change should trigger reset().
-    /// Excludes lorentzB and collisionE (live-applied above).
+    /// 초기 조건 변화 — reset 트리거. gravity 는 제외 (라이브).
     private var paramResetSignature: String {
         let parts: [Double] = [
-            freefallH0, freefallV0, freefallG,
-            projectileV0, projectileAngle, projectileH0, projectileG,
-            pendulumL, pendulumTheta0, pendulumG,
+            freefallH0, freefallV0,
+            projectileV0, projectileAngle, projectileH0,
+            pendulumL, pendulumTheta0,
             collisionM1, collisionM2, collisionV1, collisionV2,
             springK, springM,
         ]
         return parts.map { String($0) }.joined(separator: "|")
+    }
+
+    /// gravity 슬라이더만 별도 — 현재 프리셋의 g 가 바뀌면 world.gravity
+    /// 만 라이브로 갱신 (시뮬 재시작 없음).
+    private var liveGravitySignature: Double {
+        switch preset.id {
+        case "freefall":   return freefallG
+        case "projectile": return projectileG
+        case "pendulum":   return pendulumG
+        default:           return 0
+        }
+    }
+
+    private func applyLiveGravity() {
+        switch preset.id {
+        case "freefall":   world.gravity = Vec3(x: 0, y: -freefallG, z: 0)
+        case "projectile": world.gravity = Vec3(x: 0, y: -projectileG, z: 0)
+        case "pendulum":   world.gravity = Vec3(x: 0, y: -pendulumG, z: 0)
+        default: break
+        }
     }
 
     private func paramSlider(_ title: String, value: Binding<Double>,
@@ -569,48 +579,48 @@ struct Mechanics2DViewport: View {
     }
 
     private var transportBar: some View {
-        HStack(spacing: 10) {
-            Button {
-                if !running && allBodiesAtRest() { reset() }
-                running.toggle()
-                if running { autoStopped = false }
-                haptic(.medium)
-            } label: {
-                Image(systemName: running ? "pause.fill" : "play.fill")
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(Theme.ink)
-                    .frame(width: 40, height: 40)
-                    .background(Circle().fill(running ? Theme.glow : Theme.surface.opacity(0.92)))
-                    .overlay(Circle().stroke(Theme.ink.opacity(running ? 0.85 : 0.55), lineWidth: 1.1))
-            }
-            .buttonStyle(.plain)
+        GlassEffectContainer(spacing: 10) {
+            HStack(spacing: 10) {
+                Button {
+                    if !running && allBodiesAtRest() { reset() }
+                    running.toggle()
+                    if running { autoStopped = false }
+                    haptic(.medium)
+                } label: {
+                    Image(systemName: running ? "pause.fill" : "play.fill")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundStyle(Theme.ink)
+                        .frame(width: 44, height: 44)
+                }
+                .buttonStyle(.plain)
+                .glassEffect(.regular.tint(running ? Theme.glow : .clear).interactive(),
+                              in: Circle())
 
-            Button {
-                stepOnce()
-                haptic(.light)
-            } label: {
-                Image(systemName: "forward.frame.fill")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(running ? Theme.mist : Theme.ink)
-                    .frame(width: 34, height: 34)
-                    .background(Circle().fill(Theme.surface.opacity(0.88)))
-                    .overlay(Circle().stroke(Theme.ink.opacity(running ? 0.3 : 0.5), lineWidth: 1.0))
-            }
-            .buttonStyle(.plain)
-            .disabled(running)
+                Button {
+                    stepOnce()
+                    haptic(.light)
+                } label: {
+                    Image(systemName: "forward.frame.fill")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(running ? Theme.mist : Theme.ink)
+                        .frame(width: 36, height: 36)
+                }
+                .buttonStyle(.plain)
+                .glassEffect(.regular.interactive(), in: Circle())
+                .disabled(running)
 
-            Button {
-                reset()
-                haptic(.medium)
-            } label: {
-                Image(systemName: "arrow.counterclockwise")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Theme.ink)
-                    .frame(width: 34, height: 34)
-                    .background(Circle().fill(Theme.surface.opacity(0.88)))
-                    .overlay(Circle().stroke(Theme.ink.opacity(0.5), lineWidth: 1.0))
+                Button {
+                    reset()
+                    haptic(.medium)
+                } label: {
+                    Image(systemName: "arrow.counterclockwise")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Theme.ink)
+                        .frame(width: 36, height: 36)
+                }
+                .buttonStyle(.plain)
+                .glassEffect(.regular.interactive(), in: Circle())
             }
-            .buttonStyle(.plain)
         }
         .padding(.bottom, 8)
     }
@@ -621,9 +631,8 @@ struct Mechanics2DViewport: View {
             Text("정지됨")
                 .font(.caption2.weight(.semibold))
                 .foregroundStyle(Theme.mist)
-                .padding(.horizontal, 8).padding(.vertical, 3)
-                .background(Theme.surface.opacity(0.78))
-                .clipShape(Capsule())
+                .padding(.horizontal, 10).padding(.vertical, 3)
+                .glassEffect(.regular, in: Capsule())
                 .padding(.leading, 8).padding(.bottom, 8)
                 .allowsHitTesting(false)
                 .transition(.opacity)
@@ -632,7 +641,10 @@ struct Mechanics2DViewport: View {
     }
 
     private func allBodiesAtRest() -> Bool {
-        guard !world.pairwiseGravity, world.time > 0.3 else { return false }
+        guard !world.pairwiseGravity,
+              world.time > 0.3,
+              hasEverMoved  // never auto-stop until the system actually moved
+        else { return false }
         let dissipative = world.drag > 0
             || world.springs.contains { $0.damping > 0 }
             || (world.bounds.map { $0.restitution < 0.99 } ?? false)
@@ -685,6 +697,7 @@ struct Mechanics2DViewport: View {
         rulerEnd = Vec3(x: 1.5, y: 0, z: 0)
         trailsOn = world.trailEnabled
         lorentzB = world.magneticB.z
+        hasEverMoved = false
         captureInitialExtent()
         redrawTick &+= 1
     }
@@ -697,14 +710,18 @@ struct Mechanics2DViewport: View {
         case "freefall":
             world.gravity = Vec3(x: 0, y: -freefallG, z: 0)
             if let idx = world.bodies.firstIndex(where: { !$0.pinned }) {
-                world.bodies[idx].pos = Vec3(x: 0, y: freefallH0, z: 0)
+                let r = world.bodies[idx].radius
+                let y0 = clampedAboveBounds(freefallH0, radius: r)
+                world.bodies[idx].pos = Vec3(x: 0, y: y0, z: 0)
                 world.bodies[idx].vel = Vec3(x: 0, y: freefallV0, z: 0)
             }
         case "projectile":
             world.gravity = Vec3(x: 0, y: -projectileG, z: 0)
             if let idx = world.bodies.firstIndex(where: { !$0.pinned }) {
                 let θ = projectileAngle * .pi / 180
-                world.bodies[idx].pos = Vec3(x: 0, y: projectileH0, z: 0)
+                let r = world.bodies[idx].radius
+                let y0 = clampedAboveBounds(projectileH0, radius: r)
+                world.bodies[idx].pos = Vec3(x: 0, y: y0, z: 0)
                 world.bodies[idx].vel = Vec3(
                     x: projectileV0 * cos(θ),
                     y: projectileV0 * sin(θ),
@@ -744,6 +761,15 @@ struct Mechanics2DViewport: View {
         default:
             break
         }
+    }
+
+    /// Pushes the requested y0 above any ground bound by a small margin so
+    /// the body doesn't spawn inside or touching a wall (which can cause
+    /// the simulation to immediately settle into rest).
+    private func clampedAboveBounds(_ y0: Double, radius: Double) -> Double {
+        guard let bounds = world.bounds else { return y0 }
+        let minY = bounds.min.y + radius + 0.02
+        return max(y0, minY)
     }
 
     private func stepOnce() {
@@ -861,7 +887,10 @@ struct Mechanics2DViewport: View {
             if rulerOn, let end = pickRulerHandle(at: start) {
                 dragMode = (end == .start) ? .rulerStart : .rulerEnd
                 haptic(.light)
-            } else if !running, let id = pickBody(at: start, requireMovable: true) {
+            } else if let id = pickBody(at: start, requireMovable: true) {
+                // 시뮬레이션 중에도 body 직접 조작을 허용 — 잡으면 자동
+                // 일시정지하고, 사용자가 풀면 재생 버튼으로 재개.
+                if running { running = false }
                 dragMode = .body(id)
                 if !hasDraggedBody { hasDraggedBody = true }
                 haptic(.light)
@@ -871,8 +900,8 @@ struct Mechanics2DViewport: View {
         }
         switch dragMode {
         case .body(let id):
-            guard !running,
-                  let idx = world.bodies.firstIndex(where: { $0.id == id }) else { return }
+            guard let idx = world.bodies.firstIndex(where: { $0.id == id })
+            else { return }
             let target = screenToWorld(screenPt)
             world.bodies[idx].pos = constrainDragPosition(id: id, target: target)
             world.bodies[idx].vel = .zero
@@ -952,6 +981,11 @@ struct Mechanics2DViewport: View {
         recordEnergy()
         recordMotion()
         updateMaxObservedExtent()
+        if !hasEverMoved {
+            let maxV = world.bodies.filter { !$0.pinned }
+                .map { $0.vel.length }.max() ?? 0
+            if maxV > 0.05 { hasEverMoved = true }
+        }
         if world.bodies.contains(where: {
             !$0.pos.isFinite || !$0.vel.isFinite
         }) {
