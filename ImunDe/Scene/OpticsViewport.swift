@@ -173,8 +173,8 @@ private struct LensView: View {
     }
 
     var body: some View {
-        _ = colorScheme
-        return VStack(spacing: 8) {
+        let _ = colorScheme
+        VStack(spacing: 8) {
             Canvas { ctx, size in
                 draw(ctx: ctx, size: size)
             }
@@ -300,8 +300,8 @@ private struct DoubleSlitView: View {
     }
 
     var body: some View {
-        _ = colorScheme
-        return VStack(spacing: 8) {
+        let _ = colorScheme
+        VStack(spacing: 8) {
             Canvas { ctx, size in
                 draw(ctx: ctx, size: size)
             }

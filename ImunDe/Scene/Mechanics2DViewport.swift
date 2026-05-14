@@ -62,6 +62,7 @@ struct Mechanics2DViewport: View {
     @State private var initialExtent: CGSize = CGSize(width: 5, height: 5)
     @State private var maxObservedExtent: CGSize = .zero
     @GestureState private var pinchDelta: CGFloat = 1.0
+    @GestureState private var isPointerActive: Bool = false
     @AppStorage("hasDraggedBody") private var hasDraggedBody = false
     @Environment(\.colorScheme) private var colorScheme
 
@@ -70,12 +71,11 @@ struct Mechanics2DViewport: View {
     private var tapEnabled: Bool { preset.id == "freecollide" }
 
     var body: some View {
-        // Body-level read so SwiftUI's dependency tracker invalidates the
-        // view (and every Canvas it owns) when the theme changes. Reading
-        // inside the Canvas renderer closure does NOT trigger redraw —
-        // SwiftUI only tracks deps read during body evaluation.
-        _ = colorScheme
-        return VStack(spacing: 10) {
+        // `let _` is a declaration that @ViewBuilder happily ignores,
+        // but the getter runs in body — registering the env dep so the
+        // Canvas re-renders on theme change.
+        let _ = colorScheme
+        VStack(spacing: 10) {
             if preset.id == "nbody" {
                 PaperPicker(selection: $nBodyVariant,
                             options: NBodyVariant.allCases) { $0.rawValue }
@@ -113,7 +113,21 @@ struct Mechanics2DViewport: View {
                         zoomScale = min(max(zoomScale * value.magnification, 0.3), 8.0)
                     }
             )
-            .defersSystemGestures(on: [.leading, .trailing])
+            // iOS 26 회귀 — DragGesture(min:0) 의 첫 onChanged 가 일부
+            // 컨텍스트에서 발화되지 않는 케이스가 있어 LongPressGesture
+            // simultaneousGesture 로 recognizer 를 깨운다 (비interceptive).
+            .simultaneousGesture(LongPressGesture(minimumDuration: 0))
+            .defersSystemGestures(on: .leading)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(Text("물리 시뮬레이션"))
+            .accessibilityValue(Text("입자 \(world.bodies.count)개"))
+            .accessibilityHint(Text("아래 제어판으로 조작합니다"))
+            .accessibilityAction(named: Text(running ? "일시정지" : "재생")) {
+                if !running && allBodiesAtRest() { reset() }
+                running.toggle()
+                if running { autoStopped = false }
+            }
+            .accessibilityAction(named: Text("초기화")) { reset() }
             .overlay(alignment: .topLeading) { zoomBadge }
             .overlay(alignment: .topTrailing) { miniMapOverlay }
             .overlay(alignment: .bottomTrailing) { hintLabel }
@@ -138,6 +152,13 @@ struct Mechanics2DViewport: View {
         .onChange(of: scenePhase) { _, phase in
             if phase != .active { cancelActiveDrag() }
         }
+        // @GestureState `isPointerActive` 가 false 로 떨어질 때는 시스템이
+        // 제스처를 취소했거나 (Control Center pulldown, 인터럽트 등)
+        // 정상 종료된 경우. onEnded 가 fire 되지 않는 system-cancel
+        // 경로에서 dragMode 누수를 방지하기 위해 cleanup.
+        .onChange(of: isPointerActive) { wasActive, nowActive in
+            if wasActive && !nowActive { cancelActiveDrag() }
+        }
     }
 
     // MARK: - Unified pointer gesture
@@ -149,6 +170,7 @@ struct Mechanics2DViewport: View {
 
     private var pointerGesture: some Gesture {
         DragGesture(minimumDistance: 0, coordinateSpace: .local)
+            .updating($isPointerActive) { _, state, _ in state = true }
             .onChanged { v in pointerOnChanged(v) }
             .onEnded   { v in pointerOnEnded(v) }
     }

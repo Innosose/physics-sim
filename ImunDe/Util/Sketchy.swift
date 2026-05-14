@@ -122,8 +122,8 @@ struct CharcoalGrain: View {
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        _ = colorScheme  // body-level read so SwiftUI invalidates Canvas
-        return Canvas { ctx, size in
+        let _ = colorScheme  // body-level read for env dependency tracking
+        Canvas { ctx, size in
             var rng = SeededGenerator(seed
                 ^ UInt64(size.width.bitPattern)
                 ^ UInt64(size.height.bitPattern))
