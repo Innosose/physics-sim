@@ -93,6 +93,7 @@ enum PresetCatalog {
                calculatorTopic: nil,
                kind: .mechanics2D,
                load: { w in
+                   w.integrator = .euler
                    w.gravity = .zero
                    w.hardSphereCollisions = true
                    w.restitution = 1.0

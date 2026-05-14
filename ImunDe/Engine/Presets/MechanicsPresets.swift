@@ -3,6 +3,7 @@ import SwiftUI
 enum MechanicsPresets {
 
     static func freeFall(_ w: World) {
+        w.integrator = .euler
         w.gravity = Vec3(x: 0, y: -9.81, z: 0)
         w.bounds = Bounds(min: Vec3(x: -6, y: 0, z: -2),
                           max: Vec3(x: 6, y: 50, z: 2),
@@ -18,6 +19,7 @@ enum MechanicsPresets {
     }
 
     static func projectile(_ w: World) {
+        w.integrator = .velocityVerlet
         let θ = 55.0 * .pi / 180
         let v0 = 22.0
         w.gravity = Vec3(x: 0, y: -9.81, z: 0)
@@ -35,6 +37,7 @@ enum MechanicsPresets {
     }
 
     static func collision1D(_ w: World) {
+        w.integrator = .euler
         w.gravity = .zero
         w.hardSphereCollisions = true
         w.restitution = 1.0
@@ -52,6 +55,7 @@ enum MechanicsPresets {
     }
 
     static func pendulum(_ w: World) {
+        w.integrator = .velocityVerlet
         w.gravity = Vec3(x: 0, y: -9.81, z: 0)
         let pivot = PhysicsBody(pos: Vec3(x: 0, y: 3, z: 0),
                                 mass: 1e9, radius: 0.1,
@@ -71,6 +75,7 @@ enum MechanicsPresets {
     }
 
     static func spring(_ w: World) {
+        w.integrator = .velocityVerlet
         w.gravity = .zero
         let wall = PhysicsBody(pos: Vec3(x: -3, y: 1, z: 0),
                                mass: 1e9, radius: 0.2,
@@ -86,6 +91,7 @@ enum MechanicsPresets {
     }
 
     static func kepler(_ w: World) {
+        w.integrator = .velocityVerlet
         w.pairwiseGravity = true
         w.G = 1.0
         w.trailEnabled = true
@@ -104,6 +110,7 @@ enum MechanicsPresets {
     }
 
     static func freeCollision(_ w: World) {
+        w.integrator = .euler
         w.gravity = .zero
         w.hardSphereCollisions = true
         w.restitution = 0.95
@@ -123,6 +130,7 @@ enum MechanicsPresets {
     }
 
     static func solarSystem(_ w: World) {
+        w.integrator = .velocityVerlet
         w.pairwiseGravity = true
         w.G = 1.0
         w.trailEnabled = true
@@ -151,6 +159,7 @@ enum MechanicsPresets {
     }
 
     static func threeBody(_ w: World) {
+        w.integrator = .velocityVerlet
         w.pairwiseGravity = true
         w.G = 1.0
         w.trailEnabled = true
@@ -176,6 +185,7 @@ enum MechanicsPresets {
     }
 
     static func lorentz(_ w: World) {
+        w.integrator = .rk4
         w.magneticB = Vec3(x: 0, y: 0, z: 1)
         w.electricE = .zero
         w.trailEnabled = true
@@ -189,6 +199,7 @@ enum MechanicsPresets {
     }
 
     static func eField(_ w: World) {
+        w.integrator = .rk4
         w.pairwiseCoulomb = true
         w.kCoulomb = 1.0
         w.bodies = [

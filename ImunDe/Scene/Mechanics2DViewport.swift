@@ -118,6 +118,7 @@ struct Mechanics2DViewport: View {
         world.magneticB = .zero
         world.electricE = .zero
         world.drag = 0
+        world.integrator = .velocityVerlet
         world.pairwiseGravity = false
         world.pairwiseCoulomb = false
         world.hardSphereCollisions = false

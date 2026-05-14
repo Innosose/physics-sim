@@ -1,5 +1,7 @@
 import Foundation
 
+enum Integrator { case euler, velocityVerlet, rk4 }
+
 final class World {
     var bodies: [PhysicsBody] = []
     var springs: [Spring] = []
@@ -9,6 +11,7 @@ final class World {
     var magneticB: Vec3 = .zero
     var electricE: Vec3 = .zero
     var drag: Double = 0
+    var integrator: Integrator = .velocityVerlet
 
     var pairwiseGravity: Bool = false
     var G: Double = 1.0
@@ -19,32 +22,20 @@ final class World {
 
     var time: Double = 0
 
-    /// 입자별 최근 위치 — N체 등 자취 표시용. 유지 시 매 step 끝에 push.
     var trails: [UUID: [Vec3]] = [:]
     var trailEnabled: Bool = false
     var trailMax: Int = 60
 
     func step(dt: Double) {
         guard !bodies.isEmpty else { time += dt; return }
-        let n = bodies.count
-        var acc = [Vec3](repeating: .zero, count: n)
-        computeAccelerations(into: &acc)
-
-        for i in 0..<n where !bodies[i].pinned {
-            bodies[i].pos += bodies[i].vel * dt + acc[i] * (0.5 * dt * dt)
+        switch integrator {
+        case .euler:          stepEuler(dt: dt)
+        case .velocityVerlet: stepVelocityVerlet(dt: dt)
+        case .rk4:            stepRK4(dt: dt)
         }
-
-        var newAcc = [Vec3](repeating: .zero, count: n)
-        computeAccelerations(into: &newAcc)
-
-        for i in 0..<n where !bodies[i].pinned {
-            bodies[i].vel += (acc[i] + newAcc[i]) * (0.5 * dt)
-        }
-
         applyRigidConstraints(iterations: 4)
         applyBounds()
         if hardSphereCollisions { applyPairCollisions() }
-
         if trailEnabled {
             for b in bodies {
                 guard b.pos.isFinite else { continue }
@@ -54,25 +45,82 @@ final class World {
                 trails[b.id] = arr
             }
         }
-
         time += dt
     }
 
-    private func computeAccelerations(into a: inout [Vec3]) {
+    // MARK: - Integrators
+
+    private func stepEuler(dt: Double) {
         let n = bodies.count
+        let pos = bodies.map { $0.pos }
+        let vel = bodies.map { $0.vel }
+        let a = computeAccel(pos: pos, vel: vel)
+        for i in 0..<n where !bodies[i].pinned {
+            bodies[i].pos = pos[i] + vel[i] * dt
+            bodies[i].vel = vel[i] + a[i] * dt
+        }
+    }
+
+    private func stepVelocityVerlet(dt: Double) {
+        let n = bodies.count
+        let pos0 = bodies.map { $0.pos }
+        let vel0 = bodies.map { $0.vel }
+        let a0 = computeAccel(pos: pos0, vel: vel0)
+        var pos1 = pos0
+        for i in 0..<n where !bodies[i].pinned {
+            pos1[i] = pos0[i] + vel0[i] * dt + a0[i] * (0.5 * dt * dt)
+        }
+        let a1 = computeAccel(pos: pos1, vel: vel0)
+        for i in 0..<n where !bodies[i].pinned {
+            bodies[i].pos = pos1[i]
+            bodies[i].vel = vel0[i] + (a0[i] + a1[i]) * (0.5 * dt)
+        }
+    }
+
+    private func stepRK4(dt: Double) {
+        let n = bodies.count
+        let p0 = bodies.map { $0.pos }
+        let v0 = bodies.map { $0.vel }
+        let h = dt / 2
+
+        let k1a = computeAccel(pos: p0, vel: v0)
+
+        let p1 = (0..<n).map { i in bodies[i].pinned ? p0[i] : p0[i] + v0[i] * h }
+        let v1 = (0..<n).map { i in bodies[i].pinned ? v0[i] : v0[i] + k1a[i] * h }
+        let k2a = computeAccel(pos: p1, vel: v1)
+
+        let p2 = (0..<n).map { i in bodies[i].pinned ? p0[i] : p0[i] + v1[i] * h }
+        let v2 = (0..<n).map { i in bodies[i].pinned ? v0[i] : v0[i] + k2a[i] * h }
+        let k3a = computeAccel(pos: p2, vel: v2)
+
+        let p3 = (0..<n).map { i in bodies[i].pinned ? p0[i] : p0[i] + v2[i] * dt }
+        let v3 = (0..<n).map { i in bodies[i].pinned ? v0[i] : v0[i] + k3a[i] * dt }
+        let k4a = computeAccel(pos: p3, vel: v3)
+
+        let w6 = dt / 6
+        for i in 0..<n where !bodies[i].pinned {
+            bodies[i].pos = p0[i] + (v0[i] + v1[i] * 2 + v2[i] * 2 + v3[i]) * w6
+            bodies[i].vel = v0[i] + (k1a[i] + k2a[i] * 2 + k3a[i] * 2 + k4a[i]) * w6
+        }
+    }
+
+    // MARK: - Force computation
+
+    private func computeAccel(pos: [Vec3], vel: [Vec3]) -> [Vec3] {
+        let n = bodies.count
+        var a = [Vec3](repeating: .zero, count: n)
         for i in 0..<n {
-            guard !bodies[i].pinned else { a[i] = .zero; continue }
+            guard !bodies[i].pinned else { continue }
             var f = Vec3.zero
             f += gravity * bodies[i].mass
             f += electricE * bodies[i].charge
             if magneticB.lengthSquared > 1e-18 {
-                f += Vec3.cross(bodies[i].vel, magneticB) * bodies[i].charge
+                f += Vec3.cross(vel[i], magneticB) * bodies[i].charge
             }
-            if drag > 0 { f -= bodies[i].vel * (drag * bodies[i].mass) }
-
+            if drag > 0 { f -= vel[i] * (drag * bodies[i].mass) }
             if pairwiseGravity {
                 for j in 0..<n where j != i {
-                    let d = bodies[j].pos - bodies[i].pos
+                    let d = pos[j] - pos[i]
                     let r2 = d.lengthSquared
                     if r2 < 1e-6 { continue }
                     let r = r2.squareRoot()
@@ -81,30 +129,32 @@ final class World {
             }
             if pairwiseCoulomb {
                 for j in 0..<n where j != i {
-                    let d = bodies[i].pos - bodies[j].pos
+                    let d = pos[i] - pos[j]
                     let r2 = d.lengthSquared
                     if r2 < 1e-6 { continue }
                     let r = r2.squareRoot()
                     f += d * (kCoulomb * bodies[i].charge * bodies[j].charge / (r2 * r))
                 }
             }
-            for s in springs {
+            for s in springs where !s.rigid {
                 if s.aId == bodies[i].id || s.bId == bodies[i].id {
                     let other = s.aId == bodies[i].id ? s.bId : s.aId
                     guard let j = bodies.firstIndex(where: { $0.id == other }) else { continue }
-                    let d = bodies[j].pos - bodies[i].pos
+                    let d = pos[j] - pos[i]
                     let dist = d.length
                     guard dist > 1e-9 else { continue }
                     let n̂ = d / dist
                     let stretch = dist - s.restLength
-                    let relV = Vec3.dot(bodies[j].vel - bodies[i].vel, n̂)
+                    let relV = Vec3.dot(vel[j] - vel[i], n̂)
                     f += n̂ * (s.stiffness * stretch + s.damping * relV)
                 }
             }
-
             a[i] = f / bodies[i].mass
         }
+        return a
     }
+
+    // MARK: - Constraints & collisions
 
     private func applyRigidConstraints(iterations: Int) {
         for _ in 0..<iterations {
