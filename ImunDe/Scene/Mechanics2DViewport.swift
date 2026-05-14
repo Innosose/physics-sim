@@ -187,10 +187,16 @@ struct Mechanics2DViewport: View {
     private var chipMask: ChipMask {
         switch preset.id {
         case "kinetic":
-            // 많은 입자 — 자취/그래프/벡터는 화면을 어지럽힘
-            return ChipMask(vectors: false, trails: false, graphs: false)
+            // 많은 입자 — 자취/그래프/벡터는 화면을 어지럽힘.
+            // 탄성 충돌만 있어 총 KE도 보존 → 에너지 그래프는 평평한 직선.
+            return ChipMask(vectors: false, energy: false,
+                            trails: false, graphs: false)
         case "freecollide":
-            return ChipMask(trails: false, graphs: false)
+            // 동일한 이유 — 에너지/자취/그래프 모두 의미 없음.
+            return ChipMask(energy: false, trails: false, graphs: false)
+        case "lorentz":
+            // 자기력은 일을 하지 않아 KE 항상 일정 → 에너지 그래프 의미 없음.
+            return ChipMask(energy: false)
         case "efield":
             // 전기력선이 이미 그려짐, 자취 중복
             return ChipMask(trails: false)
@@ -423,14 +429,13 @@ struct Mechanics2DViewport: View {
             guard r > 1e-6 else { return nil }
             let E = 0.5 * v * v - mu / r
             if E >= 0 {
-                return "탈출 궤도 (E ≥ 0)"
+                return String(format: "r = %.2f   v = %.2f   (탈출 궤도)", r, v)
             }
+            // Kepler's 3rd law: T = 2π√(a³/GM). 학생들 친숙 — 장반경 a,
+            // 이심률 e 같은 교과 외 양은 화면에 노출하지 않는다.
             let a = -mu / (2 * E)
-            let h = abs(dr.x * planet.vel.y - dr.y * planet.vel.x)
-            let eSq = max(0, 1 + 2 * E * h * h / (mu * mu))
-            let e = eSq.squareRoot()
             let T = 2 * .pi * (a * a * a / mu).squareRoot()
-            return String(format: "a=%.2f  e=%.3f  T=%.2f", a, e, T)
+            return String(format: "r = %.2f   v = %.2f   T = %.2fs", r, v, T)
 
         default:
             return nil

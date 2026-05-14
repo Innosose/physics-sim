@@ -14,9 +14,9 @@ struct Preset: Identifiable, Hashable, @unchecked Sendable {
     private static let formulas: [String: String] = [
         "freefall":    "y(t) = h_0 + v_0 t − ½ g t²",
         "projectile":  "x(t) = v_0 cos θ · t,    y(t) = h_0 + v_0 sin θ · t − ½ g t²",
-        "pendulum":    "T_0 = 2π √(L/g),    T(θ_{max}) ≈ T_0·(1 + θ²/16 + 11 θ⁴/3072 + …)",
+        "pendulum":    "T_0 = 2π √(L/g),    큰 진폭에서는 T ≈ T_0·(1 + θ²/16)",
         "collision1d": "v_1′ = ((m_1 − e m_2)·v_1 + (1+e)·m_2·v_2) / (m_1 + m_2)",
-        "kepler":      "a = −GM / (2E),    E = ½ v² − GM/r,    T = 2π √(a³/GM)",
+        "kepler":      "E = ½ v² − GM/r,    T = 2π √(a³/GM)   (a: 장반경)",
         "circuit":     "V = I R,    P = V I = I² R = V² / R",
         "doppler":     "f′ = f · (c + v_o) / (c − v_s)",
         "reflection":  "n_1 sin θ_1 = n_2 sin θ_2,    sin θ_c = n_2 / n_1",
