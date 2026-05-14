@@ -33,6 +33,7 @@ struct Mechanics2DViewport: View {
     @State private var inspectedId: UUID? = nil
     @State private var energyHistory: [World.EnergyBreakdown] = []
     @State private var lorentzB: Double = 1.0
+    @State private var autoStopped = false
     @GestureState private var pinchDelta: CGFloat = 1.0
     @AppStorage("hasDraggedBody") private var hasDraggedBody = false
 
@@ -90,15 +91,14 @@ struct Mechanics2DViewport: View {
                     }
             )
             .overlay(alignment: .topLeading) { zoomBadge }
-            .overlay(alignment: .bottomTrailing) {
-                hintLabel
-            }
+            .overlay(alignment: .bottomTrailing) { hintLabel }
+            .overlay(alignment: .bottom) { transportBar }
+            .overlay(alignment: .bottomLeading) { settledBadge }
 
-            presetDerivedRow
             toggleRow
             presetParameterRow
             timeScaleRow
-            controls
+            presetDerivedRow
         }
         .onAppear { reset() }
         .onChange(of: preset.id) { _, _ in reset() }
@@ -126,29 +126,24 @@ struct Mechanics2DViewport: View {
     private var hasMovableBody: Bool { world.bodies.contains { !$0.pinned } }
 
     private var toggleRow: some View {
-        VStack(spacing: 6) {
-            HStack(spacing: 6) {
-                chipToggle("벡터", systemImage: "arrow.up.right", on: vectorsOn) {
-                    vectorsOn.toggle(); haptic(.light)
-                }
-                chipToggle("에너지", systemImage: "chart.bar.fill", on: energyOn) {
-                    energyOn.toggle(); haptic(.light)
-                }
-                chipToggle("자취", systemImage: "scribble", on: trailsOn) {
-                    trailsOn.toggle(); haptic(.light)
-                    world.trailEnabled = trailsOn
-                    if !trailsOn { world.trails.removeAll() }
-                }
+        HStack(spacing: 5) {
+            chipToggle("벡터", systemImage: "arrow.up.right", on: vectorsOn) {
+                vectorsOn.toggle(); haptic(.light)
             }
-            HStack(spacing: 6) {
-                chipToggle("그래프", systemImage: "chart.xyaxis.line", on: graphsOn) {
-                    graphsOn.toggle(); haptic(.light)
-                    if !graphsOn { motionHistory.removeAll() }
-                }
-                chipToggle("자", systemImage: "ruler", on: rulerOn) {
-                    rulerOn.toggle(); haptic(.light)
-                }
-                Color.clear.frame(maxWidth: .infinity)
+            chipToggle("에너지", systemImage: "chart.bar.fill", on: energyOn) {
+                energyOn.toggle(); haptic(.light)
+            }
+            chipToggle("자취", systemImage: "scribble", on: trailsOn) {
+                trailsOn.toggle(); haptic(.light)
+                world.trailEnabled = trailsOn
+                if !trailsOn { world.trails.removeAll() }
+            }
+            chipToggle("그래프", systemImage: "chart.xyaxis.line", on: graphsOn) {
+                graphsOn.toggle(); haptic(.light)
+                if !graphsOn { motionHistory.removeAll() }
+            }
+            chipToggle("자", systemImage: "ruler", on: rulerOn) {
+                rulerOn.toggle(); haptic(.light)
             }
         }
     }
@@ -208,7 +203,16 @@ struct Mechanics2DViewport: View {
                     .foregroundStyle(Theme.ink)
                 Spacer()
             }
-            .padding(.horizontal, 4)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(Theme.surface.opacity(0.6))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .stroke(Theme.ink.opacity(0.22), lineWidth: 0.8)
+                    )
+            )
         }
     }
 
@@ -316,51 +320,67 @@ struct Mechanics2DViewport: View {
         }
     }
 
-    private var controls: some View {
-        HStack(spacing: 8) {
-            playButton
-            stepButton
-            resetButton
+    private var transportBar: some View {
+        HStack(spacing: 10) {
+            Button {
+                if !running && allBodiesAtRest() { reset() }
+                running.toggle()
+                if running { autoStopped = false }
+                haptic(.medium)
+            } label: {
+                Image(systemName: running ? "pause.fill" : "play.fill")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(running ? Theme.ink : Theme.ink)
+                    .frame(width: 40, height: 40)
+                    .background(Circle().fill(running ? Theme.glow : Theme.surface.opacity(0.92)))
+                    .overlay(Circle().stroke(Theme.ink.opacity(running ? 0.85 : 0.55), lineWidth: 1.1))
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                stepOnce()
+                haptic(.light)
+            } label: {
+                Image(systemName: "forward.frame.fill")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(running ? Theme.mist : Theme.ink)
+                    .frame(width: 34, height: 34)
+                    .background(Circle().fill(Theme.surface.opacity(0.88)))
+                    .overlay(Circle().stroke(Theme.ink.opacity(running ? 0.3 : 0.5), lineWidth: 1.0))
+            }
+            .buttonStyle(.plain)
+            .disabled(running)
+
+            Button {
+                reset()
+                haptic(.medium)
+            } label: {
+                Image(systemName: "arrow.counterclockwise")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Theme.ink)
+                    .frame(width: 34, height: 34)
+                    .background(Circle().fill(Theme.surface.opacity(0.88)))
+                    .overlay(Circle().stroke(Theme.ink.opacity(0.5), lineWidth: 1.0))
+            }
+            .buttonStyle(.plain)
         }
+        .padding(.bottom, 8)
     }
 
-    private var playButton: some View {
-        Button {
-            if !running && allBodiesAtRest() { reset() }
-            running.toggle()
-            haptic(.medium)
-        } label: {
-            Label(running ? "일시정지" : "재생",
-                  systemImage: running ? "pause.fill" : "play.fill")
-                .font(.callout.weight(.semibold))
-                .frame(maxWidth: .infinity)
+    @ViewBuilder
+    private var settledBadge: some View {
+        if autoStopped {
+            Text("정지됨")
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(Theme.mist)
+                .padding(.horizontal, 8).padding(.vertical, 3)
+                .background(Theme.surface.opacity(0.78))
+                .clipShape(Capsule())
+                .padding(.leading, 8).padding(.bottom, 8)
+                .allowsHitTesting(false)
+                .transition(.opacity)
+                .animation(.easeOut(duration: 0.3), value: autoStopped)
         }
-        .buttonStyle(.sketchProminent)
-    }
-
-    private var stepButton: some View {
-        Button {
-            stepOnce()
-            haptic(.light)
-        } label: {
-            Label("1프레임", systemImage: "forward.frame.fill")
-                .font(.callout.weight(.semibold))
-                .frame(maxWidth: .infinity)
-        }
-        .buttonStyle(.sketch)
-        .disabled(running)
-    }
-
-    private var resetButton: some View {
-        Button {
-            reset()
-            haptic(.medium)
-        } label: {
-            Label("처음부터", systemImage: "arrow.counterclockwise")
-                .font(.callout.weight(.semibold))
-                .frame(maxWidth: .infinity)
-        }
-        .buttonStyle(.sketch)
     }
 
     private func allBodiesAtRest() -> Bool {
@@ -405,6 +425,7 @@ struct Mechanics2DViewport: View {
         }
         lastTick = nil
         running = false
+        autoStopped = false
         inspectedId = nil
         energyHistory.removeAll()
         motionHistory.removeAll()
@@ -627,7 +648,7 @@ struct Mechanics2DViewport: View {
         }) {
             reset()
         }
-        if allBodiesAtRest() { running = false }
+        if allBodiesAtRest() { running = false; autoStopped = true }
     }
 
     private func draw(ctx: GraphicsContext, size: CGSize) {

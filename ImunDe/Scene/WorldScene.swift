@@ -40,7 +40,7 @@ struct WorldScene: View {
 
 struct ConceptCard: View {
     let preset: Preset
-    @State private var expanded = false
+    @State private var expanded = true
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
