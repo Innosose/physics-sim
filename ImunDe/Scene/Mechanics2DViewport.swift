@@ -599,6 +599,9 @@ struct Mechanics2DViewport: View {
         // Ellipse 중심 = star - periapsis 방향 × (a*e)
         let cx = star.pos.x - a * ecc * cos(angle)
         let cy = star.pos.y - a * ecc * sin(angle)
+        // Path / CGAffineTransform 에 NaN/Inf 들어가면 Canvas 가 죽음.
+        guard a.isFinite, b.isFinite, cx.isFinite, cy.isFinite, angle.isFinite,
+              a > 0.001, b > 0.001 else { return nil }
         return (cx, cy, a, b, angle)
     }
 
@@ -1064,6 +1067,8 @@ struct Mechanics2DViewport: View {
         recordEnergy()
         recordMotion()
         updateMaxObservedExtent()
+        updateInspectorSide()
+        updateInspectorSide()
         if world.bodies.contains(where: { !$0.pos.isFinite || !$0.vel.isFinite }) {
             reset()
         }
@@ -1232,6 +1237,7 @@ struct Mechanics2DViewport: View {
         recordEnergy()
         recordMotion()
         updateMaxObservedExtent()
+        updateInspectorSide()
         if !hasEverMoved {
             let maxV = world.bodies.filter { !$0.pinned }
                 .map { $0.vel.length }.max() ?? 0
@@ -1435,17 +1441,9 @@ struct Mechanics2DViewport: View {
         // - 6) and the panel renders off the right edge.
         guard r.width >= panelW + 12, r.height >= panelH + 12 else { return }
 
-        // Hysteresis — body 가 정확히 midline 을 횡단할 때마다 panel 이
-        // 좌↔우 점프하지 않도록. 현재 side 유지 + buffer (panelW × 0.6)
-        // 만큼 넘어가야만 swap. 쉬운 lerp 가 아닌 stateful side flip.
-        let buffer = panelW * 0.6
-        let mid = r.midX
-        switch inspectorSide {
-        case .right:
-            if p.x < mid - buffer { Task { @MainActor in inspectorSide = .left } }
-        case .left:
-            if p.x > mid + buffer { Task { @MainActor in inspectorSide = .right } }
-        }
+        // Hysteresis — side flip 은 advance() 의 updateInspectorSide() 에서
+        // 처리. 여기서는 현재 side 만 읽음 (Canvas draw closure 안 state
+        // 변이 금지 — iOS watchdog SIGTERM 원인).
         var pX: CGFloat = (inspectorSide == .right)
             ? p.x + pr + 10
             : p.x - pr - 10 - panelW
@@ -1767,6 +1765,30 @@ struct Mechanics2DViewport: View {
         initialExtent = CGSize(width: max(3, CGFloat(mx)),
                                 height: max(3, CGFloat(my)))
         maxObservedExtent = initialExtent
+    }
+
+    /// Inspector panel 의 좌/우 side flip 을 hysteresis 로 결정 — 매 프레임
+    /// Canvas draw 안이 아닌 advance() 에서 한 번씩 갱신해 view-update
+    /// 사이클 안 state 변이 (SIGTERM 위험) 회피.
+    private func updateInspectorSide() {
+        guard let id = inspectedId,
+              let body = world.bodies.first(where: { $0.id == id }),
+              body.pos.isFinite,
+              canvasSize.width > 0 else { return }
+        let scale = viewScale()
+        guard scale > 0 else { return }
+        let mid = canvasSize.width / 2
+        let cxScreen = mid + panOffset.width
+        let ext = computeExtent()
+        let bodyScreenX = cxScreen + CGFloat(body.pos.x - ext.center.x) * scale
+        let panelW: CGFloat = max(118, min(140, canvasSize.width * 0.36))
+        let buffer = panelW * 0.6
+        switch inspectorSide {
+        case .right:
+            if bodyScreenX < mid - buffer { inspectorSide = .left }
+        case .left:
+            if bodyScreenX > mid + buffer { inspectorSide = .right }
+        }
     }
 
     private func updateMaxObservedExtent() {
