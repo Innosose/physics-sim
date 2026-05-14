@@ -55,6 +55,7 @@ struct Mechanics2DViewport: View {
     @State private var dragStart: CGPoint = .zero
     @State private var dragStartTime: Date = .distantPast
     @State private var didMoveBeyondSlop: Bool = false
+    @State private var inspectorSide: InspectorSide = .right
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     private let pointerTapSlop: CGFloat = 10.0   // UIKit allowableMovement 기본
@@ -144,6 +145,7 @@ struct Mechanics2DViewport: View {
             .overlay(alignment: .bottomTrailing) { hintLabel }
             .overlay(alignment: .bottom) { transportBar }
             .overlay(alignment: .bottomLeading) { settledBadge }
+            .overlay { inspectorAccessibilityMirror }
 
             dataSection
 
@@ -427,6 +429,28 @@ struct Mechanics2DViewport: View {
                     rulerOn.toggle(); haptic(.light)
                 }
             }
+        }
+    }
+
+    /// Inspector 패널은 Canvas 안에 그려져 VoiceOver 가 보지 못함.
+    /// 동등한 정보를 노출하는 invisible SwiftUI overlay 를 mirror 로 둔다.
+    /// `.updatesFrequently` 로 VO 재읽기 throttle (과도한 spam 방지).
+    @ViewBuilder
+    private var inspectorAccessibilityMirror: some View {
+        if let id = inspectedId,
+           let body = world.bodies.first(where: { $0.id == id }) {
+            let accels = world.accelerations()
+            let idx = world.bodies.firstIndex(where: { $0.id == id }) ?? 0
+            let a = idx < accels.count ? accels[idx] : .zero
+            let ke = body.pinned ? 0 : 0.5 * body.mass * body.vel.lengthSquared
+            let label = String(
+                format: "%@ — 질량 %.2f, 속력 %.3f, 가속도 %.3f, 운동에너지 %.3f",
+                body.name ?? "선택 입자",
+                body.mass, body.vel.length, a.length, ke)
+            Color.clear
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(Text(label))
+                .accessibilityAddTraits(.updatesFrequently)
         }
     }
 
@@ -1284,9 +1308,20 @@ struct Mechanics2DViewport: View {
         // - 6) and the panel renders off the right edge.
         guard r.width >= panelW + 12, r.height >= panelH + 12 else { return }
 
-        // Place to the side opposite of the body's screen position so we
-        // stay inside the canvas.
-        var pX = (p.x < r.midX) ? p.x + pr + 10 : p.x - pr - 10 - panelW
+        // Hysteresis — body 가 정확히 midline 을 횡단할 때마다 panel 이
+        // 좌↔우 점프하지 않도록. 현재 side 유지 + buffer (panelW × 0.6)
+        // 만큼 넘어가야만 swap. 쉬운 lerp 가 아닌 stateful side flip.
+        let buffer = panelW * 0.6
+        let mid = r.midX
+        switch inspectorSide {
+        case .right:
+            if p.x < mid - buffer { Task { @MainActor in inspectorSide = .left } }
+        case .left:
+            if p.x > mid + buffer { Task { @MainActor in inspectorSide = .right } }
+        }
+        var pX: CGFloat = (inspectorSide == .right)
+            ? p.x + pr + 10
+            : p.x - pr - 10 - panelW
         var pY = p.y - panelH / 2
         pX = min(max(pX, r.minX + 6), r.maxX - panelW - 6)
         pY = min(max(pY, r.minY + 6), r.maxY - panelH - 6)
@@ -1781,6 +1816,8 @@ struct Mechanics2DViewport: View {
     }
 
     fileprivate enum RulerEnd { case start, end }
+
+    fileprivate enum InspectorSide { case left, right }
 
     fileprivate enum DragMode {
         case none
