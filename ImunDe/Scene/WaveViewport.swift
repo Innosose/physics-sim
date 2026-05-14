@@ -12,9 +12,9 @@ struct WaveViewport: View {
             case .doppler: DopplerView()
             }
         }
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: Radius.viewport, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: Radius.viewport, style: .continuous)
                 .stroke(Theme.stroke, lineWidth: 1)
         )
     }

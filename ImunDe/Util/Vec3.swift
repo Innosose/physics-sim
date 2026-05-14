@@ -1,6 +1,5 @@
 import CoreGraphics
 import Foundation
-import simd
 
 struct Vec3: Equatable {
     var x: Double
@@ -8,9 +7,6 @@ struct Vec3: Equatable {
     var z: Double
 
     static let zero = Vec3(x: 0, y: 0, z: 0)
-    static let unitX = Vec3(x: 1, y: 0, z: 0)
-    static let unitY = Vec3(x: 0, y: 1, z: 0)
-    static let unitZ = Vec3(x: 0, y: 0, z: 1)
 
     init(x: Double, y: Double, z: Double) {
         self.x = x; self.y = y; self.z = z
@@ -50,10 +46,6 @@ struct Vec3: Equatable {
         Vec3(x: a.y * b.z - a.z * b.y,
              y: a.z * b.x - a.x * b.z,
              z: a.x * b.y - a.y * b.x)
-    }
-
-    var simd: SIMD3<Float> {
-        SIMD3<Float>(Float(x), Float(y), Float(z))
     }
 
     var isFinite: Bool { x.isFinite && y.isFinite && z.isFinite }

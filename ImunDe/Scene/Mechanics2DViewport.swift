@@ -109,9 +109,9 @@ struct Mechanics2DViewport: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Theme.deep)
-            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: Radius.viewport, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                RoundedRectangle(cornerRadius: Radius.viewport, style: .continuous)
                     .stroke(Theme.stroke, lineWidth: 1)
             )
             .onGeometryChange(for: CGSize.self) { $0.size } action: { newSize in
@@ -716,10 +716,10 @@ struct Mechanics2DViewport: View {
                 .foregroundStyle(pointerIsLive ? Theme.ink : Theme.mist)
                 .padding(.horizontal, 8).padding(.vertical, 3)
                 .background(
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    RoundedRectangle(cornerRadius: Radius.small, style: .continuous)
                         .fill(Theme.surface.opacity(pointerIsLive ? 0.88 : 0.7))
                         .overlay(
-                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            RoundedRectangle(cornerRadius: Radius.small, style: .continuous)
                                 .stroke(Theme.stroke, lineWidth: 0.5)
                         )
                 )
@@ -762,10 +762,10 @@ struct Mechanics2DViewport: View {
             }
             .padding(.horizontal, 8).padding(.vertical, 4)
             .background(
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                RoundedRectangle(cornerRadius: Radius.small, style: .continuous)
                     .fill(Theme.surface.opacity(0.82))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        RoundedRectangle(cornerRadius: Radius.small, style: .continuous)
                             .stroke(Theme.stroke, lineWidth: 0.5)
                     )
             )
@@ -786,10 +786,10 @@ struct Mechanics2DViewport: View {
             .padding(.horizontal, 10)
             .padding(.vertical, 5)
             .background(
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                RoundedRectangle(cornerRadius: Radius.chip, style: .continuous)
                     .fill(Theme.surface.opacity(0.6))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        RoundedRectangle(cornerRadius: Radius.chip, style: .continuous)
                             .stroke(Theme.ink.opacity(0.22), lineWidth: 0.8)
                     )
             )

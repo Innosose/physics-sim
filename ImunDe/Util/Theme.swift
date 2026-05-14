@@ -138,10 +138,11 @@ enum Spacing {
 }
 
 enum Radius {
+    static let small:   CGFloat = 6     // mini-map, capsule-ish
     static let chip:    CGFloat = 8     // ChipToggle, small pills
     static let card:    CGFloat = 10    // panels, ConceptCard
+    static let medium:  CGFloat = 12    // 설정 카드 등 중간 패널
     static let viewport: CGFloat = 14   // viewport container
-    static let small:   CGFloat = 6     // mini-map, capsule-ish
 }
 
 enum Motion {

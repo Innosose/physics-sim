@@ -45,7 +45,7 @@ struct RootSplitView: View {
                     NavigationLink(value: SidebarItem.curriculum(c)) {
                         HStack(spacing: 10) {
                             ZStack {
-                                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                RoundedRectangle(cornerRadius: Radius.chip, style: .continuous)
                                     .fill(c.accent.opacity(0.12))
                                     .frame(width: 32, height: 32)
                                 Image(systemName: c.icon)
@@ -386,7 +386,7 @@ private struct PresetRow: View {
     var body: some View {
         HStack(spacing: 12) {
             ZStack {
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                RoundedRectangle(cornerRadius: Radius.chip, style: .continuous)
                     .fill(curriculum.accent.opacity(0.10))
                     .frame(width: 34, height: 34)
                 Image(systemName: preset.kind.icon)

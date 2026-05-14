@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct Preset: Identifiable, Hashable, @unchecked Sendable {
+struct Preset: Identifiable, Hashable {
     let id: String
     let title: String
     let curriculum: Curriculum

@@ -13,9 +13,9 @@ struct OpticsViewport: View {
             case .doubleSlit:  DoubleSlitView()
             }
         }
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: Radius.viewport, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: Radius.viewport, style: .continuous)
                 .stroke(Theme.stroke, lineWidth: 1)
         )
     }

@@ -13,9 +13,9 @@ struct GraphViewport: View {
             default:            Text("준비 중").foregroundStyle(Theme.mist)
             }
         }
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: Radius.viewport, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: Radius.viewport, style: .continuous)
                 .stroke(Theme.stroke, lineWidth: 1)
         )
     }

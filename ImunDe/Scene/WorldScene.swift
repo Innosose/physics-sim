@@ -69,10 +69,10 @@ struct ConceptCard: View {
                     .padding(10)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(
-                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        RoundedRectangle(cornerRadius: Radius.small, style: .continuous)
                             .stroke(Theme.glow.opacity(0.6), lineWidth: 1)
                             .background(
-                                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                RoundedRectangle(cornerRadius: Radius.small, style: .continuous)
                                     .fill(Theme.deep.opacity(0.5))
                             )
                     )
@@ -83,10 +83,10 @@ struct ConceptCard: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
         .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
+            RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
                 .fill(Theme.surface.opacity(0.45))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
                         .stroke(Theme.stroke, lineWidth: 1)
                 )
         )

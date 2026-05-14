@@ -59,11 +59,11 @@ struct SettingsView: View {
                 .padding(14)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    RoundedRectangle(cornerRadius: Radius.medium, style: .continuous)
                         .fill(Theme.surface.opacity(0.85))
                 )
                 .overlay(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    RoundedRectangle(cornerRadius: Radius.medium, style: .continuous)
                         .stroke(Theme.stroke, lineWidth: 1)
                 )
         }

@@ -1,31 +1,5 @@
 import SwiftUI
 
-// MARK: - Deterministic RNG so a given geometry sketches the same way each frame.
-
-struct SeededGenerator: RandomNumberGenerator {
-    var state: UInt64
-
-    init(_ seed: UInt64) { state = seed == 0 ? 0x9E3779B97F4A7C15 : seed }
-
-    mutating func next() -> UInt64 {
-        // xorshift64
-        state ^= state << 13
-        state ^= state >> 7
-        state ^= state << 17
-        return state
-    }
-
-    static func from(_ values: Double...) -> SeededGenerator {
-        var s: UInt64 = 0x9E3779B97F4A7C15
-        for v in values {
-            let bits: UInt64 = v.isFinite ? v.bitPattern : 0
-            s ^= bits
-            s = s &* 0x100000001B3
-        }
-        return SeededGenerator(s)
-    }
-}
-
 // MARK: - Drawing primitives for GraphicsContext.
 //
 // Clean engineering look: hairline-to-thin strokes, no grain overlay.
@@ -107,14 +81,6 @@ enum Sketchy {
                                       lineCap: .round, lineJoin: .round))
     }
 
-    /// Clean stroke — for graph curves where data shouldn't be exaggerated.
-    static func smooth(_ path: Path, ctx: GraphicsContext,
-                       color: Color, lineWidth: CGFloat = 1.2,
-                       opacity: Double = 0.9) {
-        ctx.stroke(path, with: .color(color.opacity(opacity)),
-                   style: StrokeStyle(lineWidth: lineWidth,
-                                      lineCap: .round, lineJoin: .round))
-    }
 }
 
 // MARK: - Modern flat button styles.
