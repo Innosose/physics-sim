@@ -63,6 +63,8 @@ struct Mechanics2DViewport: View {
     @State private var maxObservedExtent: CGSize = .zero
     @GestureState private var pinchDelta: CGFloat = 1.0
     @GestureState private var isPointerActive: Bool = false
+    @GestureState private var isPinching: Bool = false
+    @State private var longPressProgress: Double = 0
     @AppStorage("hasDraggedBody") private var hasDraggedBody = false
     @Environment(\.colorScheme) private var colorScheme
 
@@ -116,6 +118,7 @@ struct Mechanics2DViewport: View {
             .simultaneousGesture(
                 MagnifyGesture()
                     .updating($pinchDelta) { value, state, _ in state = value.magnification }
+                    .updating($isPinching) { _, state, _ in state = true }
                     .onEnded { value in
                         zoomScale = min(max(zoomScale * value.magnification, 0.3), 8.0)
                     }
@@ -135,6 +138,7 @@ struct Mechanics2DViewport: View {
                 if running { autoStopped = false }
             }
             .accessibilityAction(named: Text("초기화")) { reset() }
+            .overlay { longPressIndicator }
             .overlay(alignment: .topLeading) { zoomBadge }
             .overlay(alignment: .topTrailing) { miniMapOverlay }
             .overlay(alignment: .bottomTrailing) { hintLabel }
@@ -170,6 +174,28 @@ struct Mechanics2DViewport: View {
         .onChange(of: isPointerActive) { wasActive, nowActive in
             if wasActive && !nowActive { cancelActiveDrag() }
         }
+        // 두 번째 손가락이 도착했고 아직 tap 후보 상태라면 long-press 가
+        // spuriously 발화하지 않게 .consumed 로 전환.
+        .onChange(of: isPinching) { _, pinching in
+            if pinching, case .pendingTap = dragMode {
+                dragMode = .consumed
+                longPressProgress = 0
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var longPressIndicator: some View {
+        if longPressProgress > 0 && longPressProgress < 1 {
+            Circle()
+                .trim(from: 0, to: CGFloat(longPressProgress))
+                .stroke(Theme.glow,
+                        style: StrokeStyle(lineWidth: 2.4, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+                .frame(width: 40, height: 40)
+                .position(dragStart)
+                .allowsHitTesting(false)
+        }
     }
 
     // MARK: - Unified pointer gesture
@@ -199,13 +225,18 @@ struct Mechanics2DViewport: View {
         let dy = v.location.y - dragStart.y
         if hypot(dx, dy) > pointerTapSlop { didMoveBeyondSlop = true }
 
-        // Long-press → delete (tap-add 프리셋에서만).
-        if !didMoveBeyondSlop, tapEnabled,
-           Date().timeIntervalSince(dragStartTime) >= pointerLongPress,
-           case .pendingTap = dragMode {
-            handleLongPress(at: dragStart)
-            dragMode = .consumed
-            return
+        // Long-press progress (visual feedback in tap-add 프리셋만).
+        if !didMoveBeyondSlop, tapEnabled, case .pendingTap = dragMode {
+            let dt = Date().timeIntervalSince(dragStartTime)
+            longPressProgress = min(1.0, dt / pointerLongPress)
+            if dt >= pointerLongPress {
+                handleLongPress(at: dragStart)
+                dragMode = .consumed
+                longPressProgress = 0
+                return
+            }
+        } else if longPressProgress != 0 {
+            longPressProgress = 0
         }
 
         switch dragMode {
@@ -272,6 +303,7 @@ struct Mechanics2DViewport: View {
     private func cancelActiveDrag() {
         dragMode = .none
         didMoveBeyondSlop = false
+        longPressProgress = 0
     }
 
     @ViewBuilder
