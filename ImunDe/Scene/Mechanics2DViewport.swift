@@ -181,13 +181,13 @@ struct Mechanics2DViewport: View {
         Button(action: action) {
             Label(title, systemImage: systemImage)
                 .font(.caption.weight(.medium))
-                .foregroundStyle(on ? Theme.surface : Theme.ink)
+                .foregroundStyle(Theme.ink)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 6)
                 .padding(.horizontal, 6)
                 .background(
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(on ? Theme.ink.opacity(0.92) : Theme.surface.opacity(0.6))
+                        .fill(on ? Theme.glow : Theme.surface.opacity(0.6))
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
@@ -806,12 +806,12 @@ struct Mechanics2DViewport: View {
                        style: StrokeStyle(lineWidth: 0.5, dash: [2, 2]))
         }
 
-        let entries: [(KeyPath<World.EnergyBreakdown, Double>, [CGFloat]?, CGFloat)] = [
-            (\.kinetic,   nil,         1.4),  // solid
-            (\.potential, [4, 3],      1.2),  // dashed
-            (\.total,     [1.5, 2.5],  1.6),  // dotted
+        let entries: [(KeyPath<World.EnergyBreakdown, Double>, [CGFloat]?, CGFloat, Color)] = [
+            (\.kinetic,   nil,    1.4, Theme.ink),  // solid ink
+            (\.potential, [4, 3], 1.2, Theme.ink),  // dashed ink
+            (\.total,     nil,    1.8, Theme.glow), // solid cream — emphasis
         ]
-        for (kp, dash, lw) in entries {
+        for (kp, dash, lw, color) in entries {
             var path = Path()
             for (i, e) in energyHistory.enumerated() {
                 let f = CGFloat(i) / CGFloat(max(energyHistMax - 1, 1))
@@ -824,10 +824,10 @@ struct Mechanics2DViewport: View {
                 ? StrokeStyle(lineWidth: lw, lineCap: .round, lineJoin: .round)
                 : StrokeStyle(lineWidth: lw, lineCap: .round,
                               lineJoin: .round, dash: dash!)
-            ctx.stroke(path, with: .color(Theme.ink), style: style)
+            ctx.stroke(path, with: .color(color), style: style)
         }
         // Legend
-        ctx.draw(Text("실 KE  ㅡㅡ PE  · · ΣE")
+        ctx.draw(Text("실 KE  ㅡㅡ PE  ─ ΣE")
                     .font(.system(size: 8).monospacedDigit())
                     .foregroundStyle(Theme.mist),
                  at: CGPoint(x: plotR.midX, y: plotR.maxY - 6))
@@ -915,15 +915,15 @@ struct Mechanics2DViewport: View {
                 }
 
                 guard pts.count > 1 else { continue }
-                Sketchy.polyline(pts, ctx: ctx, color: Theme.glow,
-                                 lineWidth: 1.2, passes: 1, jitter: 0.3)
+                Sketchy.polyline(pts, ctx: ctx, color: Theme.ink.opacity(0.65),
+                                 lineWidth: 1.1, passes: 1, jitter: 0.3)
 
                 let midIdx = pts.count / 2
                 if midIdx >= 1 && midIdx < pts.count {
                     drawArrowhead(ctx: ctx,
                                   from: pts[midIdx - 1],
                                   to: pts[midIdx],
-                                  color: Theme.glow)
+                                  color: Theme.ink)
                 }
             }
         }

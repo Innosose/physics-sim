@@ -477,8 +477,8 @@ private struct SolenoidView: View {
         }
 
         guard pts.count > 1 else { return }
-        Sketchy.polyline(pts, ctx: ctx, color: Theme.glow,
-                         lineWidth: 1.2, passes: 1, jitter: 0.25)
+        Sketchy.polyline(pts, ctx: ctx, color: Theme.ink.opacity(0.65),
+                         lineWidth: 1.1, passes: 1, jitter: 0.25)
 
         // Arrowhead at midpoint
         let mid = pts.count / 2
@@ -490,9 +490,9 @@ private struct SolenoidView: View {
             let nx = dx/len, ny = dy/len, s: CGFloat = 6
             let h1 = CGPoint(x: b.x - nx*s - ny*s*0.5, y: b.y - ny*s + nx*s*0.5)
             let h2 = CGPoint(x: b.x - nx*s + ny*s*0.5, y: b.y - ny*s - nx*s*0.5)
-            Sketchy.line(from: b, to: h1, ctx: ctx, color: Theme.glow,
+            Sketchy.line(from: b, to: h1, ctx: ctx, color: Theme.ink,
                          lineWidth: 1.2, passes: 1, jitter: 0.2)
-            Sketchy.line(from: b, to: h2, ctx: ctx, color: Theme.glow,
+            Sketchy.line(from: b, to: h2, ctx: ctx, color: Theme.ink,
                          lineWidth: 1.2, passes: 1, jitter: 0.2)
         }
     }

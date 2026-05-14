@@ -36,8 +36,12 @@ enum Theme {
         light: Color.black.opacity(0.10),
         dark:  Color.white.opacity(0.08))
 
-    // Accents — all grayscale shades, just different greys for emphasis.
-    static let glow    = Color.adaptive(light: Color(white: 0.12), dark: Color(white: 0.92))
+    // 포인트 (cream) — slider fill, inspector ring, prominent buttons, totals.
+    static let glow = Color.adaptive(
+        light: Color(red: 0.88, green: 0.74, blue: 0.36),
+        dark:  Color(red: 0.95, green: 0.83, blue: 0.50))
+
+    // Other accents — still grayscale for chrome consistency.
     static let accent  = Color.adaptive(light: Color(white: 0.34), dark: Color(white: 0.74))
     static let pulse   = Color.adaptive(light: Color(white: 0.28), dark: Color(white: 0.80))
     static let confirm = Color.adaptive(light: Color(white: 0.32), dark: Color(white: 0.76))

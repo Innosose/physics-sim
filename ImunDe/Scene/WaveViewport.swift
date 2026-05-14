@@ -165,7 +165,7 @@ private struct WaveSumView: View {
             if i == 0 { path.move(to: CGPoint(x: px, y: py)) }
             else      { path.addLine(to: CGPoint(x: px, y: py)) }
         }
-        ctx.stroke(path, with: .color(Theme.ink), lineWidth: 1.9)
+        ctx.stroke(path, with: .color(Theme.glow), lineWidth: 1.9)
 
         if axis == .time && abs(f1 - f2) > 0.001 && !oppose {
             // 맥놀이 포락선
@@ -324,7 +324,7 @@ private struct DopplerView: View {
             }
         }
         let sx = CGFloat(cur + span / 2) * scale
-        Sketchy.fillCircle(center: CGPoint(x: sx, y: cy), radius: 6, ctx: ctx,
-                            fill: Theme.ink, stroke: Theme.ink, strokeWidth: 1.2)
+        Sketchy.fillCircle(center: CGPoint(x: sx, y: cy), radius: 7, ctx: ctx,
+                            fill: Theme.glow, stroke: Theme.ink, strokeWidth: 1.4)
     }
 }

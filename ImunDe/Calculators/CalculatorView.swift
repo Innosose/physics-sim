@@ -70,7 +70,7 @@ struct CalcInputField: View {
                      ? String(format: format, value)
                      : "\(String(format: format, value)) \(unit)")
                     .font(.themeMonoBold)
-                    .foregroundStyle(Theme.glow)
+                    .foregroundStyle(Theme.ink)
             }
             PaperSlider(value: $value, in: range)
         }

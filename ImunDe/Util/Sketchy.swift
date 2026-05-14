@@ -156,11 +156,9 @@ enum Sketchy {
 
 struct SketchButtonStyle: ButtonStyle {
     var prominent: Bool = false
-    var tint: Color = Theme.ink
 
     func makeBody(configuration: Configuration) -> some View {
-        let bg = prominent ? tint.opacity(0.92) : Theme.surface.opacity(0.6)
-        let fg = prominent ? Theme.surface : tint
+        let bg = prominent ? Theme.glow : Theme.surface.opacity(0.6)
         let pressed = configuration.isPressed
         let shape = RoundedRectangle(cornerRadius: 10, style: .continuous)
         return configuration.label
@@ -169,11 +167,11 @@ struct SketchButtonStyle: ButtonStyle {
             .background(shape.fill(bg))
             .overlay(
                 shape.stroke(
-                    tint.opacity(pressed ? 0.95 : 0.7),
+                    Theme.ink.opacity(pressed ? 0.95 : 0.7),
                     style: StrokeStyle(lineWidth: pressed ? 1.5 : 1.2)
                 )
             )
-            .foregroundStyle(fg)
+            .foregroundStyle(Theme.ink)
             .scaleEffect(pressed ? 0.97 : 1.0)
             .opacity(pressed ? 0.88 : 1.0)
             .animation(.spring(duration: 0.18), value: pressed)
