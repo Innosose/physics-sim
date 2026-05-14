@@ -534,6 +534,31 @@ struct Mechanics2DViewport: View {
                 style: StrokeStyle(lineWidth: 1.0, dash: [3, 2]))
         }
 
+        // Predicted ellipse (Kepler 2체 한정, 묶임 궤도일 때만) —
+        // 분석적으로 한 번 계산되므로 매 프레임 다시 그려도 가벼움.
+        if preset.id == "kepler",
+           let star = world.bodies.first(where: { $0.kind == .star || $0.pinned }),
+           let planet = world.bodies.first(where: { !$0.pinned && $0.kind != .star }),
+           let orbit = keplerOrbitEllipse(planet: planet, star: star) {
+            let center = CGPoint(
+                x: cx + CGFloat(orbit.cx - extent.center.x) * scale,
+                y: cy - CGFloat(orbit.cy - extent.center.y) * scale)
+            let majorPx = CGFloat(orbit.a) * scale
+            let minorPx = CGFloat(orbit.b) * scale
+            var path = Path()
+            path.addEllipse(in: CGRect(
+                x: -majorPx, y: -minorPx,
+                width: majorPx * 2, height: minorPx * 2))
+            // Rotate around its own center, then translate.
+            var transform = CGAffineTransform.identity
+                .translatedBy(x: center.x, y: center.y)
+                .rotated(by: CGFloat(-orbit.angle))  // y-flip 화면좌표
+            path = path.applying(transform)
+            ctx.stroke(path,
+                       with: .color(Theme.glowText.opacity(0.45)),
+                       style: StrokeStyle(lineWidth: 0.6, dash: [2, 2]))
+        }
+
         // Bodies — small filled dots, slightly enlarged so they're visible.
         for body in world.bodies {
             guard body.pos.isFinite else { continue }
@@ -547,6 +572,34 @@ struct Mechanics2DViewport: View {
                     width: r * 2, height: r * 2)),
                 with: .color(body.color))
         }
+    }
+
+    /// Kepler 2체 분석적 궤도 — bound (E < 0) 일 때 ellipse 파라미터.
+    private func keplerOrbitEllipse(planet: PhysicsBody, star: PhysicsBody)
+        -> (cx: Double, cy: Double, a: Double, b: Double, angle: Double)? {
+        let mu = world.G * star.mass
+        let dr = planet.pos - star.pos
+        let v = planet.vel
+        let r = dr.length
+        let v2 = v.lengthSquared
+        guard r > 1e-6, mu > 0 else { return nil }
+        let energy = 0.5 * v2 - mu / r
+        guard energy < 0 else { return nil }  // bound 만
+        let a = -mu / (2 * energy)
+        let h = dr.x * v.y - dr.y * v.x
+        let eSq = max(0, 1 + 2 * energy * h * h / (mu * mu))
+        let ecc = eSq.squareRoot()
+        // 이심률 벡터 (periapsis 방향). 표준 공식.
+        let dotRV = dr.x * v.x + dr.y * v.y
+        let coeff = v2 - mu / r
+        let evx = (coeff * dr.x - dotRV * v.x) / mu
+        let evy = (coeff * dr.y - dotRV * v.y) / mu
+        let angle = atan2(evy, evx)
+        let b = a * (1 - ecc * ecc).squareRoot()
+        // Ellipse 중심 = star - periapsis 방향 × (a*e)
+        let cx = star.pos.x - a * ecc * cos(angle)
+        let cy = star.pos.y - a * ecc * sin(angle)
+        return (cx, cy, a, b, angle)
     }
 
     @ViewBuilder
