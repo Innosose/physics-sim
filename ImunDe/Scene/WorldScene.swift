@@ -54,7 +54,7 @@ struct ConceptCard: View {
                     Spacer(minLength: 4)
                     Image(systemName: expanded ? "chevron.up" : "chevron.down")
                         .font(.caption2)
-                        .foregroundStyle(Theme.glow)
+                        .foregroundStyle(Theme.glowText)
                 }
                 .contentShape(Rectangle())
             }

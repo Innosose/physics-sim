@@ -394,7 +394,7 @@ private struct DopplerView: View {
         // 초음속 경고
         if sourceSpeed >= soundSpeed {
             ctx.draw(Text("초음속 (충격파)")
-                        .font(.caption2.weight(.semibold)).foregroundStyle(Theme.glow),
+                        .font(.caption2.weight(.semibold)).foregroundStyle(Theme.glowText),
                      at: CGPoint(x: size.width / 2, y: 14))
         }
 

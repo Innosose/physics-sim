@@ -504,7 +504,7 @@ struct Mechanics2DViewport: View {
                 Label(String(format: "%.2fx", live),
                       systemImage: "arrow.up.left.and.down.right.magnifyingglass")
                     .font(.caption2.weight(.medium).monospacedDigit())
-                    .foregroundStyle(reduceTransparency ? Theme.ink : Theme.glow)
+                    .foregroundStyle(reduceTransparency ? Theme.ink : Theme.glowText)
                     .padding(.horizontal, 10).padding(.vertical, 4)
                     .glassEffect(.regular.interactive(), in: Capsule())
             }

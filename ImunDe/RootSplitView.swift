@@ -286,7 +286,7 @@ private struct PresetList: View {
                         title: "즐겨찾기",
                         count: favs.count,
                         leadingIcon: "star.fill",
-                        iconColor: Theme.glow)
+                        iconColor: Theme.glowText)
                 }
             }
 
@@ -388,7 +388,7 @@ private struct PresetRow: View {
                     if isFavorite {
                         Image(systemName: "star.fill")
                             .font(.system(size: 9))
-                            .foregroundStyle(Theme.glow)
+                            .foregroundStyle(Theme.glowText)
                     }
                 }
                 if !preset.subtitle.isEmpty {
