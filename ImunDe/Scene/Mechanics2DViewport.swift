@@ -141,18 +141,24 @@ struct Mechanics2DViewport: View {
             }
             .accessibilityAction(named: Text("초기화")) { reset() }
             .overlay { longPressIndicator }
-            .overlay(alignment: .topLeading) { zoomBadge }
+            .overlay(alignment: .topLeading) {
+                VStack(alignment: .leading, spacing: 6) {
+                    zoomBadge
+                    coordStatusBar
+                }
+            }
             .overlay(alignment: .topTrailing) {
                 VStack(alignment: .trailing, spacing: 6) {
                     miniMapOverlay
                     inspectorPanel
                 }
             }
-            .overlay(alignment: .bottomTrailing) { hintLabel }
             .overlay(alignment: .bottom) { transportBar }
             .overlay(alignment: .bottomLeading) { settledBadge }
-            .overlay(alignment: .topLeading) { coordStatusBar }
             .overlay(alignment: .bottomTrailing) { scaleBar }
+            // hintLabel 는 마지막 — toast 위치 (transportBar 위 가운데)
+            // 로 분리 (옛 bottomTrailing 은 scaleBar 와 겹침).
+            .overlay(alignment: .bottom) { hintLabel }
 
             dataSection
 
@@ -383,7 +389,7 @@ struct Mechanics2DViewport: View {
                 .foregroundStyle(reduceTransparency ? Theme.ink : Theme.mist.opacity(0.9))
                 .padding(.horizontal, 10).padding(.vertical, 4)
                 .glassEffect(.regular, in: Capsule())
-                .padding(10)
+                .padding(.bottom, 56)  // transportBar (~44pt) 위 살짝 띄움
                 .allowsHitTesting(false)
         }
     }
@@ -421,39 +427,54 @@ struct Mechanics2DViewport: View {
 
     private var toggleRow: some View {
         let mask = chipMask
-        return HStack(spacing: 5) {
-            if mask.vectors {
-                ChipToggle(title: "벡터", systemImage: "arrow.up.right", isOn: vectorsOn) {
-                    vectorsOn.toggle(); haptic(.light)
+        // Compact width (iPhone SE 등) 에선 6 칩이 가로 폭 부족 → horizontal
+        // scroll. Regular 에선 등분 fill 유지.
+        let isCompact = horizontalSizeClass != .regular
+        let fill = !isCompact
+        return ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 5) {
+                if mask.vectors {
+                    ChipToggle(title: "벡터", systemImage: "arrow.up.right",
+                               isOn: vectorsOn, fillHorizontally: fill) {
+                        vectorsOn.toggle(); haptic(.light)
+                    }
+                }
+                if mask.energy {
+                    ChipToggle(title: "에너지", systemImage: "chart.bar.fill",
+                               isOn: energyOn, fillHorizontally: fill) {
+                        energyOn.toggle(); haptic(.light)
+                    }
+                }
+                if mask.trails {
+                    ChipToggle(title: "자취", systemImage: "scribble",
+                               isOn: trailsOn, fillHorizontally: fill) {
+                        trailsOn.toggle(); haptic(.light)
+                        world.trailEnabled = trailsOn
+                        if !trailsOn { world.trails.removeAll() }
+                    }
+                }
+                if mask.graphs {
+                    ChipToggle(title: "그래프", systemImage: "chart.xyaxis.line",
+                               isOn: graphsOn, fillHorizontally: fill) {
+                        graphsOn.toggle(); haptic(.light)
+                        if !graphsOn { motionHistory.removeAll() }
+                    }
+                }
+                if mask.ruler {
+                    ChipToggle(title: "자", systemImage: "ruler",
+                               isOn: rulerOn, fillHorizontally: fill) {
+                        rulerOn.toggle(); haptic(.light)
+                    }
+                }
+                ChipToggle(title: "분석", systemImage: "grid",
+                           isOn: analysisOn, fillHorizontally: fill) {
+                    analysisOn.toggle(); haptic(.light)
                 }
             }
-            if mask.energy {
-                ChipToggle(title: "에너지", systemImage: "chart.bar.fill", isOn: energyOn) {
-                    energyOn.toggle(); haptic(.light)
-                }
-            }
-            if mask.trails {
-                ChipToggle(title: "자취", systemImage: "scribble", isOn: trailsOn) {
-                    trailsOn.toggle(); haptic(.light)
-                    world.trailEnabled = trailsOn
-                    if !trailsOn { world.trails.removeAll() }
-                }
-            }
-            if mask.graphs {
-                ChipToggle(title: "그래프", systemImage: "chart.xyaxis.line", isOn: graphsOn) {
-                    graphsOn.toggle(); haptic(.light)
-                    if !graphsOn { motionHistory.removeAll() }
-                }
-            }
-            if mask.ruler {
-                ChipToggle(title: "자", systemImage: "ruler", isOn: rulerOn) {
-                    rulerOn.toggle(); haptic(.light)
-                }
-            }
-            ChipToggle(title: "분석", systemImage: "grid", isOn: analysisOn) {
-                analysisOn.toggle(); haptic(.light)
-            }
+            .padding(.horizontal, isCompact ? 0 : 0)
         }
+        .scrollBounceBehavior(.basedOnSize)
+        .scrollDisabled(!isCompact)
     }
 
     @ViewBuilder
@@ -1523,57 +1544,64 @@ struct Mechanics2DViewport: View {
     /// 우측 도킹 인스펙터 — Canvas 안 floating 패널을 대체. 본체가 어디
     /// 있든 위치 고정 → 좌/우 side flip 히스테리시스 불필요, body 가림
     /// 없음, 텍스트 선택/접근성 자연스러움.
+    ///
+    /// 정보 영역은 `.allowsHitTesting(false)` 로 body drag 가 통과 — 화면
+    /// 우상단으로 드래그 시 인스펙터가 차단하지 않음. X 버튼만 hit.
     @ViewBuilder
     private var inspectorPanel: some View {
         if let id = inspectedId,
            let body = world.bodies.first(where: { $0.id == id }) {
             let lines = inspectorLines(for: body)
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
-                    Circle()
-                        .fill(body.color)
-                        .frame(width: 9, height: 9)
-                        .overlay(Circle().stroke(Theme.ink.opacity(0.4), lineWidth: 0.5))
-                    Text(lines.first ?? "")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(Theme.ink)
-                    Spacer(minLength: 0)
-                    Button {
-                        inspectedId = nil
-                        haptic(.light)
-                    } label: {
-                        Image(systemName: "xmark")
-                            .font(.caption2.weight(.semibold))
-                            .foregroundStyle(Theme.mist)
-                            .frame(width: 22, height: 22)
+            ZStack(alignment: .topTrailing) {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(body.color)
+                            .frame(width: 9, height: 9)
+                            .overlay(Circle().stroke(Theme.ink.opacity(0.4), lineWidth: 0.5))
+                        Text(lines.first ?? "")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(Theme.ink)
+                        Spacer(minLength: 22)  // X 버튼 자리
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(Text("인스펙터 닫기"))
+                    ForEach(lines.dropFirst().indices, id: \.self) { i in
+                        Text(lines[i + 1])
+                            .font(.caption2.monospacedDigit())
+                            .foregroundStyle(Theme.mist)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.82)
+                    }
                 }
-                ForEach(lines.dropFirst().indices, id: \.self) { i in
-                    Text(lines[i + 1])
-                        .font(.caption2.monospacedDigit())
+                .padding(10)
+                .frame(width: 148, alignment: .leading)
+                .background(
+                    RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
+                        .fill(Theme.surface)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
+                                .stroke(Theme.stroke, lineWidth: 0.5)
+                        )
+                )
+                .allowsHitTesting(false)
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(Text(lines.joined(separator: ", ")))
+
+                Button {
+                    inspectedId = nil
+                    haptic(.light)
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.caption2.weight(.semibold))
                         .foregroundStyle(Theme.mist)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.82)
+                        .frame(width: 44, height: 44)  // HIG 44pt hit area
+                        .contentShape(Rectangle())
                 }
+                .buttonStyle(.plain)
+                .accessibilityLabel(Text("인스펙터 닫기"))
             }
-            .padding(10)
-            .frame(width: 148, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
-                    .fill(Theme.surface)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
-                            .stroke(Theme.stroke, lineWidth: 0.5)
-                    )
-            )
             .padding(.trailing, 10)
             .padding(.top, 10)
             .transition(.opacity.combined(with: .move(edge: .trailing)))
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel(Text(lines.joined(separator: ", ")))
-            .accessibilityAddTraits(.updatesFrequently)
         }
     }
 

@@ -389,6 +389,9 @@ struct ChipToggle: View {
     let systemImage: String
     let isOn: Bool
     var alignment: Alignment = .center
+    /// `false` 일 때 intrinsic 너비 — horizontal ScrollView 안에서 사용.
+    /// 기본 `true` 로 HStack 등분 충전 동작 유지.
+    var fillHorizontally: Bool = true
     let action: () -> Void
     @Environment(\.isEnabled) private var isEnabled
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -405,9 +408,11 @@ struct ChipToggle: View {
                 .font(.system(.footnote, design: .default)
                         .weight(isOn ? .semibold : .regular))
                 .foregroundStyle(isOn ? Theme.surface : Theme.mist)
-                .frame(maxWidth: .infinity, minHeight: 44, alignment: alignment)
+                .lineLimit(1)
+                .frame(maxWidth: fillHorizontally ? .infinity : nil,
+                       minHeight: 44, alignment: alignment)
                 .padding(.vertical, alignment == .leading ? 7 : 6)
-                .padding(.horizontal, alignment == .leading ? 10 : 4)
+                .padding(.horizontal, alignment == .leading ? 10 : 10)
                 .background(
                     RoundedRectangle(cornerRadius: Radius.chip, style: .continuous)
                         .fill(isOn ? Theme.ink : Theme.crest.opacity(0.5))
