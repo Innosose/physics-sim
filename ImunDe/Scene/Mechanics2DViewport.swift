@@ -15,7 +15,6 @@ struct Mechanics2DViewport: View {
     @State private var world = World()
     @State private var lastTick: TimeInterval? = nil
     @State private var running = false
-    @State private var redrawTick: Int = 0
     @State private var nBodyVariant: NBodyVariant = .solar
     @State private var canvasSize: CGSize = .zero
     @State private var vectorsOn: Bool = false
@@ -105,7 +104,6 @@ struct Mechanics2DViewport: View {
                         advance(to: newDate.timeIntervalSinceReferenceDate)
                     }
                 }
-                .id(redrawTick)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Theme.deep)
@@ -331,16 +329,13 @@ struct Mechanics2DViewport: View {
         // 마지막 좌표 5 초간 stale (회색) 유지 — 학생이 값 확인 후 손
         // 떼는 자연스런 동선. 영구 유지는 노이즈, 즉시 hide 는 단절.
         pointerIsLive = false
-        let captured = pointerWorldPos
         // 이전 fade task 가 살아있으면 cancel — 빠른 탭으로 좀비 누적 방지.
+        // 새 드래그가 들어와도 그쪽이 새 task 를 띄우고 옛 task 는 여기서
+        // cancel 되므로 위치 equality 비교가 별도로 필요 없음.
         fadeTask?.cancel()
         fadeTask = Task { @MainActor in
             try? await Task.sleep(for: .seconds(5))
-            // 취소되었거나 그 사이 새 드래그가 들어왔으면 hide 하지 않음.
-            guard !Task.isCancelled, !pointerIsLive,
-                  let cur = pointerWorldPos, let cap = captured,
-                  cur.x == cap.x, cur.y == cap.y
-            else { return }
+            guard !Task.isCancelled, !pointerIsLive else { return }
             pointerWorldPos = nil
         }
     }
@@ -372,6 +367,9 @@ struct Mechanics2DViewport: View {
         longPressProgress = 0
         // 시스템 cancel 경로 — 좌표바도 stale 처리 (pointerOnEnded 와 동일).
         pointerIsLive = false
+        // 다음 제스처 시작 전 stale 값이 longPressIndicator 등에 보이는
+        // 것 방지.
+        dragStart = .zero
     }
 
     @ViewBuilder
@@ -1139,7 +1137,8 @@ struct Mechanics2DViewport: View {
         lorentzB = world.magneticB.z
         hasEverMoved = false
         captureInitialExtent()
-        redrawTick &+= 1
+        // @Observable World 가 도입되어 reset 시 world.* 변경이 자동으로
+        // SwiftUI invalidation 을 트리거. 옛 .id(redrawTick) hack 제거.
     }
 
     /// Overrides preset defaults with the user's current slider values.
@@ -1269,11 +1268,10 @@ struct Mechanics2DViewport: View {
 
     private func haptic(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
         #if canImport(UIKit)
-        // prepare() 한 번 워밍업으로 첫 impact 지연 (60ms~) 제거.
-        // 인스턴스 재사용은 SwiftUI 의 struct 라이프사이클상 비실용적.
-        let g = UIImpactFeedbackGenerator(style: style)
-        g.prepare()
-        g.impactOccurred()
+        // 인스턴스를 static 캐시 (앱 라이프타임) 에 보관. 매 탭마다 새
+        // 인스턴스 생성하던 옛 코드 + 즉시 prepare()+impactOccurred() 는
+        // 효과 없는 워밍업이었음 — prepare 의 100ms 윈도우가 활용 안 됨.
+        HapticCache.shared.fire(style)
         #endif
     }
 
@@ -2298,3 +2296,31 @@ struct Mechanics2DViewport: View {
         case consumed                    // long-press fired, ignore remaining moves
     }
 }
+
+#if canImport(UIKit)
+/// 햅틱 generator 캐시 — light/medium/heavy 인스턴스를 앱 라이프타임으로
+/// 유지. `prepare()` 가 효과 있으려면 impact 보다 일찍 호출되어야 하는데,
+/// 매 탭마다 새 generator 를 만들어 즉시 호출하면 워밍업 윈도우가 0.
+@MainActor
+private final class HapticCache {
+    static let shared = HapticCache()
+    private let light  = UIImpactFeedbackGenerator(style: .light)
+    private let medium = UIImpactFeedbackGenerator(style: .medium)
+    private let heavy  = UIImpactFeedbackGenerator(style: .heavy)
+    private init() {
+        // 초기 prepare — 첫 탭의 cold-start 지연 감소.
+        light.prepare(); medium.prepare(); heavy.prepare()
+    }
+    func fire(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
+        let g: UIImpactFeedbackGenerator
+        switch style {
+        case .light:  g = light
+        case .medium: g = medium
+        case .heavy:  g = heavy
+        default:      g = medium
+        }
+        g.impactOccurred()
+        g.prepare()  // 다음 호출용 워밍업.
+    }
+}
+#endif
