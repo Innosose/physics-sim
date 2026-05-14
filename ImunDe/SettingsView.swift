@@ -14,7 +14,7 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                ImunDeBackground(topGlow: Theme.glow.opacity(0.06))
+                ImunDeBackground()
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
                         section(title: "테마") {
@@ -31,9 +31,6 @@ struct SettingsView: View {
                                     .font(.callout.monospacedDigit())
                                     .foregroundStyle(Theme.mist)
                             }
-                            Text("이런 문제 데이터베이스 — 인터랙티브 물리 시뮬레이션")
-                                .font(.caption)
-                                .foregroundStyle(Theme.mist)
                         }
                     }
                     .padding(20)
