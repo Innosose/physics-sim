@@ -77,23 +77,33 @@ struct RootSplitView: View {
 
     @ViewBuilder
     private var contentColumn: some View {
-        switch sidebarItem {
-        case .curriculum(let c):
-            PresetList(curriculum: c, selection: $detailSelection)
-        case nil:
-            Color.clear
-                .background(ImunDeBackground(topGlow: Theme.glow.opacity(0.10)))
+        Group {
+            switch sidebarItem {
+            case .curriculum(let c):
+                PresetList(curriculum: c, selection: $detailSelection)
+                    .id("curr-\(c.rawValue)")
+            case nil:
+                Color.clear
+                    .background(ImunDeBackground(topGlow: Theme.glow.opacity(0.10)))
+            }
         }
+        .transition(.opacity)
+        .animation(.easeOut(duration: 0.22), value: sidebarItem)
     }
 
     @ViewBuilder
     private var detailColumn: some View {
-        switch detailSelection {
-        case .preset(let p):
-            WorldScene(preset: p)
-        case nil:
-            WelcomeView()
+        Group {
+            switch detailSelection {
+            case .preset(let p):
+                WorldScene(preset: p)
+                    .id("ws-\(p.id)")
+            case nil:
+                WelcomeView()
+            }
         }
+        .transition(.opacity)
+        .animation(.easeOut(duration: 0.25), value: detailSelection)
     }
 }
 
@@ -110,37 +120,51 @@ enum DetailItem: Hashable, Identifiable {
 // MARK: - Welcome
 
 private struct WelcomeView: View {
+    @State private var titleIn = false
+    @State private var subIn = false
+    @State private var underlineProgress: CGFloat = 0
+    @State private var rowsIn = [false, false, false]
+    @State private var footerIn = false
+
+    private let rows: [(title: String, sub: String, color: Color)] = [
+        ("중학교", "역학·빛·회로·열", Curriculum.middle.accent),
+        ("고등학교", "물리Ⅰ·Ⅱ 전 범위", Curriculum.high.accent),
+        ("샌드박스", "자유 시뮬레이션", Curriculum.free.accent),
+    ]
+
     var body: some View {
         ZStack {
             ImunDeBackground(topGlow: Theme.glow.opacity(0.12))
             VStack(spacing: 20) {
                 VStack(spacing: 6) {
                     Text("이문데")
-                        .font(.system(size: 48, weight: .bold, design: .rounded))
+                        .font(.system(size: 48, weight: .bold, design: .serif))
                         .foregroundStyle(Theme.ink)
+                        .opacity(titleIn ? 1 : 0)
+                        .offset(y: titleIn ? 0 : 14)
                     Text("이런 문제 데이터베이스")
                         .font(.title3)
                         .foregroundStyle(Theme.mist)
+                        .opacity(subIn ? 1 : 0)
+                        .offset(y: subIn ? 0 : 8)
                 }
-                Rectangle()
-                    .fill(Theme.glow)
-                    .frame(width: 40, height: 2)
-                    .cornerRadius(1)
+                SketchyLineShape(jitter: 1.0, seed: 0xAA55AA55)
+                    .trim(from: 0, to: underlineProgress)
+                    .stroke(Theme.glow, style: StrokeStyle(lineWidth: 2.2,
+                                                            lineCap: .round))
+                    .frame(width: 64, height: 8)
                 VStack(spacing: 8) {
-                    ForEach([
-                        ("중학교", "역학·빛·회로·열", Curriculum.middle.accent),
-                        ("고등학교", "물리Ⅰ·Ⅱ 전 범위", Curriculum.high.accent),
-                        ("샌드박스", "자유 시뮬레이션", Curriculum.free.accent),
-                    ], id: \.0) { item in
+                    ForEach(rows.indices, id: \.self) { i in
+                        let item = rows[i]
                         HStack(spacing: 12) {
                             RoundedRectangle(cornerRadius: 2, style: .continuous)
-                                .fill(item.2)
+                                .fill(item.color)
                                 .frame(width: 3, height: 28)
                             VStack(alignment: .leading, spacing: 1) {
-                                Text(item.0)
+                                Text(item.title)
                                     .font(.callout.weight(.semibold))
                                     .foregroundStyle(Theme.ink)
-                                Text(item.1)
+                                Text(item.sub)
                                     .font(.caption)
                                     .foregroundStyle(Theme.mist)
                             }
@@ -154,16 +178,35 @@ private struct WelcomeView: View {
                             RoundedRectangle(cornerRadius: 10, style: .continuous)
                                 .stroke(Theme.ink.opacity(0.45), lineWidth: 1.1)
                         )
+                        .opacity(rowsIn[i] ? 1 : 0)
+                        .offset(y: rowsIn[i] ? 0 : 14)
                     }
                 }
                 .frame(maxWidth: 320)
                 Text("← 왼쪽에서 학년을 선택하세요")
                     .font(.footnote)
                     .foregroundStyle(Theme.mist.opacity(0.7))
+                    .opacity(footerIn ? 1 : 0)
             }
             .padding(24)
         }
         .ignoresSafeArea()
+        .onAppear(perform: animateIn)
+    }
+
+    private func animateIn() {
+        guard !titleIn else { return }
+        withAnimation(.easeOut(duration: 0.55)) { titleIn = true }
+        withAnimation(.easeOut(duration: 0.55).delay(0.18)) { subIn = true }
+        withAnimation(.easeInOut(duration: 0.7).delay(0.38)) {
+            underlineProgress = 1
+        }
+        for i in 0..<rowsIn.count {
+            withAnimation(.spring(duration: 0.5).delay(0.55 + Double(i) * 0.10)) {
+                rowsIn[i] = true
+            }
+        }
+        withAnimation(.easeOut(duration: 0.5).delay(0.95)) { footerIn = true }
     }
 }
 
