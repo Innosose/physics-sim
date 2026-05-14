@@ -255,7 +255,7 @@ private struct FaradayView: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            TimelineView(.animation) { tl in
+            TimelineView(running ? .animation : .animation(minimumInterval: 1.0)) { tl in
                 Canvas { ctx, size in draw(ctx: ctx, size: size, t: elapsed) }
                     .onChange(of: tl.date) { _, d in
                         advance(to: d.timeIntervalSinceReferenceDate)

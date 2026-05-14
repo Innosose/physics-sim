@@ -70,6 +70,9 @@ struct Mechanics2DViewport: View {
     @State private var longPressProgress: Double = 0
     @State private var pointerWorldPos: Vec3? = nil
     @State private var pointerIsLive: Bool = false  // false = stale (손가락 뗀 후)
+    // stale 좌표 5초 페이드용 Task. 빠른 탭 시 좀비 누적되지 않도록
+    // 이전 task 를 cancel 하고 갱신.
+    @State private var fadeTask: Task<Void, Never>? = nil
     @AppStorage("hasDraggedBody") private var hasDraggedBody = false
     @Environment(\.colorScheme) private var colorScheme
 
@@ -90,7 +93,11 @@ struct Mechanics2DViewport: View {
             }
 
             ZStack {
-                TimelineView(.animation) { tl in
+                // 일시정지 시 TimelineView schedule 을 1Hz 로 throttle —
+                // 매 vsync 마다 Canvas draw 가 도는 wasted GPU 비용 제거.
+                // pan/drag/zoom 같은 @State 변경은 schedule 과 무관하게
+                // 즉시 redraw 트리거하므로 인터랙션 60fps 유지.
+                TimelineView(running ? .animation : .animation(minimumInterval: 1.0)) { tl in
                     Canvas { ctx, size in
                         draw(ctx: ctx, size: size)
                     }
@@ -178,6 +185,7 @@ struct Mechanics2DViewport: View {
             .frame(maxHeight: horizontalSizeClass == .regular ? 280 : 200)
         }
         .onAppear { reset() }
+        .onDisappear { fadeTask?.cancel(); fadeTask = nil }
         .onChange(of: preset.id) { _, _ in reset() }
         .onChange(of: scenePhase) { _, phase in
             // .inactive (알림 배너 / Control Center pulldown) 만으로는
@@ -303,15 +311,16 @@ struct Mechanics2DViewport: View {
         // 떼는 자연스런 동선. 영구 유지는 노이즈, 즉시 hide 는 단절.
         pointerIsLive = false
         let captured = pointerWorldPos
-        Task { @MainActor in
+        // 이전 fade task 가 살아있으면 cancel — 빠른 탭으로 좀비 누적 방지.
+        fadeTask?.cancel()
+        fadeTask = Task { @MainActor in
             try? await Task.sleep(for: .seconds(5))
-            // 5 초 후에도 같은 좌표면 hide; 그 사이 새 드래그가 갱신했다면
-            // 이 task 는 옛 좌표를 보고 hide 하지 말아야 함.
-            if !pointerIsLive,
-               let cur = pointerWorldPos, let cap = captured,
-               cur.x == cap.x, cur.y == cap.y {
-                pointerWorldPos = nil
-            }
+            // 취소되었거나 그 사이 새 드래그가 들어왔으면 hide 하지 않음.
+            guard !Task.isCancelled, !pointerIsLive,
+                  let cur = pointerWorldPos, let cap = captured,
+                  cur.x == cap.x, cur.y == cap.y
+            else { return }
+            pointerWorldPos = nil
         }
     }
 
@@ -488,7 +497,7 @@ struct Mechanics2DViewport: View {
                         rulerOn.toggle(); haptic(.light)
                     }
                 }
-                ChipToggle(title: "분석", systemImage: "grid",
+                ChipToggle(title: "분석", systemImage: "square.grid.2x2",
                            isOn: analysisOn, fillHorizontally: fill) {
                     analysisOn.toggle(); haptic(.light)
                 }
@@ -1592,8 +1601,8 @@ struct Mechanics2DViewport: View {
                             .foregroundStyle(Theme.ink)
                         Spacer(minLength: 22)  // X 버튼 자리
                     }
-                    ForEach(1..<lines.count, id: \.self) { i in
-                        Text(lines[i])
+                    ForEach(Array(lines.dropFirst().enumerated()), id: \.offset) { _, txt in
+                        Text(txt)
                             .font(.caption2.monospacedDigit())
                             .foregroundStyle(Theme.mist)
                             .lineLimit(1)

@@ -31,7 +31,7 @@ private struct MotionGraphView: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            TimelineView(.animation) { tl in
+            TimelineView(running ? .animation : .animation(minimumInterval: 1.0)) { tl in
                 Canvas { ctx, size in
                     draw(ctx: ctx, size: size, t: elapsed)
                 }
@@ -202,7 +202,7 @@ private struct HeatTransferView: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            TimelineView(.animation) { tl in
+            TimelineView(running ? .animation : .animation(minimumInterval: 1.0)) { tl in
                 Canvas { ctx, size in
                     draw(ctx: ctx, size: size, t: elapsed)
                 }

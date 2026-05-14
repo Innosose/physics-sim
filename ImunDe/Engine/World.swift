@@ -28,6 +28,13 @@ final class World {
 
     func step(dt: Double) {
         guard !bodies.isEmpty else { time += dt; return }
+        // NaN/Inf sanitize — 근접 특이점에서 발생한 비정상 상태가 다음
+        // step 으로 전파되면 Canvas 렌더 단계에서 좌표계 계산이 폭주.
+        // computeAccel/applyBounds 진입 전 미리 정상화.
+        for i in bodies.indices where !(bodies[i].pos.isFinite && bodies[i].vel.isFinite) {
+            bodies[i].pos = .zero
+            bodies[i].vel = .zero
+        }
         switch integrator {
         case .euler:          stepEuler(dt: dt)
         case .velocityVerlet: stepVelocityVerlet(dt: dt)
@@ -180,7 +187,10 @@ final class World {
                 for j in 0..<n where j != i {
                     let d = pos[j] - pos[i]
                     let r2 = d.lengthSquared
-                    if r2 < 1e-6 { continue }
+                    // 근접 특이점 softening. 옛 1e-6 은 r≈1mm 에서 r⁻³ 항이
+                    // 1e9 까지 폭주해 한 step 만에 Inf 가속 → NaN 위치.
+                    // 1e-3 (r≈32mm) 로 조여 numerical blow-up 차단.
+                    if r2 < 1e-3 { continue }
                     let r = r2.squareRoot()
                     f += d * (G * bodies[i].mass * bodies[j].mass / (r2 * r))
                 }
@@ -189,7 +199,7 @@ final class World {
                 for j in 0..<n where j != i {
                     let d = pos[i] - pos[j]
                     let r2 = d.lengthSquared
-                    if r2 < 1e-6 { continue }
+                    if r2 < 1e-3 { continue }
                     let r = r2.squareRoot()
                     f += d * (kCoulomb * bodies[i].charge * bodies[j].charge / (r2 * r))
                 }
