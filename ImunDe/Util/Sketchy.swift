@@ -28,14 +28,17 @@ struct SeededGenerator: RandomNumberGenerator {
 
 // MARK: - Drawing primitives for GraphicsContext.
 //
-// Charcoal feel: thick confident strokes (weight multiplier) + grain
-// overlay rendered separately via `CharcoalGrain`. `passes` and `jitter`
-// parameters are accepted for API compatibility but ignored.
+// Clean engineering look: hairline-to-thin strokes, no grain overlay.
+// `passes` and `jitter` parameters are kept for API compatibility but
+// ignored — the earlier charcoal-feel weight multiplier (1.45) read as
+// "kid's drawing app" rather than "physics simulator" for the high-school
+// study audience; the pro-tool reference frame (Desmos, GeoGebra, COMSOL)
+// uses 1.0× consistently.
 
 enum Sketchy {
-    /// Universal stroke weight multiplier — gives all simulation lines
-    /// a charcoal-like presence without touching every call site.
-    static let weight: CGFloat = 1.45
+    /// Universal stroke weight multiplier — neutral by default. Per-call
+    /// `lineWidth` carries the design intent.
+    static let weight: CGFloat = 1.0
 
     static func line(from a: CGPoint, to b: CGPoint, ctx: GraphicsContext,
                      color: Color,
@@ -111,60 +114,6 @@ enum Sketchy {
         ctx.stroke(path, with: .color(color.opacity(opacity)),
                    style: StrokeStyle(lineWidth: lineWidth,
                                       lineCap: .round, lineJoin: .round))
-    }
-}
-
-// MARK: - CharcoalGrain — paper grain overlay for simulation canvases.
-
-/// 옛날 코드: 매 프레임 600개의 `Path(ellipseIn:)` 생성 + 600회 ctx.fill
-/// — 가장 비용 큰 hot path. 새 코드: size-키 캐시 — opacity 3 단계로
-/// 버킷화 후 path 미리 만들어 두고 매 프레임 3번 fill 만 수행. ~200배 감소.
-struct CharcoalGrain: View {
-    var density: Double = 0.0012     // dots per pixel
-    var seed: UInt64 = 0xC0FFEE_C0FFEE
-    @Environment(\.colorScheme) private var colorScheme
-    @State private var cachedSize: CGSize = .zero
-    @State private var cachedPaths: [(opacity: Double, path: Path)] = []
-
-    var body: some View {
-        let _ = colorScheme
-        Canvas { ctx, _ in
-            for entry in cachedPaths {
-                ctx.fill(entry.path, with: .color(Theme.ink.opacity(entry.opacity)))
-            }
-        }
-        .onGeometryChange(for: CGSize.self) { $0.size } action: { newSize in
-            if newSize != cachedSize, newSize.width > 0, newSize.height > 0 {
-                cachedSize = newSize
-                cachedPaths = generatePaths(size: newSize)
-            }
-        }
-        .allowsHitTesting(false)
-    }
-
-    private func generatePaths(size: CGSize) -> [(opacity: Double, path: Path)] {
-        var rng = SeededGenerator(seed
-            ^ UInt64(size.width.bitPattern)
-            ^ UInt64(size.height.bitPattern))
-        let count = max(20, Int(size.width * size.height * density))
-        // 3 opacity buckets — visual variation 보존하면서 fill 호출은 3번만.
-        var bucket1 = Path(), bucket2 = Path(), bucket3 = Path()
-        for _ in 0..<count {
-            let x = CGFloat.random(in: 0..<size.width, using: &rng)
-            let y = CGFloat.random(in: 0..<size.height, using: &rng)
-            let r = CGFloat.random(in: 0.25...0.75, using: &rng)
-            let rect = CGRect(x: x - r, y: y - r, width: r * 2, height: r * 2)
-            switch Int.random(in: 0..<3, using: &rng) {
-            case 0:  bucket1.addEllipse(in: rect)
-            case 1:  bucket2.addEllipse(in: rect)
-            default: bucket3.addEllipse(in: rect)
-            }
-        }
-        return [
-            (0.06, bucket1),
-            (0.10, bucket2),
-            (0.14, bucket3),
-        ]
     }
 }
 

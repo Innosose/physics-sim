@@ -96,7 +96,6 @@ struct Mechanics2DViewport: View {
                     }
                 }
                 .id(redrawTick)
-                CharcoalGrain().allowsHitTesting(false)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Theme.deep)
