@@ -72,8 +72,7 @@ struct CalcInputField: View {
                     .font(.themeMonoBold)
                     .foregroundStyle(Theme.glow)
             }
-            Slider(value: $value, in: range)
-                .tint(Theme.glow)
+            PaperSlider(value: $value, in: range)
         }
         .padding(.vertical, 2)
     }
@@ -216,10 +215,8 @@ struct OhmCalculator: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             CalcSection(title: "연결 방식") {
-                Picker("연결", selection: $mode) {
-                    ForEach(Mode.allCases) { Text($0.rawValue).tag($0) }
-                }
-                .pickerStyle(.segmented)
+                PaperPicker(selection: $mode,
+                             options: Mode.allCases) { $0.rawValue }
             }
             CalcSection(title: "입력값") {
                 CalcInputField(title: "전압 V", value: $V, range: 0...50, unit: "V")
@@ -498,10 +495,8 @@ struct DopplerCalculator: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             CalcSection(title: "운동 주체") {
-                Picker("운동 주체", selection: $mode) {
-                    ForEach(Mode.allCases) { Text($0.rawValue).tag($0) }
-                }
-                .pickerStyle(.segmented)
+                PaperPicker(selection: $mode,
+                             options: Mode.allCases) { $0.rawValue }
             }
             CalcSection(title: "입력값") {
                 CalcInputField(title: "원래 진동수 f", value: $f0, range: 50...2000, unit: "Hz")

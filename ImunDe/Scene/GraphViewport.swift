@@ -100,10 +100,10 @@ private struct MotionGraphView: View {
                         range: ClosedRange<Double>, unit: String) -> some View {
         HStack {
             Text(title).font(.caption).foregroundStyle(Theme.mist)
-            Slider(value: value, in: range).tint(Theme.glow)
+            PaperSlider(value: value, in: range)
             Text(String(format: "%.2f%@", value.wrappedValue, unit))
                 .font(.caption.monospacedDigit())
-                .foregroundStyle(Theme.glow)
+                .foregroundStyle(Theme.ink)
                 .frame(width: 90, alignment: .trailing)
         }
     }
@@ -251,10 +251,10 @@ private struct HeatTransferView: View {
                         range: ClosedRange<Double>, unit: String) -> some View {
         HStack {
             Text(title).font(.caption).foregroundStyle(Theme.mist)
-            Slider(value: value, in: range).tint(Theme.glow)
+            PaperSlider(value: value, in: range)
             Text(String(format: "%.2f%@", value.wrappedValue, unit))
                 .font(.caption.monospacedDigit())
-                .foregroundStyle(Theme.glow)
+                .foregroundStyle(Theme.ink)
                 .frame(width: 80, alignment: .trailing)
         }
     }

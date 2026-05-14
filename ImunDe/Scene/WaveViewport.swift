@@ -46,10 +46,8 @@ private struct WaveSumView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             VStack(alignment: .leading, spacing: 8) {
-                Picker("축", selection: $axis) {
-                    ForEach(Axis.allCases) { a in Text(a.rawValue).tag(a) }
-                }
-                .pickerStyle(.segmented)
+                PaperPicker(selection: $axis,
+                             options: Axis.allCases) { $0.rawValue }
                 slider("f₁", value: $f1, range: 0.1...4, unit: "Hz")
                 slider("f₂", value: $f2, range: 0.1...4, unit: "Hz")
                 Toggle("두 번째 파 반대 진행 (정상파)", isOn: $oppose)
@@ -97,10 +95,10 @@ private struct WaveSumView: View {
                         range: ClosedRange<Double>, unit: String) -> some View {
         HStack {
             Text(title).font(.caption).foregroundStyle(Theme.mist)
-            Slider(value: value, in: range).tint(Theme.glow)
+            PaperSlider(value: value, in: range)
             Text(String(format: "%.2f%@", value.wrappedValue, unit))
                 .font(.caption.monospacedDigit())
-                .foregroundStyle(Theme.glow)
+                .foregroundStyle(Theme.ink)
                 .frame(width: 70, alignment: .trailing)
         }
     }
@@ -279,10 +277,10 @@ private struct DopplerView: View {
                         range: ClosedRange<Double>, unit: String) -> some View {
         HStack {
             Text(title).font(.caption).foregroundStyle(Theme.mist)
-            Slider(value: value, in: range).tint(Theme.glow)
+            PaperSlider(value: value, in: range)
             Text(String(format: "%.2f%@", value.wrappedValue, unit))
                 .font(.caption.monospacedDigit())
-                .foregroundStyle(Theme.glow)
+                .foregroundStyle(Theme.ink)
                 .frame(width: 80, alignment: .trailing)
         }
     }

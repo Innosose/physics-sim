@@ -172,9 +172,9 @@ private struct WelcomeView: View {
                     .cornerRadius(1)
                 VStack(spacing: 8) {
                     ForEach([
-                        ("중학교", "역학·빛·회로·열", Color(red: 0.30, green: 0.74, blue: 0.85)),
-                        ("고등학교", "물리Ⅰ·Ⅱ 전 범위", Color(red: 0.55, green: 0.45, blue: 0.95)),
-                        ("샌드박스", "자유 시뮬레이션", Color(red: 0.98, green: 0.86, blue: 0.40)),
+                        ("중학교", "역학·빛·회로·열", Curriculum.middle.accent),
+                        ("고등학교", "물리Ⅰ·Ⅱ 전 범위", Curriculum.high.accent),
+                        ("샌드박스", "자유 시뮬레이션", Curriculum.free.accent),
                     ], id: \.0) { item in
                         HStack(spacing: 12) {
                             RoundedRectangle(cornerRadius: 2, style: .continuous)
@@ -192,11 +192,11 @@ private struct WelcomeView: View {
                         }
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)
-                        .background(Theme.surface.opacity(0.4))
+                        .background(Theme.surface.opacity(0.55))
                         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                         .overlay(
                             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .stroke(Theme.stroke, lineWidth: 1)
+                                .stroke(Theme.ink.opacity(0.45), lineWidth: 1.1)
                         )
                     }
                 }

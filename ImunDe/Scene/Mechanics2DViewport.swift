@@ -43,13 +43,9 @@ struct Mechanics2DViewport: View {
     var body: some View {
         VStack(spacing: 10) {
             if preset.id == "nbody" {
-                Picker("", selection: $nBodyVariant) {
-                    ForEach(NBodyVariant.allCases) { v in
-                        Text(v.rawValue).tag(v)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .onChange(of: nBodyVariant) { _, _ in reset() }
+                PaperPicker(selection: $nBodyVariant,
+                            options: NBodyVariant.allCases) { $0.rawValue }
+                    .onChange(of: nBodyVariant) { _, _ in reset() }
             }
 
             TimelineView(.animation) { tl in
@@ -129,24 +125,29 @@ struct Mechanics2DViewport: View {
     private var hasMovableBody: Bool { world.bodies.contains { !$0.pinned } }
 
     private var toggleRow: some View {
-        HStack(spacing: 6) {
-            chipToggle("벡터", systemImage: "arrow.up.right", on: vectorsOn) {
-                vectorsOn.toggle(); haptic(.light)
+        VStack(spacing: 6) {
+            HStack(spacing: 6) {
+                chipToggle("벡터", systemImage: "arrow.up.right", on: vectorsOn) {
+                    vectorsOn.toggle(); haptic(.light)
+                }
+                chipToggle("에너지", systemImage: "chart.bar.fill", on: energyOn) {
+                    energyOn.toggle(); haptic(.light)
+                }
+                chipToggle("자취", systemImage: "scribble", on: trailsOn) {
+                    trailsOn.toggle(); haptic(.light)
+                    world.trailEnabled = trailsOn
+                    if !trailsOn { world.trails.removeAll() }
+                }
             }
-            chipToggle("에너지", systemImage: "chart.bar.fill", on: energyOn) {
-                energyOn.toggle(); haptic(.light)
-            }
-            chipToggle("자취", systemImage: "scribble", on: trailsOn) {
-                trailsOn.toggle(); haptic(.light)
-                world.trailEnabled = trailsOn
-                if !trailsOn { world.trails.removeAll() }
-            }
-            chipToggle("그래프", systemImage: "chart.xyaxis.line", on: graphsOn) {
-                graphsOn.toggle(); haptic(.light)
-                if !graphsOn { motionHistory.removeAll() }
-            }
-            chipToggle("자", systemImage: "ruler", on: rulerOn) {
-                rulerOn.toggle(); haptic(.light)
+            HStack(spacing: 6) {
+                chipToggle("그래프", systemImage: "chart.xyaxis.line", on: graphsOn) {
+                    graphsOn.toggle(); haptic(.light)
+                    if !graphsOn { motionHistory.removeAll() }
+                }
+                chipToggle("자", systemImage: "ruler", on: rulerOn) {
+                    rulerOn.toggle(); haptic(.light)
+                }
+                Color.clear.frame(maxWidth: .infinity)
             }
         }
     }
@@ -182,7 +183,7 @@ struct Mechanics2DViewport: View {
                 .font(.caption.weight(.medium))
                 .foregroundStyle(on ? Theme.surface : Theme.ink)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 7)
+                .padding(.vertical, 6)
                 .padding(.horizontal, 6)
                 .background(
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
@@ -194,7 +195,7 @@ struct Mechanics2DViewport: View {
                                 lineWidth: on ? 1.4 : 1.1)
                 )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.chipPress)
     }
 
     @ViewBuilder
@@ -202,11 +203,11 @@ struct Mechanics2DViewport: View {
         if preset.id == "lorentz" {
             HStack(spacing: 8) {
                 Text("B_z").font(.caption).foregroundStyle(Theme.mist)
-                Slider(value: $lorentzB, in: -3...3).tint(Theme.glow)
+                PaperSlider(value: $lorentzB, in: -3...3)
                 Text(String(format: "%+.2f T", lorentzB))
                     .font(.caption.monospacedDigit())
-                    .foregroundStyle(Theme.glow)
-                    .frame(width: 72, alignment: .trailing)
+                    .foregroundStyle(Theme.ink)
+                    .frame(width: 64, alignment: .trailing)
             }
             .onChange(of: lorentzB) { _, v in
                 world.magneticB = Vec3(x: 0, y: 0, z: v)
@@ -215,16 +216,16 @@ struct Mechanics2DViewport: View {
     }
 
     private var timeScaleRow: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 6) {
             Text(String(format: "t=%.2fs", world.time))
                 .font(.caption2.monospacedDigit())
                 .foregroundStyle(Theme.mist)
-                .frame(width: 70, alignment: .leading)
-            Slider(value: $timeScale, in: 0.25...4).tint(Theme.glow)
+                .frame(width: 62, alignment: .leading)
+            PaperSlider(value: $timeScale, in: 0.25...4)
             Text(String(format: "%.2fx", timeScale))
                 .font(.caption2.monospacedDigit())
-                .foregroundStyle(Theme.glow)
-                .frame(width: 46, alignment: .trailing)
+                .foregroundStyle(Theme.ink)
+                .frame(width: 42, alignment: .trailing)
         }
     }
 
@@ -485,7 +486,7 @@ struct Mechanics2DViewport: View {
                         y: cy - CGFloat(rulerEnd.y - extent.center.y) * scale)
         let dS = hypot(screenPt.x - s.x, screenPt.y - s.y)
         let dE = hypot(screenPt.x - e.x, screenPt.y - e.y)
-        let threshold: CGFloat = 26
+        let threshold: CGFloat = 32
         if dS <= dE && dS < threshold { return .start }
         if dE < threshold { return .end }
         return nil
@@ -661,17 +662,39 @@ struct Mechanics2DViewport: View {
 
         let p = mapPoint(body.pos, scale: scale, cx: cx, cy: cy, ext: ext)
         let pr = max(2, CGFloat(body.radius) * scale)
-        // Sketchy highlight ring around the body.
         Sketchy.circle(center: p, radius: pr + 5, ctx: ctx,
                         color: Theme.glow, lineWidth: 1.4, passes: 2, jitter: 0.04)
 
         let panelW: CGFloat = 132, panelH: CGFloat = 86
-        var pX = p.x + pr + 10
+
+        // Place to the side opposite of the body's screen position so we
+        // stay inside the canvas. Then nudge away from other open panels.
+        var pX = (p.x < r.midX) ? p.x + pr + 10 : p.x - pr - 10 - panelW
         var pY = p.y - panelH / 2
-        pX = min(pX, r.maxX - panelW - 6)
-        pX = max(pX, r.minX + 6)
-        pY = min(pY, r.maxY - panelH - 6)
-        pY = max(pY, r.minY + 6)
+        pX = min(max(pX, r.minX + 6), r.maxX - panelW - 6)
+        pY = min(max(pY, r.minY + 6), r.maxY - panelH - 6)
+
+        // Avoid energy panel (top-right, ~228 × 100)
+        if energyOn {
+            let energyZone = CGRect(x: r.maxX - 240, y: r.minY,
+                                    width: 240, height: 108)
+            if energyZone.intersects(CGRect(x: pX, y: pY,
+                                            width: panelW, height: panelH)) {
+                pY = max(pY, energyZone.maxY + 6)
+                pY = min(pY, r.maxY - panelH - 6)
+            }
+        }
+        // Avoid graphs panel (bottom-left, ~228 × 148)
+        if graphsOn {
+            let graphsZone = CGRect(x: r.minX, y: r.maxY - 160,
+                                    width: 240, height: 160)
+            if graphsZone.intersects(CGRect(x: pX, y: pY,
+                                            width: panelW, height: panelH)) {
+                pY = min(pY, graphsZone.minY - panelH - 6)
+                pY = max(pY, r.minY + 6)
+            }
+        }
+
         let panel = CGRect(x: pX, y: pY, width: panelW, height: panelH)
         ctx.fill(Path(roundedRect: panel, cornerRadius: 8),
                  with: .color(Theme.surface.opacity(0.94)))
@@ -1055,11 +1078,11 @@ struct Mechanics2DViewport: View {
             }
         }
 
-        // Endpoint handles
+        // Endpoint handles (larger for easier grabbing)
         for pt in [s, e] {
-            Sketchy.fillCircle(center: pt, radius: 6, ctx: ctx,
+            Sketchy.fillCircle(center: pt, radius: 10, ctx: ctx,
                                 fill: Theme.surface, stroke: Theme.ink,
-                                strokeWidth: 1.4)
+                                strokeWidth: 1.6)
         }
 
         // Label

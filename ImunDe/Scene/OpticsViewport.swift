@@ -45,10 +45,10 @@ private struct ReflectionView: View {
                         range: ClosedRange<Double>, unit: String) -> some View {
         HStack {
             Text(title).font(.caption).foregroundStyle(Theme.mist)
-            Slider(value: value, in: range).tint(Theme.glow)
+            PaperSlider(value: value, in: range)
             Text(String(format: "%.2f%@", value.wrappedValue, unit))
                 .font(.caption.monospacedDigit())
-                .foregroundStyle(Theme.glow)
+                .foregroundStyle(Theme.ink)
                 .frame(width: 70, alignment: .trailing)
         }
     }
@@ -133,10 +133,10 @@ private struct LensView: View {
                         range: ClosedRange<Double>, unit: String) -> some View {
         HStack {
             Text(title).font(.caption).foregroundStyle(Theme.mist)
-            Slider(value: value, in: range).tint(Theme.glow)
+            PaperSlider(value: value, in: range)
             Text(String(format: "%.2f%@", value.wrappedValue, unit))
                 .font(.caption.monospacedDigit())
-                .foregroundStyle(Theme.glow)
+                .foregroundStyle(Theme.ink)
                 .frame(width: 70, alignment: .trailing)
         }
     }
@@ -216,10 +216,8 @@ private struct DoubleSlitView: View {
         VStack(spacing: 8) {
             Canvas { ctx, size in draw(ctx: ctx, size: size) }
             VStack(alignment: .leading, spacing: 8) {
-                Picker("모드", selection: $mode) {
-                    ForEach(Mode.allCases) { m in Text(m.rawValue).tag(m) }
-                }
-                .pickerStyle(.segmented)
+                PaperPicker(selection: $mode,
+                             options: Mode.allCases) { $0.rawValue }
                 slider("λ", value: $lambdaNm, range: 380...780, unit: "nm")
                 slider("d", value: $dUm, range: 10...200, unit: "μm")
                     .disabled(mode == .single)
@@ -234,10 +232,10 @@ private struct DoubleSlitView: View {
                         range: ClosedRange<Double>, unit: String) -> some View {
         HStack {
             Text(title).font(.caption).foregroundStyle(Theme.mist)
-            Slider(value: value, in: range).tint(Theme.glow)
+            PaperSlider(value: value, in: range)
             Text(String(format: "%.2f%@", value.wrappedValue, unit))
                 .font(.caption.monospacedDigit())
-                .foregroundStyle(Theme.glow)
+                .foregroundStyle(Theme.ink)
                 .frame(width: 80, alignment: .trailing)
         }
     }

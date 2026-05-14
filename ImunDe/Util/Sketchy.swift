@@ -180,3 +180,109 @@ extension ButtonStyle where Self == SketchButtonStyle {
     static var sketch: SketchButtonStyle { SketchButtonStyle(prominent: false) }
     static var sketchProminent: SketchButtonStyle { SketchButtonStyle(prominent: true) }
 }
+
+// MARK: - Chip press style — visual feedback for .plain chip buttons.
+
+struct ChipPressStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.94 : 1.0)
+            .opacity(configuration.isPressed ? 0.82 : 1.0)
+            .animation(.spring(duration: 0.18), value: configuration.isPressed)
+    }
+}
+
+extension ButtonStyle where Self == ChipPressStyle {
+    static var chipPress: ChipPressStyle { ChipPressStyle() }
+}
+
+// MARK: - PaperSlider — sketchy ink-on-paper slider.
+
+struct PaperSlider: View {
+    @Binding var value: Double
+    let range: ClosedRange<Double>
+    var height: CGFloat = 28
+
+    private var fraction: Double {
+        let span = range.upperBound - range.lowerBound
+        guard span > 1e-12 else { return 0 }
+        return max(0, min(1, (value - range.lowerBound) / span))
+    }
+
+    var body: some View {
+        GeometryReader { geo in
+            Canvas { ctx, size in
+                let leftPad: CGFloat = 6, rightPad: CGFloat = 6
+                let usable = max(1, size.width - leftPad - rightPad)
+                let midY = size.height / 2
+                let handleX = leftPad + usable * CGFloat(fraction)
+
+                Sketchy.line(from: CGPoint(x: leftPad, y: midY),
+                              to: CGPoint(x: size.width - rightPad, y: midY),
+                              ctx: ctx, color: Theme.ink.opacity(0.6),
+                              lineWidth: 1.2, passes: 1, jitter: 0.25)
+                if handleX > leftPad + 1 {
+                    Sketchy.line(from: CGPoint(x: leftPad, y: midY),
+                                  to: CGPoint(x: handleX, y: midY),
+                                  ctx: ctx, color: Theme.glow,
+                                  lineWidth: 2.2, passes: 2, jitter: 0.22)
+                }
+                Sketchy.fillCircle(center: CGPoint(x: handleX, y: midY), radius: 8,
+                                    ctx: ctx, fill: Theme.surface,
+                                    stroke: Theme.ink, strokeWidth: 1.4)
+            }
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { g in
+                        let leftPad: CGFloat = 6, rightPad: CGFloat = 6
+                        let usable = max(1, geo.size.width - leftPad - rightPad)
+                        let t = max(0, min(1, (g.location.x - leftPad) / usable))
+                        let span = range.upperBound - range.lowerBound
+                        value = range.lowerBound + Double(t) * span
+                    }
+            )
+        }
+        .frame(height: height)
+    }
+}
+
+// MARK: - PaperPicker — segmented picker styled as a paper card.
+
+struct PaperPicker<T: Hashable>: View {
+    @Binding var selection: T
+    let options: [T]
+    let label: (T) -> String
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(Array(options.enumerated()), id: \.offset) { idx, opt in
+                let isActive = selection == opt
+                Button {
+                    withAnimation(.spring(duration: 0.18)) { selection = opt }
+                } label: {
+                    Text(label(opt))
+                        .font(.caption.weight(.medium))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 7)
+                        .foregroundStyle(isActive ? Theme.surface : Theme.ink)
+                        .background(isActive
+                                    ? Theme.ink.opacity(0.9)
+                                    : Color.clear)
+                }
+                .buttonStyle(.chipPress)
+                if idx < options.count - 1 {
+                    Rectangle()
+                        .fill(Theme.ink.opacity(0.45))
+                        .frame(width: 1)
+                }
+            }
+        }
+        .background(Theme.surface.opacity(0.55))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(Theme.ink.opacity(0.65), lineWidth: 1.1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+}
