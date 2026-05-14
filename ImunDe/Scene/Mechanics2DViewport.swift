@@ -318,38 +318,48 @@ struct Mechanics2DViewport: View {
     @ViewBuilder
     private var dataSection: some View {
         if energyOn || graphsOn {
-            // 인접한 두 glass shape (간격 6pt) — GlassEffectContainer 로
-            // 묶어 morphing in/out 과 단일 sampling pass 보장.
-            GlassEffectContainer(spacing: 6) {
-                VStack(spacing: 6) {
-                    if energyOn {
-                        // 차트는 60-120Hz 필요 없음 — 30Hz 로 제한해 main
-                        // 캔버스의 frame budget 을 보호 (Opus Agent 1).
-                        TimelineView(.animation(minimumInterval: 1.0 / 30)) { _ in
-                            Canvas { ctx, size in
-                                drawEnergyChart(ctx: ctx,
-                                                 in: CGRect(origin: .zero, size: size))
-                            }
+            // 데이터 패널은 glass 가 적합하지 않음 — 차트는 수치 읽기가
+            // 1차 목적이므로 배경이 뒤 콘텐츠를 비추면 가독성 손해. iOS 26
+            // Liquid Glass 가이드도 "데이터 디스플레이는 solid material"
+            // 권장. flat surface + 1pt 보더로 교체.
+            VStack(spacing: 6) {
+                if energyOn {
+                    // 차트는 60-120Hz 필요 없음 — 30Hz 로 제한해 main
+                    // 캔버스의 frame budget 을 보호 (Opus Agent 1).
+                    TimelineView(.animation(minimumInterval: 1.0 / 30)) { _ in
+                        Canvas { ctx, size in
+                            drawEnergyChart(ctx: ctx,
+                                             in: CGRect(origin: .zero, size: size))
                         }
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 96)
-                        .glassEffect(.regular,
-                                      in: RoundedRectangle(cornerRadius: 10,
-                                                           style: .continuous))
                     }
-                    if graphsOn {
-                        TimelineView(.animation(minimumInterval: 1.0 / 30)) { _ in
-                            Canvas { ctx, size in
-                                drawMotionChart(ctx: ctx,
-                                                 in: CGRect(origin: .zero, size: size))
-                            }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 96)
+                    .background(
+                        RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
+                            .fill(Theme.surface)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
+                                    .stroke(Theme.stroke, lineWidth: 0.5)
+                            )
+                    )
+                }
+                if graphsOn {
+                    TimelineView(.animation(minimumInterval: 1.0 / 30)) { _ in
+                        Canvas { ctx, size in
+                            drawMotionChart(ctx: ctx,
+                                             in: CGRect(origin: .zero, size: size))
                         }
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 128)
-                        .glassEffect(.regular,
-                                      in: RoundedRectangle(cornerRadius: 10,
-                                                           style: .continuous))
                     }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 128)
+                    .background(
+                        RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
+                            .fill(Theme.surface)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
+                                    .stroke(Theme.stroke, lineWidth: 0.5)
+                            )
+                    )
                 }
             }
             .transition(.opacity.combined(with: .move(edge: .top)))
