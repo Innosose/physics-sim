@@ -58,10 +58,8 @@ private struct SimpleCircuitView: View {
         HStack {
             Text(title).font(.caption).foregroundStyle(Theme.mist)
             PaperSlider(value: value, in: range)
-            Text(String(format: "%.2f%@", value.wrappedValue, unit))
-                .font(.caption.monospacedDigit())
-                .foregroundStyle(Theme.ink)
-                .frame(width: 80, alignment: .trailing)
+            EditableValue(value: value, range: range,
+                           format: "%.2f\(unit)", width: 80)
         }
     }
 
@@ -176,10 +174,8 @@ private struct RLCView: View {
         HStack {
             Text(title).font(.caption).foregroundStyle(Theme.mist)
             PaperSlider(value: value, in: range)
-            Text(String(format: "%.2f%@", value.wrappedValue, unit))
-                .font(.caption.monospacedDigit())
-                .foregroundStyle(Theme.ink)
-                .frame(width: 90, alignment: .trailing)
+            EditableValue(value: value, range: range,
+                           format: "%.2f\(unit)", width: 90)
         }
     }
 
@@ -380,9 +376,8 @@ private struct FaradayView: View {
         HStack {
             Text(title).font(.caption).foregroundStyle(Theme.mist)
             PaperSlider(value: value, in: range)
-            Text(String(format: "%.1f%@", value.wrappedValue, unit))
-                .font(.caption.monospacedDigit()).foregroundStyle(Theme.ink)
-                .frame(width: 90, alignment: .trailing)
+            EditableValue(value: value, range: range,
+                           format: "%.1f\(unit)", width: 90)
         }
     }
 }
@@ -538,9 +533,7 @@ private struct SolenoidView: View {
         HStack {
             Text(title).font(.caption).foregroundStyle(Theme.mist)
             PaperSlider(value: value, in: range)
-            Text(String(format: fmt, value.wrappedValue))
-                .font(.caption.monospacedDigit()).foregroundStyle(Theme.ink)
-                .frame(width: 90, alignment: .trailing)
+            EditableValue(value: value, range: range, format: fmt, width: 90)
         }
     }
 }

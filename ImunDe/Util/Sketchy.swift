@@ -231,6 +231,93 @@ extension ButtonStyle where Self == ChipPressStyle {
     static var chipPress: ChipPressStyle { ChipPressStyle() }
 }
 
+// MARK: - EditableValue — tap-to-edit numeric label with range clamping.
+
+/// Displays a numeric value formatted via `format`. Tapping reveals an
+/// inline TextField; submitting parses the input, clamps to `range`,
+/// and writes back through the binding. Useful next to PaperSlider so
+/// users can either drag for coarse adjustment or type for exact values.
+struct EditableValue: View {
+    @Binding var value: Double
+    let range: ClosedRange<Double>
+    /// printf-style format applied to `value`, e.g. `"%.2f m"`.
+    let format: String
+    var width: CGFloat = 64
+
+    @State private var draft: String = ""
+    @State private var editing: Bool = false
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        Group {
+            if editing {
+                TextField("", text: $draft)
+                    .keyboardType(range.lowerBound < 0
+                                  ? .numbersAndPunctuation : .decimalPad)
+                    .multilineTextAlignment(.trailing)
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(Theme.ink)
+                    .focused($focused)
+                    .submitLabel(.done)
+                    .onSubmit { commit() }
+                    .onChange(of: focused) { _, f in if !f { commit() } }
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 2)
+                    .background(Theme.surface)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 4, style: .continuous)
+                            .stroke(Theme.glow, lineWidth: 1)
+                    )
+                    .toolbar {
+                        ToolbarItemGroup(placement: .keyboard) {
+                            Spacer()
+                            Button("완료") { focused = false }
+                                .font(.subheadline.weight(.semibold))
+                        }
+                    }
+            } else {
+                Text(String(format: format, value))
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(Theme.ink)
+                    .contentShape(Rectangle())
+                    .onTapGesture { startEditing() }
+            }
+        }
+        .frame(width: width, alignment: .trailing)
+    }
+
+    private func startEditing() {
+        draft = editableFormat(value)
+        editing = true
+        DispatchQueue.main.async { focused = true }
+    }
+
+    private func editableFormat(_ v: Double) -> String {
+        // Plain number, no unit, reasonable precision.
+        if abs(v) >= 100 {
+            return String(format: "%.0f", v)
+        } else if abs(v) >= 10 {
+            return String(format: "%.2f", v)
+        } else if abs(v) >= 0.1 {
+            return String(format: "%.3f", v)
+        } else {
+            return String(format: "%.4g", v)
+        }
+    }
+
+    private func commit() {
+        let cleaned = draft
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: ",", with: ".")
+        if let n = Double(cleaned), n.isFinite {
+            value = min(max(n, range.lowerBound), range.upperBound)
+        }
+        // (invalid input is silently rejected — original value preserved)
+        editing = false
+        focused = false
+    }
+}
+
 // MARK: - PaperSlider — clean modern slider.
 
 struct PaperSlider: View {

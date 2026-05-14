@@ -248,8 +248,10 @@ struct Mechanics2DViewport: View {
     @ViewBuilder
     private var miniMapOverlay: some View {
         if needsMiniMap {
-            Canvas { ctx, size in
-                drawMiniMap(ctx: ctx, size: size)
+            TimelineView(.animation) { _ in
+                Canvas { ctx, size in
+                    drawMiniMap(ctx: ctx, size: size)
+                }
             }
             .frame(width: 96, height: 72)
             .background(Theme.surface.opacity(0.78))
@@ -498,10 +500,7 @@ struct Mechanics2DViewport: View {
             Text(title).font(.caption).foregroundStyle(Theme.mist)
                 .frame(minWidth: 96, alignment: .leading)
             PaperSlider(value: value, in: range)
-            Text(String(format: fmt, value.wrappedValue))
-                .font(.caption.monospacedDigit())
-                .foregroundStyle(Theme.ink)
-                .frame(width: 64, alignment: .trailing)
+            EditableValue(value: value, range: range, format: fmt, width: 70)
         }
     }
 
@@ -512,10 +511,8 @@ struct Mechanics2DViewport: View {
                 .foregroundStyle(Theme.mist)
                 .frame(width: 62, alignment: .leading)
             PaperSlider(value: $timeScale, in: 0.25...4)
-            Text(String(format: "%.2fx", timeScale))
-                .font(.caption2.monospacedDigit())
-                .foregroundStyle(Theme.ink)
-                .frame(width: 42, alignment: .trailing)
+            EditableValue(value: $timeScale, range: 0.25...4,
+                           format: "%.2fx", width: 50)
         }
     }
 
