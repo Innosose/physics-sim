@@ -392,7 +392,7 @@ struct Mechanics2DViewport: View {
                         }
                     }
                     .frame(maxWidth: .infinity)
-                    .frame(height: horizontalSizeClass == .regular ? 96 : 72)
+                    .frame(height: horizontalSizeClass == .regular ? 112 : 88)
                     .background(
                         RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
                             .fill(Theme.surface)
@@ -406,7 +406,7 @@ struct Mechanics2DViewport: View {
                         }
                     }
                     .frame(maxWidth: .infinity)
-                    .frame(height: horizontalSizeClass == .regular ? 128 : 96)
+                    .frame(height: horizontalSizeClass == .regular ? 144 : 120)
                     .background(
                         RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
                             .fill(Theme.surface)
@@ -957,7 +957,7 @@ struct Mechanics2DViewport: View {
                 .frame(width: 62, alignment: .leading)
             PaperSlider(value: $timeScale, in: 0.25...4)
             EditableValue(value: $timeScale, range: 0.25...4,
-                           format: "%.2fx", width: 50)
+                           format: "%.2fx", width: 56)
         }
     }
 
@@ -973,7 +973,7 @@ struct Mechanics2DViewport: View {
                     haptic(.medium)
                 } label: {
                     Image(systemName: running ? "pause.fill" : "play.fill")
-                        .font(.system(size: 16, weight: .bold))
+                        .font(.system(size: 20, weight: .bold))
                         .foregroundStyle(Theme.ink)
                         .frame(width: 44, height: 44)
                         .contentShape(Circle())
@@ -987,7 +987,7 @@ struct Mechanics2DViewport: View {
                     haptic(.light)
                 } label: {
                     Image(systemName: "forward.frame.fill")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.system(size: 17, weight: .semibold))
                         .foregroundStyle(running ? Theme.mist : Theme.ink)
                         .frame(width: 44, height: 44)
                         .contentShape(Circle())
@@ -1002,7 +1002,7 @@ struct Mechanics2DViewport: View {
                     haptic(.medium)
                 } label: {
                     Image(systemName: "arrow.counterclockwise")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.system(size: 17, weight: .semibold))
                         .foregroundStyle(Theme.ink)
                         .frame(width: 44, height: 44)
                         .contentShape(Circle())
@@ -1502,7 +1502,10 @@ struct Mechanics2DViewport: View {
         for body in world.bodies {
             guard body.pos.isFinite else { continue }
             let p = mapPoint(body.pos, scale: scale, cx: cx, cy: cy, ext: extent.center)
-            let pr = max(2, CGFloat(body.radius) * scale)
+            // body 가 많을 때 (kinetic ~80) 는 3pt 까지 허용, 그 외엔 4pt
+            // (8pt 직경) — 옛 2pt floor 는 시각 acuity 한계 미만.
+            let radiusFloor: CGFloat = world.bodies.count > 50 ? 3 : 4
+            let pr = max(radiusFloor, CGFloat(body.radius) * scale)
             guard pr.isFinite else { continue }
 
             // Grab feedback — 진한 솔리드 body 위에 cobalt selection ring.
@@ -1564,7 +1567,10 @@ struct Mechanics2DViewport: View {
         for body in world.bodies {
             guard let name = body.name, body.pos.isFinite else { continue }
             let p = mapPoint(body.pos, scale: scale, cx: cx, cy: cy, ext: ext)
-            let pr = max(2, CGFloat(body.radius) * scale)
+            // body 가 많을 때 (kinetic ~80) 는 3pt 까지 허용, 그 외엔 4pt
+            // (8pt 직경) — 옛 2pt floor 는 시각 acuity 한계 미만.
+            let radiusFloor: CGFloat = world.bodies.count > 50 ? 3 : 4
+            let pr = max(radiusFloor, CGFloat(body.radius) * scale)
             ctx.draw(
                 Text(name).font(.caption2.weight(.medium))
                     .foregroundStyle(Theme.mist.opacity(0.9)),
@@ -1653,7 +1659,7 @@ struct Mechanics2DViewport: View {
                     }
                 }
                 .padding(10)
-                .frame(width: 148, alignment: .leading)
+                .frame(width: horizontalSizeClass == .regular ? 220 : 180, alignment: .leading)
                 .background(
                     RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
                         .fill(Theme.surface)
@@ -1671,7 +1677,7 @@ struct Mechanics2DViewport: View {
                     haptic(.light)
                 } label: {
                     Image(systemName: "xmark")
-                        .font(.caption2.weight(.semibold))
+                        .font(.system(size: 15, weight: .semibold))
                         .foregroundStyle(Theme.mist)
                         .frame(width: 44, height: 44)  // HIG 44pt hit area
                         .contentShape(Rectangle())

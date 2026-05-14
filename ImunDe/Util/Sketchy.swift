@@ -312,7 +312,7 @@ struct PaperSlider: View {
                 // Handle knob
                 Circle()
                     .fill(Theme.surface)
-                    .frame(width: 22, height: 22)
+                    .frame(width: 26, height: 26)
                     .overlay(Circle().stroke(Theme.ink.opacity(0.22), lineWidth: 1))
                     .shadow(color: Theme.ink.opacity(0.10), radius: 3, x: 0, y: 1)
                     .offset(x: handleX - 11)
@@ -363,7 +363,7 @@ struct PaperPicker<T: Hashable>: View {
                     Text(label(opt))
                         .font(.system(.footnote, design: .default)
                                 .weight(isActive ? .semibold : .regular))
-                        .frame(maxWidth: .infinity, minHeight: 32)
+                        .frame(maxWidth: .infinity, minHeight: 36)
                         .foregroundStyle(isActive ? Theme.surface : Theme.mist)
                         .background {
                             if isActive {
@@ -417,6 +417,7 @@ struct ChipToggle: View {
                         .weight(isOn ? .semibold : .regular))
                 .foregroundStyle(isOn ? Theme.surface : Theme.mist)
                 .lineLimit(1)
+                .minimumScaleFactor(0.85)  // 한글 wrap 방지 (Dynamic Type XL+)
                 .frame(maxWidth: fillHorizontally ? .infinity : nil,
                        minHeight: 44, alignment: alignment)
                 .padding(.vertical, alignment == .leading ? 7 : 6)

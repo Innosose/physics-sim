@@ -49,7 +49,7 @@ struct RootSplitView: View {
                                     .fill(c.accent.opacity(0.12))
                                     .frame(width: 32, height: 32)
                                 Image(systemName: c.icon)
-                                    .font(.system(size: 14, weight: .semibold))
+                                    .font(.system(size: 17, weight: .semibold))
                                     .foregroundStyle(c.accent)
                             }
                             Text(c.rawValue)
