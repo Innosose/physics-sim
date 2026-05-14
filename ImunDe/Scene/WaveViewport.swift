@@ -50,27 +50,12 @@ private struct WaveSumView: View {
                              options: Axis.allCases) { $0.rawValue }
                 slider("f₁", value: $f1, range: 0.1...4, unit: "Hz")
                 slider("f₂", value: $f2, range: 0.1...4, unit: "Hz")
-                Button {
-                    guard axis != .time else { return }
+                ChipToggle(title: "두 번째 파 반대 진행 (정상파)",
+                            systemImage: "arrow.left.arrow.right",
+                            isOn: oppose,
+                            alignment: .leading) {
                     oppose.toggle()
-                } label: {
-                    Label("두 번째 파 반대 진행 (정상파)", systemImage: "arrow.left.arrow.right")
-                        .font(.system(size: 11, weight: oppose ? .semibold : .regular))
-                        .foregroundStyle(oppose ? Theme.surface : Theme.mist)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.vertical, 7)
-                        .padding(.horizontal, 10)
-                        .background(
-                            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                .fill(oppose ? Theme.ink : Theme.crest.opacity(0.5))
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                .stroke(oppose ? Color.clear : Theme.stroke, lineWidth: 1)
-                        )
-                        .opacity(axis == .time ? 0.4 : 1)
                 }
-                .buttonStyle(.chipPress)
                 .disabled(axis == .time)
                 playReset
             }

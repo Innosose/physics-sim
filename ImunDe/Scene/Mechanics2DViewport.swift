@@ -127,22 +127,22 @@ struct Mechanics2DViewport: View {
 
     private var toggleRow: some View {
         HStack(spacing: 5) {
-            chipToggle("벡터", systemImage: "arrow.up.right", on: vectorsOn) {
+            ChipToggle(title: "벡터", systemImage: "arrow.up.right", isOn: vectorsOn) {
                 vectorsOn.toggle(); haptic(.light)
             }
-            chipToggle("에너지", systemImage: "chart.bar.fill", on: energyOn) {
+            ChipToggle(title: "에너지", systemImage: "chart.bar.fill", isOn: energyOn) {
                 energyOn.toggle(); haptic(.light)
             }
-            chipToggle("자취", systemImage: "scribble", on: trailsOn) {
+            ChipToggle(title: "자취", systemImage: "scribble", isOn: trailsOn) {
                 trailsOn.toggle(); haptic(.light)
                 world.trailEnabled = trailsOn
                 if !trailsOn { world.trails.removeAll() }
             }
-            chipToggle("그래프", systemImage: "chart.xyaxis.line", on: graphsOn) {
+            ChipToggle(title: "그래프", systemImage: "chart.xyaxis.line", isOn: graphsOn) {
                 graphsOn.toggle(); haptic(.light)
                 if !graphsOn { motionHistory.removeAll() }
             }
-            chipToggle("자", systemImage: "ruler", on: rulerOn) {
+            ChipToggle(title: "자", systemImage: "ruler", isOn: rulerOn) {
                 rulerOn.toggle(); haptic(.light)
             }
         }

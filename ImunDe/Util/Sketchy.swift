@@ -304,25 +304,30 @@ struct PaperPicker<T: Hashable>: View {
     @Binding var selection: T
     let options: [T]
     let label: (T) -> String
+    @Environment(\.isEnabled) private var isEnabled
+    @Namespace private var pillNS
 
     var body: some View {
         HStack(spacing: 3) {
-            ForEach(Array(options.enumerated()), id: \.offset) { _, opt in
+            ForEach(options, id: \.self) { opt in
                 let isActive = selection == opt
                 Button {
-                    withAnimation(.spring(duration: 0.18)) { selection = opt }
+                    withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
+                        selection = opt
+                    }
                 } label: {
                     Text(label(opt))
                         .font(.system(size: 12, weight: isActive ? .semibold : .regular))
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 6)
                         .foregroundStyle(isActive ? Theme.surface : Theme.mist)
-                        .background(
-                            isActive
-                            ? RoundedRectangle(cornerRadius: 7, style: .continuous)
-                                .fill(Theme.ink)
-                            : Color.clear
-                        )
+                        .background {
+                            if isActive {
+                                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                                    .fill(Theme.ink)
+                                    .matchedGeometryEffect(id: "pill", in: pillNS)
+                            }
+                        }
                 }
                 .buttonStyle(.chipPress)
             }
@@ -336,5 +341,39 @@ struct PaperPicker<T: Hashable>: View {
             RoundedRectangle(cornerRadius: 10, style: .continuous)
                 .stroke(Theme.stroke, lineWidth: 1)
         )
+        .opacity(isEnabled ? 1 : 0.55)
+    }
+}
+
+// MARK: - ChipToggle — shared chip-style on/off control.
+
+struct ChipToggle: View {
+    let title: String
+    let systemImage: String
+    let isOn: Bool
+    var alignment: Alignment = .center
+    let action: () -> Void
+    @Environment(\.isEnabled) private var isEnabled
+
+    var body: some View {
+        Button(action: action) {
+            Label(title, systemImage: systemImage)
+                .font(.system(size: 11, weight: isOn ? .semibold : .regular))
+                .foregroundStyle(isOn ? Theme.surface : Theme.mist)
+                .frame(maxWidth: .infinity, alignment: alignment)
+                .padding(.vertical, alignment == .leading ? 7 : 6)
+                .padding(.horizontal, alignment == .leading ? 10 : 4)
+                .background(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(isOn ? Theme.ink : Theme.crest.opacity(0.5))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .stroke(isOn ? Color.clear : Theme.stroke, lineWidth: 1)
+                )
+                .opacity(isEnabled ? 1 : 0.45)
+        }
+        .buttonStyle(.chipPress)
+        .animation(.smooth(duration: 0.2), value: isOn)
     }
 }

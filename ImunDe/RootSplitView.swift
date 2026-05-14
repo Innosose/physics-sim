@@ -104,7 +104,7 @@ struct RootSplitView: View {
                 WorldScene(preset: p)
                     .id("ws-\(p.id)")
             case nil:
-                WelcomeView()
+                WelcomeView(hasSidebarSelection: sidebarItem != nil)
             }
         }
         .transition(.opacity)
@@ -125,6 +125,7 @@ enum DetailItem: Hashable, Identifiable {
 // MARK: - Welcome
 
 private struct WelcomeView: View {
+    var hasSidebarSelection: Bool = false
     @State private var titleIn = false
     @State private var subIn = false
     @State private var underlineProgress: CGFloat = 0
@@ -194,7 +195,9 @@ private struct WelcomeView: View {
                     }
                 }
                 .frame(maxWidth: 340)
-                Text("사이드바에서 학년을 선택하세요")
+                Text(hasSidebarSelection
+                     ? "목록에서 시뮬레이션을 선택하세요"
+                     : "사이드바에서 학년을 선택하세요")
                     .font(.system(size: 12))
                     .foregroundStyle(Theme.mist.opacity(0.6))
                     .opacity(footerIn ? 1 : 0)
