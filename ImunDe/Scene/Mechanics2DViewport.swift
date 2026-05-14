@@ -1147,7 +1147,9 @@ struct Mechanics2DViewport: View {
     private func pickBody(at screenPt: CGPoint, requireMovable: Bool) -> UUID? {
         let worldPt = screenToWorld(screenPt)
         let scale = max(viewScale(), 1)
-        let minHit = 22.0 / Double(scale)
+        // 28pt floor — Apple HIG 44pt 충족 (대략, 손가락 중심 to body
+        // 중심 거리 ≈ 22pt, body 가장자리까지면 22+~6 ≈ 28).
+        let minHit = 28.0 / Double(scale)
         var bestId: UUID? = nil
         var bestDist = Double.infinity
         for body in world.bodies {
@@ -1432,6 +1434,10 @@ struct Mechanics2DViewport: View {
                      lineWidth: 1.5, passes: 1, jitter: 0.5,
                      dash: dashed ? [4, 3] : nil)
         let nx = dx / len, ny = dy / len
+        // Hide arrowhead when shaft is too short — 옛날엔 0.8px head 가
+        // shaft 보다 작아 invisible head + visible shaft 가 stray dash 처럼
+        // 보였음.
+        guard len >= 6 else { return }
         let s = min(CGFloat(9), len * 0.5)
         let h1 = CGPoint(x: to.x - nx * s - ny * s * 0.45,
                          y: to.y - ny * s + nx * s * 0.45)
@@ -1557,6 +1563,8 @@ struct Mechanics2DViewport: View {
         let charges = world.bodies.filter { $0.charge != 0 && $0.pos.isFinite }
         let positives = charges.filter { $0.charge > 0 }
         guard !positives.isEmpty else { return }
+        // Cached extent for exit check (replaces world `|p|>50` zoom-blind cap).
+        let viewExtent = computeExtent()
 
         let nLines = 14
         let stepSize: Double = 0.06
@@ -1597,7 +1605,14 @@ struct Mechanics2DViewport: View {
                         }
                     }
                     if stopped { break }
-                    if abs(p.x) > 50 || abs(p.y) > 50 { break }
+                    // Visible-region exit — 옛날 world `|p|>50` 은 zoom 무시.
+                    // 이제 computeExtent 기반으로 visible region + 약간의
+                    // margin 만 follow.
+                    let exitX = viewExtent.x * 1.4
+                    let exitY = viewExtent.y * 1.4
+                    if abs(p.x - viewExtent.center.x) > exitX
+                        || abs(p.y - viewExtent.center.y) > exitY { break }
+                    if !p.isFinite { break }
                 }
 
                 guard pts.count > 1 else { continue }
