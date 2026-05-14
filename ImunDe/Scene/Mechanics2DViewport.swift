@@ -52,6 +52,12 @@ struct Mechanics2DViewport: View {
     @State private var springM: Double = 1.0
     @State private var autoStopped = false
     @State private var hasEverMoved = false
+    @State private var dragStart: CGPoint = .zero
+    @State private var dragStartTime: Date = .distantPast
+    @State private var didMoveBeyondSlop: Bool = false
+    @Environment(\.scenePhase) private var scenePhase
+    private let pointerTapSlop: CGFloat = 8.0
+    private let pointerLongPress: TimeInterval = 0.45
     @State private var initialExtent: CGSize = CGSize(width: 5, height: 5)
     @State private var maxObservedExtent: CGSize = .zero
     @GestureState private var pinchDelta: CGFloat = 1.0
@@ -90,12 +96,11 @@ struct Mechanics2DViewport: View {
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .stroke(Theme.stroke, lineWidth: 1)
             )
-            .onGeometryChange(for: CGSize.self) { $0.size } action: { canvasSize = $0 }
-            .gesture(
-                DragGesture(minimumDistance: 5)
-                    .onChanged { value in handleDrag(at: value.location, start: value.startLocation) }
-                    .onEnded { _ in dragMode = .none }
-            )
+            .onGeometryChange(for: CGSize.self) { $0.size } action: { newSize in
+                if canvasSize != newSize { cancelActiveDrag() }
+                canvasSize = newSize
+            }
+            .gesture(pointerGesture)
             .simultaneousGesture(
                 MagnifyGesture()
                     .updating($pinchDelta) { value, state, _ in state = value.magnification }
@@ -103,18 +108,7 @@ struct Mechanics2DViewport: View {
                         zoomScale = min(max(zoomScale * value.magnification, 0.3), 8.0)
                     }
             )
-            .onTapGesture { location in
-                handleTap(at: location)
-            }
-            .gesture(
-                LongPressGesture(minimumDuration: 0.45)
-                    .sequenced(before: DragGesture(minimumDistance: 0))
-                    .onEnded { value in
-                        if case .second(true, let drag?) = value {
-                            handleLongPress(at: drag.startLocation)
-                        }
-                    }
-            )
+            .defersSystemGestures(on: [.leading, .trailing])
             .overlay(alignment: .topLeading) { zoomBadge }
             .overlay(alignment: .topTrailing) { miniMapOverlay }
             .overlay(alignment: .bottomTrailing) { hintLabel }
@@ -136,6 +130,105 @@ struct Mechanics2DViewport: View {
         }
         .onAppear { reset() }
         .onChange(of: preset.id) { _, _ in reset() }
+        .onChange(of: scenePhase) { _, phase in
+            if phase != .active { cancelActiveDrag() }
+        }
+    }
+
+    // MARK: - Unified pointer gesture
+    //
+    // 단일 DragGesture(minimumDistance: 0) + 상태 머신으로 tap/long-press/
+    // drag/pan/ruler 모두 처리. tap = "slop 안에서 짧은 시간 후 끝난 drag",
+    // long-press = "slop 안에서 시간 임계점 초과", drag/pan = "slop 넘은 이동".
+    // SwiftUI gesture composition 의 iOS 18+ regression / tap–drag race 우회.
+
+    private var pointerGesture: some Gesture {
+        DragGesture(minimumDistance: 0, coordinateSpace: .local)
+            .onChanged { v in pointerOnChanged(v) }
+            .onEnded   { v in pointerOnEnded(v) }
+    }
+
+    private func pointerOnChanged(_ v: DragGesture.Value) {
+        if case .none = dragMode {
+            dragStart = v.startLocation
+            dragStartTime = Date()
+            didMoveBeyondSlop = false
+            dragMode = classifyHit(at: v.startLocation)
+            if case .body = dragMode, !hasDraggedBody { hasDraggedBody = true }
+        }
+
+        let dx = v.location.x - dragStart.x
+        let dy = v.location.y - dragStart.y
+        if hypot(dx, dy) > pointerTapSlop { didMoveBeyondSlop = true }
+
+        // Long-press → delete (tap-add 프리셋에서만).
+        if !didMoveBeyondSlop, tapEnabled,
+           Date().timeIntervalSince(dragStartTime) >= pointerLongPress,
+           case .pendingTap = dragMode {
+            handleLongPress(at: dragStart)
+            dragMode = .consumed
+            return
+        }
+
+        switch dragMode {
+        case .pendingTap where didMoveBeyondSlop:
+            // 빈 공간 + 움직임 → pan 으로 승격.
+            dragMode = .pan(initial: panOffset)
+            applyPan(translation: v.translation)
+        case .pendingTap:
+            break  // 아직 tap 후보
+        case .body(let id):
+            guard let idx = world.bodies.firstIndex(where: { $0.id == id })
+            else { return }
+            if running { running = false }
+            let target = screenToWorld(v.location)
+            world.bodies[idx].pos = constrainDragPosition(id: id, target: target)
+            world.bodies[idx].vel = .zero
+            inspectedId = id
+        case .pan:
+            applyPan(translation: v.translation)
+        case .rulerStart:
+            rulerStart = screenToWorld(v.location)
+        case .rulerEnd:
+            rulerEnd = screenToWorld(v.location)
+        case .none, .consumed:
+            break
+        }
+    }
+
+    private func pointerOnEnded(_ v: DragGesture.Value) {
+        let dt = Date().timeIntervalSince(dragStartTime)
+        if !didMoveBeyondSlop, dt < pointerLongPress,
+           case .pendingTap = dragMode {
+            handleTap(at: dragStart)
+        }
+        cancelActiveDrag()
+    }
+
+    private func classifyHit(at p: CGPoint) -> DragMode {
+        if rulerOn, let end = pickRulerHandle(at: p) {
+            return end == .start ? .rulerStart : .rulerEnd
+        }
+        if let id = pickBody(at: p, requireMovable: true) {
+            return .body(id)
+        }
+        return .pendingTap
+    }
+
+    private func applyPan(translation: CGSize) {
+        if case .pan(let initial) = dragMode {
+            panOffset = CGSize(width: initial.width + translation.width,
+                                height: initial.height + translation.height)
+        }
+    }
+
+    /// Reset drag state. Called on gesture end and on system cancellation
+    /// (scenePhase != .active, canvas size change). DragGesture.onEnded is
+    /// not invoked on system-cancelled gestures so we must clean up
+    /// defensively to avoid leaking dragMode = .body across resumes.
+    private func cancelActiveDrag() {
+        dragMode = .none
+        didMoveBeyondSlop = false
     }
 
     @ViewBuilder
@@ -881,43 +974,6 @@ struct Mechanics2DViewport: View {
         if !running { running = true }
     }
 
-    private func handleDrag(at screenPt: CGPoint, start: CGPoint) {
-        guard canvasSize.width > 0 else { return }
-        if case .none = dragMode {
-            if rulerOn, let end = pickRulerHandle(at: start) {
-                dragMode = (end == .start) ? .rulerStart : .rulerEnd
-                haptic(.light)
-            } else if let id = pickBody(at: start, requireMovable: true) {
-                // 시뮬레이션 중에도 body 직접 조작을 허용 — 잡으면 자동
-                // 일시정지하고, 사용자가 풀면 재생 버튼으로 재개.
-                if running { running = false }
-                dragMode = .body(id)
-                if !hasDraggedBody { hasDraggedBody = true }
-                haptic(.light)
-            } else {
-                dragMode = .pan(initial: panOffset)
-            }
-        }
-        switch dragMode {
-        case .body(let id):
-            guard let idx = world.bodies.firstIndex(where: { $0.id == id })
-            else { return }
-            let target = screenToWorld(screenPt)
-            world.bodies[idx].pos = constrainDragPosition(id: id, target: target)
-            world.bodies[idx].vel = .zero
-            inspectedId = id
-        case .pan(let initial):
-            let dx = screenPt.x - start.x
-            let dy = screenPt.y - start.y
-            panOffset = CGSize(width: initial.width + dx, height: initial.height + dy)
-        case .rulerStart:
-            rulerStart = screenToWorld(screenPt)
-        case .rulerEnd:
-            rulerEnd = screenToWorld(screenPt)
-        case .none:
-            break
-        }
-    }
 
     private func pickRulerHandle(at screenPt: CGPoint) -> RulerEnd? {
         let extent = computeExtent()
@@ -1609,9 +1665,11 @@ struct Mechanics2DViewport: View {
 
     fileprivate enum DragMode {
         case none
+        case pendingTap                  // touch down, not yet classified
         case body(UUID)
         case pan(initial: CGSize)
         case rulerStart
         case rulerEnd
+        case consumed                    // long-press fired, ignore remaining moves
     }
 }
