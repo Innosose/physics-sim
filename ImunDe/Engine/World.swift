@@ -53,6 +53,12 @@ final class World {
                 if arr.count > trailMax { arr.removeFirst(arr.count - trailMax) }
                 trails[b.id] = arr
             }
+            // orphan trails 청소 — body 가 삭제된 뒤에도 dict 엔트리가 남아
+            // 세션 동안 누수되던 문제 (60 samples × 24B ≈ 1.5KB / 삭제 body).
+            if trails.count > bodies.count {
+                let alive = Set(bodies.map { $0.id })
+                trails = trails.filter { alive.contains($0.key) }
+            }
         }
         time += dt
     }

@@ -1081,6 +1081,12 @@ struct Mechanics2DViewport: View {
     // MARK: - Reset / step / record / pick helpers
 
     private func reset() {
+        // mid-drag preset 전환 / accessibility reset 등 — 기존 gesture 와
+        // 5초 fade task 가 새 preset 으로 누수되지 않게 우선 정리.
+        cancelActiveDrag()
+        fadeTask?.cancel()
+        fadeTask = nil
+        pointerWorldPos = nil
         world.bodies.removeAll()
         world.springs.removeAll()
         world.trails.removeAll()
@@ -1292,17 +1298,25 @@ struct Mechanics2DViewport: View {
         inspectedId = nil
     }
 
+    /// tap-add body 상한. hardSphereCollisions × N² 비용으로 SE 에서 frame
+    /// budget 붕괴 방지. 30 = freecollide 기본 3 + 27 추가.
+    private let maxSpawnedBodies = 30
+
     private func handleLongPress(at screenPt: CGPoint) {
         guard tapEnabled,
               let id = pickBody(at: screenPt, requireMovable: true),
               let idx = world.bodies.firstIndex(where: { $0.id == id }) else { return }
         world.bodies.remove(at: idx)
+        // trails dict 에 orphan 항목 누수 방지.
+        world.trails.removeValue(forKey: id)
         if inspectedId == id { inspectedId = nil }
         haptic(.medium)
     }
 
     private func spawnParticle(at screenPt: CGPoint) {
         guard canvasSize.width > 0, canvasSize.height > 0 else { return }
+        // body 폭주 방지 — 학생이 빠르게 탭해도 30 개에서 멈춤.
+        guard world.bodies.count < maxSpawnedBodies else { haptic(.heavy); return }
         let p = screenToWorld(screenPt)
         if let b = world.bounds {
             guard p.x > b.min.x && p.x < b.max.x && p.y > b.min.y && p.y < b.max.y else { return }
@@ -1316,6 +1330,7 @@ struct Mechanics2DViewport: View {
             vel: Vec3(x: speed * cos(angle), y: speed * sin(angle), z: 0),
             mass: .random(in: 0.8...2.5), radius: r, color: color))
         if !running { running = true }
+        autoStopped = false   // tap-spawn 직후 "정지됨" 배지 거짓 표시 방지.
     }
 
 
@@ -1347,7 +1362,21 @@ struct Mechanics2DViewport: View {
             guard dist > 1e-9 else { return target }
             return other.pos + d * (s.restLength / dist)
         }
-        return target
+        // 바운드가 있으면 그 안으로 클램프.
+        if let b = world.bounds {
+            return Vec3(
+                x: min(max(target.x, b.min.x), b.max.x),
+                y: min(max(target.y, b.min.y), b.max.y),
+                z: min(max(target.z, b.min.z), b.max.z))
+        }
+        // 언바운드 preset (kepler / nbody / lorentz / efield) — 학생이
+        // body 를 화면 밖 멀리 끌고 가면 mini-map 에만 보이고 사실상 회수
+        // 불가. initialExtent 의 6 배 박스로 generous 하게 클램프.
+        let cap = max(initialExtent.width, initialExtent.height) * 3
+        return Vec3(
+            x: min(max(target.x, -cap), cap),
+            y: min(max(target.y, -cap), cap),
+            z: min(max(target.z, -cap), cap))
     }
 
     private func pickBody(at screenPt: CGPoint, requireMovable: Bool) -> UUID? {
