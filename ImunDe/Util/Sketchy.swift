@@ -443,3 +443,52 @@ struct LabeledSlider: View {
         }
     }
 }
+
+// MARK: - TransportButtons — play/pause + reset 한 쌍
+//
+// Wave/Graph/Circuit (Faraday) 4개 viewport 의 동일 패턴을 통합.
+// Mechanics2DViewport 는 GlassEffectContainer 기반 별도 디자인 유지.
+
+struct TransportButtons: View {
+    let running: Bool
+    let toggle: () -> Void
+    let reset:  () -> Void
+
+    var body: some View {
+        HStack(spacing: Spacing.s) {
+            Button(action: toggle) {
+                Label(running ? "일시정지" : "재생",
+                      systemImage: running ? "pause.fill" : "play.fill")
+                    .font(.callout.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.sketchProminent)
+            .accessibilityLabel(Text(running ? "일시정지" : "재생"))
+
+            Button(action: reset) {
+                Label("처음부터", systemImage: "arrow.counterclockwise")
+                    .font(.callout.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.sketch)
+            .accessibilityLabel(Text("처음부터"))
+        }
+    }
+}
+
+// MARK: - ViewportFrame — 5개 viewport 의 공통 chrome (둥근 사각형 + 1pt 보더)
+
+struct ViewportFrame: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .clipShape(RoundedRectangle(cornerRadius: Radius.viewport, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: Radius.viewport, style: .continuous)
+                    .stroke(Theme.stroke, lineWidth: 1)
+            )
+    }
+}
+
+extension View {
+    func viewportFrame() -> some View { modifier(ViewportFrame()) }
+}

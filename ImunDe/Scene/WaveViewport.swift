@@ -12,11 +12,7 @@ struct WaveViewport: View {
             case .doppler: DopplerView()
             }
         }
-        .clipShape(RoundedRectangle(cornerRadius: Radius.viewport, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: Radius.viewport, style: .continuous)
-                .stroke(Theme.stroke, lineWidth: 1)
-        )
+        .viewportFrame()
     }
 }
 
@@ -72,34 +68,16 @@ private struct WaveSumView: View {
     }
 
     private var playReset: some View {
-        HStack(spacing: 8) {
-            Button {
-                running.toggle()
-            } label: {
-                Label(running ? "일시정지" : "재생",
-                      systemImage: running ? "pause.fill" : "play.fill")
-                    .font(.callout.weight(.semibold))
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.sketchProminent)
-
-            Button {
-                elapsed = 0; lastTick = nil; running = false
-            } label: {
-                Label("처음부터", systemImage: "arrow.counterclockwise")
-                    .font(.callout.weight(.semibold))
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.sketch)
-        }
+        TransportButtons(
+            running: running,
+            toggle: { running.toggle() },
+            reset:  { elapsed = 0; lastTick = nil; running = false }
+        )
     }
 
     private func advance(to now: TimeInterval) {
-        guard let last = lastTick else { lastTick = now; return }
-        guard running else { lastTick = now; return }
-        var dt = now - last
-        if dt > 0.05 { dt = 0.05 }
-        lastTick = now
+        guard let dt = clockTick(now: now, lastTick: &lastTick, running: running)
+        else { return }
         elapsed += dt
     }
 
@@ -310,11 +288,8 @@ private struct DopplerView: View {
     }
 
     private func advance(to now: TimeInterval) {
-        guard let last = lastTick else { lastTick = now; return }
-        guard running else { lastTick = now; return }
-        var dt = now - last
-        if dt > 0.05 { dt = 0.05 }
-        lastTick = now
+        guard let dt = clockTick(now: now, lastTick: &lastTick, running: running)
+        else { return }
         elapsed += dt
         if sourceAtWall { running = false }
     }

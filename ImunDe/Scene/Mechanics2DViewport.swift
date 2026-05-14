@@ -109,11 +109,7 @@ struct Mechanics2DViewport: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Theme.deep)
-            .clipShape(RoundedRectangle(cornerRadius: Radius.viewport, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: Radius.viewport, style: .continuous)
-                    .stroke(Theme.stroke, lineWidth: 1)
-            )
+            .viewportFrame()
             .onGeometryChange(for: CGSize.self) { $0.size } action: { newSize in
                 // 키보드/safe-area 애니메이션이 sub-pixel 변동을 만들기 때문에
                 // 1pt 이상 변화일 때만 — 그리고 드래그 활성일 때만 — cancel.

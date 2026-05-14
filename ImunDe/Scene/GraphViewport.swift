@@ -13,11 +13,7 @@ struct GraphViewport: View {
             default:            Text("준비 중").foregroundStyle(Theme.mist)
             }
         }
-        .clipShape(RoundedRectangle(cornerRadius: Radius.viewport, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: Radius.viewport, style: .continuous)
-                .stroke(Theme.stroke, lineWidth: 1)
-        )
+        .viewportFrame()
     }
 }
 
@@ -58,37 +54,19 @@ private struct MotionGraphView: View {
     }
 
     private var playReset: some View {
-        HStack(spacing: 8) {
-            Button {
-                if !running && bothCartsAtWall() {
-                    elapsed = 0; lastTick = nil
-                }
+        TransportButtons(
+            running: running,
+            toggle: {
+                if !running && bothCartsAtWall() { elapsed = 0; lastTick = nil }
                 running.toggle()
-            } label: {
-                Label(running ? "일시정지" : "재생",
-                      systemImage: running ? "pause.fill" : "play.fill")
-                    .font(.callout.weight(.semibold))
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.sketchProminent)
-
-            Button {
-                elapsed = 0; lastTick = nil; running = false
-            } label: {
-                Label("처음부터", systemImage: "arrow.counterclockwise")
-                    .font(.callout.weight(.semibold))
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.sketch)
-        }
+            },
+            reset: { elapsed = 0; lastTick = nil; running = false }
+        )
     }
 
     private func advance(to now: TimeInterval) {
-        guard let last = lastTick else { lastTick = now; return }
-        guard running else { lastTick = now; return }
-        var dt = now - last
-        if dt > 0.05 { dt = 0.05 }
-        lastTick = now
+        guard let dt = clockTick(now: now, lastTick: &lastTick, running: running)
+        else { return }
         elapsed += dt
         if bothCartsAtWall() { running = false }
     }
@@ -219,29 +197,14 @@ private struct HeatTransferView: View {
     }
 
     private var playReset: some View {
-        HStack(spacing: 8) {
-            Button {
-                if !running && heatSettled {
-                    elapsed = 0; lastTick = nil
-                }
+        TransportButtons(
+            running: running,
+            toggle: {
+                if !running && heatSettled { elapsed = 0; lastTick = nil }
                 running.toggle()
-            } label: {
-                Label(running ? "일시정지" : "재생",
-                      systemImage: running ? "pause.fill" : "play.fill")
-                    .font(.callout.weight(.semibold))
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.sketchProminent)
-
-            Button {
-                elapsed = 0; lastTick = nil; running = false
-            } label: {
-                Label("처음부터", systemImage: "arrow.counterclockwise")
-                    .font(.callout.weight(.semibold))
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.sketch)
-        }
+            },
+            reset: { elapsed = 0; lastTick = nil; running = false }
+        )
     }
 
     private var heatSettled: Bool {
@@ -252,11 +215,8 @@ private struct HeatTransferView: View {
     }
 
     private func advance(to now: TimeInterval) {
-        guard let last = lastTick else { lastTick = now; return }
-        guard running else { lastTick = now; return }
-        var dt = now - last
-        if dt > 0.05 { dt = 0.05 }
-        lastTick = now
+        guard let dt = clockTick(now: now, lastTick: &lastTick, running: running)
+        else { return }
         elapsed += dt
         if heatSettled { running = false }
     }

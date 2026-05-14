@@ -13,11 +13,7 @@ struct OpticsViewport: View {
             case .doubleSlit:  DoubleSlitView()
             }
         }
-        .clipShape(RoundedRectangle(cornerRadius: Radius.viewport, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: Radius.viewport, style: .continuous)
-                .stroke(Theme.stroke, lineWidth: 1)
-        )
+        .viewportFrame()
     }
 }
 
