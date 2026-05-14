@@ -34,11 +34,22 @@ struct Mechanics2DViewport: View {
     @State private var energyHistory: [World.EnergyBreakdown] = []
     @State private var lorentzB: Double = 1.0
     @State private var freefallH0: Double = 5
+    @State private var freefallV0: Double = 0
+    @State private var freefallG: Double = 9.8
     @State private var projectileV0: Double = 8
-    @State private var projectileAngle: Double = 45  // degrees
+    @State private var projectileAngle: Double = 45        // degrees
+    @State private var projectileH0: Double = 0
+    @State private var projectileG: Double = 9.8
     @State private var pendulumL: Double = 1.5
-    @State private var pendulumTheta0: Double = 60   // degrees
+    @State private var pendulumTheta0: Double = 60         // degrees
+    @State private var pendulumG: Double = 9.8
     @State private var collisionE: Double = 1.0
+    @State private var collisionM1: Double = 1.0
+    @State private var collisionM2: Double = 1.0
+    @State private var collisionV1: Double = 2.0
+    @State private var collisionV2: Double = -1.0
+    @State private var springK: Double = 5.0
+    @State private var springM: Double = 1.0
     @State private var autoStopped = false
     @State private var initialExtent: CGSize = CGSize(width: 5, height: 5)
     @State private var maxObservedExtent: CGSize = .zero
@@ -111,10 +122,16 @@ struct Mechanics2DViewport: View {
 
             dataSection
 
-            toggleRow
-            presetParameterRow
-            timeScaleRow
-            presetDerivedRow
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 10) {
+                    toggleRow
+                    presetParameterRow
+                    timeScaleRow
+                    presetDerivedRow
+                }
+            }
+            .scrollBounceBehavior(.basedOnSize)
+            .frame(maxHeight: 280)
         }
         .onAppear { reset() }
         .onChange(of: preset.id) { _, _ in reset() }
@@ -462,19 +479,42 @@ struct Mechanics2DViewport: View {
             case "freefall":
                 paramSlider("초기 높이 h_0", value: $freefallH0,
                              range: 1...20, fmt: "%.1f m")
+                paramSlider("초기 속도 v_0", value: $freefallV0,
+                             range: -10...10, fmt: "%+.1f m/s")
+                paramSlider("중력 g", value: $freefallG,
+                             range: 1...25, fmt: "%.1f m/s²")
             case "projectile":
                 paramSlider("초기 속도 v_0", value: $projectileV0,
                              range: 1...20, fmt: "%.1f m/s")
                 paramSlider("발사각 θ", value: $projectileAngle,
                              range: 0...90, fmt: "%.0f°")
+                paramSlider("초기 높이 h_0", value: $projectileH0,
+                             range: 0...15, fmt: "%.1f m")
+                paramSlider("중력 g", value: $projectileG,
+                             range: 1...25, fmt: "%.1f m/s²")
             case "pendulum":
                 paramSlider("줄 길이 L", value: $pendulumL,
                              range: 0.5...3, fmt: "%.2f m")
                 paramSlider("초기 각도 θ", value: $pendulumTheta0,
                              range: 5...90, fmt: "%.0f°")
+                paramSlider("중력 g", value: $pendulumG,
+                             range: 1...25, fmt: "%.1f m/s²")
             case "collision1d":
                 paramSlider("반발계수 e", value: $collisionE,
                              range: 0...1, fmt: "%.2f")
+                paramSlider("질량 m_1", value: $collisionM1,
+                             range: 0.1...5, fmt: "%.1f kg")
+                paramSlider("질량 m_2", value: $collisionM2,
+                             range: 0.1...5, fmt: "%.1f kg")
+                paramSlider("속도 v_1", value: $collisionV1,
+                             range: -5...5, fmt: "%+.1f m/s")
+                paramSlider("속도 v_2", value: $collisionV2,
+                             range: -5...5, fmt: "%+.1f m/s")
+            case "spring":
+                paramSlider("강성 k", value: $springK,
+                             range: 1...50, fmt: "%.1f N/m")
+                paramSlider("질량 m", value: $springM,
+                             range: 0.2...3, fmt: "%.2f kg")
             default:
                 EmptyView()
             }
@@ -487,10 +527,21 @@ struct Mechanics2DViewport: View {
             world.restitution = v
         }
         .onChange(of: freefallH0) { _, _ in reset() }
-        .onChange(of: projectileV0) { _, _ in reset() }
+        .onChange(of: freefallV0) { _, _ in reset() }
+        .onChange(of: freefallG)  { _, _ in reset() }
+        .onChange(of: projectileV0)    { _, _ in reset() }
         .onChange(of: projectileAngle) { _, _ in reset() }
-        .onChange(of: pendulumL) { _, _ in reset() }
+        .onChange(of: projectileH0)    { _, _ in reset() }
+        .onChange(of: projectileG)     { _, _ in reset() }
+        .onChange(of: pendulumL)      { _, _ in reset() }
         .onChange(of: pendulumTheta0) { _, _ in reset() }
+        .onChange(of: pendulumG)      { _, _ in reset() }
+        .onChange(of: collisionM1) { _, _ in reset() }
+        .onChange(of: collisionM2) { _, _ in reset() }
+        .onChange(of: collisionV1) { _, _ in reset() }
+        .onChange(of: collisionV2) { _, _ in reset() }
+        .onChange(of: springK) { _, _ in reset() }
+        .onChange(of: springM) { _, _ in reset() }
     }
 
     private func paramSlider(_ title: String, value: Binding<Double>,
@@ -639,22 +690,27 @@ struct Mechanics2DViewport: View {
 
     /// Overrides preset defaults with the user's current slider values.
     /// Runs after preset.load so the initial state reflects user input.
+    /// All formula variables of each preset are exposed to the user here.
     private func applyUserParameters() {
         switch preset.id {
         case "freefall":
+            world.gravity = Vec3(x: 0, y: -freefallG, z: 0)
             if let idx = world.bodies.firstIndex(where: { !$0.pinned }) {
                 world.bodies[idx].pos = Vec3(x: 0, y: freefallH0, z: 0)
-                world.bodies[idx].vel = .zero
+                world.bodies[idx].vel = Vec3(x: 0, y: freefallV0, z: 0)
             }
         case "projectile":
+            world.gravity = Vec3(x: 0, y: -projectileG, z: 0)
             if let idx = world.bodies.firstIndex(where: { !$0.pinned }) {
                 let θ = projectileAngle * .pi / 180
+                world.bodies[idx].pos = Vec3(x: 0, y: projectileH0, z: 0)
                 world.bodies[idx].vel = Vec3(
                     x: projectileV0 * cos(θ),
                     y: projectileV0 * sin(θ),
                     z: 0)
             }
         case "pendulum":
+            world.gravity = Vec3(x: 0, y: -pendulumG, z: 0)
             if let pivotIdx = world.bodies.firstIndex(where: { $0.pinned }),
                let bobIdx   = world.bodies.firstIndex(where: { !$0.pinned }) {
                 let pivot = world.bodies[pivotIdx].pos
@@ -670,6 +726,20 @@ struct Mechanics2DViewport: View {
             }
         case "collision1d":
             world.restitution = collisionE
+            let nonPinned = world.bodies.indices.filter { !world.bodies[$0].pinned }
+            if nonPinned.count >= 2 {
+                world.bodies[nonPinned[0]].mass = collisionM1
+                world.bodies[nonPinned[0]].vel = Vec3(x: collisionV1, y: 0, z: 0)
+                world.bodies[nonPinned[1]].mass = collisionM2
+                world.bodies[nonPinned[1]].vel = Vec3(x: collisionV2, y: 0, z: 0)
+            }
+        case "spring":
+            if let bobIdx = world.bodies.firstIndex(where: { !$0.pinned }) {
+                world.bodies[bobIdx].mass = springM
+            }
+            for i in world.springs.indices where !world.springs[i].rigid {
+                world.springs[i].stiffness = springK
+            }
         default:
             break
         }

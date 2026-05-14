@@ -216,6 +216,7 @@ private struct DopplerView: View {
     @State private var sourceSpeed: Double = 60
     @State private var soundSpeed: Double = 340
     @State private var freq: Double = 1.5
+    @State private var observerSpeed: Double = 0
     @State private var elapsed: Double = 0
     @State private var lastTick: TimeInterval? = nil
     @State private var running: Bool = false
@@ -229,10 +230,11 @@ private struct DopplerView: View {
     private var sourceAtWall: Bool { elapsed >= tStop }
 
     private var derived: (fAhead: Double, fBehind: Double, mach: Double) {
-        // 정지 관측자에 대해 음원이 다가올 때 / 멀어질 때
+        // f' = f · (c + v_o) / (c − v_s)
+        // v_o > 0: 관찰자가 음원에 접근, v_s > 0: 음원이 관찰자에 접근
         let denomAhead = max(soundSpeed - sourceSpeed, 1e-9)
-        let fAhead = freq * soundSpeed / denomAhead
-        let fBehind = freq * soundSpeed / (soundSpeed + sourceSpeed)
+        let fAhead = freq * (soundSpeed + observerSpeed) / denomAhead
+        let fBehind = freq * (soundSpeed - observerSpeed) / (soundSpeed + sourceSpeed)
         return (fAhead, fBehind, sourceSpeed / soundSpeed)
     }
 
@@ -263,6 +265,7 @@ private struct DopplerView: View {
                     }
                     .padding(.horizontal, 4)
                     slider("음원 속도 v_s", value: $sourceSpeed, range: 0...400, unit: "m/s")
+                    slider("관찰자 속도 v_o", value: $observerSpeed, range: -200...200, unit: "m/s")
                     slider("음속 c", value: $soundSpeed, range: 100...400, unit: "m/s")
                     slider("진동수 f", value: $freq, range: 0.5...4, unit: "Hz")
                     playReset
