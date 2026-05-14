@@ -344,7 +344,6 @@ struct PaperSlider: View {
             let pad: CGFloat = 11
             let usable = max(1, geo.size.width - pad * 2)
             let handleX = pad + usable * CGFloat(fraction)
-            let midY = height / 2
             let trackH: CGFloat = 3
 
             ZStack(alignment: .leading) {
