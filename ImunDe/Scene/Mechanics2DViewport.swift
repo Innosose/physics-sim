@@ -1426,13 +1426,7 @@ struct Mechanics2DViewport: View {
         }
 
         if let b = world.bounds {
-            let x0 = cx + CGFloat(b.min.x - extent.center.x) * scale
-            let x1 = cx + CGFloat(b.max.x - extent.center.x) * scale
-            let y0 = cy - CGFloat(b.max.y - extent.center.y) * scale
-            let y1 = cy - CGFloat(b.min.y - extent.center.y) * scale
-            Sketchy.rect(CGRect(x: x0, y: y0, width: x1 - x0, height: y1 - y0),
-                         ctx: ctx, color: Theme.ink,
-                         lineWidth: 1.4, passes: 2, jitter: 1.4)
+            drawBounds(ctx: ctx, b: b, scale: scale, cx: cx, cy: cy, ext: extent.center)
         }
 
         if abs(world.magneticB.z) > 1e-6 {
@@ -1916,6 +1910,81 @@ struct Mechanics2DViewport: View {
                 }
                 ly += spacing
             }
+        }
+    }
+
+    /// Bounded sim 의 물리 벽을 preset 의미에 맞게 그림. 옛 `Sketchy.rect`
+    /// 단일 사각형은 외곽 viewport chrome 과 시각 중복 + 의미 모호. 도면
+    /// poché 컨벤션에서 빌려와 "solid 측에 짧은 hatch tick" 으로 벽이
+    /// 학생 쪽에서 보면 단단한 면이라는 시각 단서 제공.
+    ///
+    /// - 중력 있음 (freefall/projectile): 바닥선 + 아래 hatch.
+    /// - 가로 corridor (collision1D): 좌우 수직 벽 + 바깥쪽 hatch.
+    /// - 닫힌 박스 (freeCollision/kinetic): 전체 사각형 + 외곽 hatch.
+    private func drawBounds(ctx: GraphicsContext, b: Bounds,
+                             scale: CGFloat,
+                             cx: CGFloat, cy: CGFloat, ext: CGPoint) {
+        let x0 = cx + CGFloat(b.min.x - ext.x) * scale
+        let x1 = cx + CGFloat(b.max.x - ext.x) * scale
+        let y0 = cy - CGFloat(b.max.y - ext.y) * scale   // top
+        let y1 = cy - CGFloat(b.min.y - ext.y) * scale   // bottom (floor)
+        guard x0.isFinite, x1.isFinite, y0.isFinite, y1.isFinite else { return }
+
+        let hasGravity = world.gravity.lengthSquared > 1e-6
+        let worldW = b.max.x - b.min.x
+        let worldH = b.max.y - b.min.y
+        let aspect = worldW / max(worldH, 1e-6)
+        let isCorridor = aspect > 3.0 && !hasGravity
+
+        if hasGravity {
+            // 바닥선만 + downward hatch (땅 표현).
+            drawWall(ctx: ctx, from: CGPoint(x: x0, y: y1),
+                     to: CGPoint(x: x1, y: y1), hatchSide: 1, hatchDx: 0)
+        } else if isCorridor {
+            // 좌우 수직 벽 (collision1D).
+            drawWall(ctx: ctx, from: CGPoint(x: x0, y: y0),
+                     to: CGPoint(x: x0, y: y1), hatchSide: -1, hatchDx: 1)
+            drawWall(ctx: ctx, from: CGPoint(x: x1, y: y0),
+                     to: CGPoint(x: x1, y: y1), hatchSide: 1, hatchDx: 1)
+        } else {
+            // 닫힌 박스 — 4면 모두 + 외곽 hatch.
+            drawWall(ctx: ctx, from: CGPoint(x: x0, y: y0),
+                     to: CGPoint(x: x1, y: y0), hatchSide: -1, hatchDx: 0)
+            drawWall(ctx: ctx, from: CGPoint(x: x0, y: y1),
+                     to: CGPoint(x: x1, y: y1), hatchSide: 1, hatchDx: 0)
+            drawWall(ctx: ctx, from: CGPoint(x: x0, y: y0),
+                     to: CGPoint(x: x0, y: y1), hatchSide: -1, hatchDx: 1)
+            drawWall(ctx: ctx, from: CGPoint(x: x1, y: y0),
+                     to: CGPoint(x: x1, y: y1), hatchSide: 1, hatchDx: 1)
+        }
+    }
+
+    /// 도면 poché — 벽선 + 단단한 측 (hatchSide: ±1) 으로 짧은 사선 tick.
+    /// hatchDx=1 이면 세로 벽 (tick 가로), hatchDx=0 이면 가로 벽 (tick 세로).
+    private func drawWall(ctx: GraphicsContext, from a: CGPoint, to b: CGPoint,
+                           hatchSide: CGFloat, hatchDx: CGFloat) {
+        // 메인 벽선.
+        Sketchy.line(from: a, to: b, ctx: ctx, color: Theme.ink, lineWidth: 1.8)
+        // tick 길이.
+        let tick: CGFloat = 5
+        let spacing: CGFloat = 14
+        let dx = b.x - a.x
+        let dy = b.y - a.y
+        let len = (dx * dx + dy * dy).squareRoot()
+        guard len > spacing else { return }
+        let nSteps = Int(len / spacing)
+        for i in 0...nSteps {
+            let t = CGFloat(i) / CGFloat(max(nSteps, 1))
+            let px = a.x + dx * t
+            let py = a.y + dy * t
+            // tick: 가로벽이면 세로방향 (hatchSide × tick), 세로벽이면 가로.
+            let offX = hatchDx > 0 ? hatchSide * tick : 0
+            let offY = hatchDx > 0 ? 0 : hatchSide * tick
+            // 45° 사선 효과: tick 의 시작점은 벽 위, 끝점은 비스듬히.
+            Sketchy.line(from: CGPoint(x: px, y: py),
+                         to: CGPoint(x: px + offX + (hatchDx > 0 ? 0 : tick * 0.5),
+                                     y: py + offY + (hatchDx > 0 ? tick * 0.5 : 0)),
+                         ctx: ctx, color: Theme.ink.opacity(0.55), lineWidth: 0.7)
         }
     }
 
