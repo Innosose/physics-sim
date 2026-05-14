@@ -314,7 +314,9 @@ struct Mechanics2DViewport: View {
             GlassEffectContainer(spacing: 6) {
                 VStack(spacing: 6) {
                     if energyOn {
-                        TimelineView(.animation) { _ in
+                        // 차트는 60-120Hz 필요 없음 — 30Hz 로 제한해 main
+                        // 캔버스의 frame budget 을 보호 (Opus Agent 1).
+                        TimelineView(.animation(minimumInterval: 1.0 / 30)) { _ in
                             Canvas { ctx, size in
                                 drawEnergyChart(ctx: ctx,
                                                  in: CGRect(origin: .zero, size: size))
@@ -327,7 +329,7 @@ struct Mechanics2DViewport: View {
                                                            style: .continuous))
                     }
                     if graphsOn {
-                        TimelineView(.animation) { _ in
+                        TimelineView(.animation(minimumInterval: 1.0 / 30)) { _ in
                             Canvas { ctx, size in
                                 drawMotionChart(ctx: ctx,
                                                  in: CGRect(origin: .zero, size: size))
@@ -431,7 +433,9 @@ struct Mechanics2DViewport: View {
     @ViewBuilder
     private var miniMapOverlay: some View {
         if needsMiniMap {
-            TimelineView(.animation) { _ in
+            // 미니맵은 천천히 변하니 30Hz 면 충분. main 캔버스 frame
+            // budget 보호.
+            TimelineView(.animation(minimumInterval: 1.0 / 30)) { _ in
                 Canvas { ctx, size in
                     drawMiniMap(ctx: ctx, size: size)
                 }
@@ -935,9 +939,18 @@ struct Mechanics2DViewport: View {
         return max(y0, minY)
     }
 
+    /// Substep 갯수는 stiff 시뮬 (springs/충돌/coulomb) 만 8 사용,
+    /// 일반 시뮬은 4 — Box2D 표준. 가벼운 시뮬에서 절반 비용 절감.
+    private var physicsSubsteps: Int {
+        if world.springs.contains(where: { $0.stiffness > 200 }) { return 8 }
+        if world.hardSphereCollisions, world.bodies.count > 30 { return 8 }
+        if world.pairwiseCoulomb { return 8 }
+        return 4
+    }
+
     private func stepOnce() {
         let dt = (1.0 / 60.0) * timeScale
-        let sub = 8
+        let sub = physicsSubsteps
         let h = dt / Double(sub)
         for _ in 0..<sub { world.step(dt: h) }
         recordEnergy()
@@ -1098,10 +1111,12 @@ struct Mechanics2DViewport: View {
         guard let last = lastTick else { lastTick = now; return }
         guard running else { lastTick = now; return }
         var dt = (now - last) * timeScale
-        let dtCap = 0.05 * max(timeScale, 1)
+        // dt cap 0.05s → 1/60s — 0.05s × 8 substep × 100 body = 400 ms CPU
+        // spike 위험. 1/60 으로 cap 하면 기본 frame budget 유지.
+        let dtCap = (1.0 / 60.0) * max(timeScale, 1)
         if dt > dtCap { dt = dtCap }
         lastTick = now
-        let sub = 8
+        let sub = physicsSubsteps
         let h = dt / Double(sub)
         for _ in 0..<sub { world.step(dt: h) }
         recordEnergy()
@@ -1147,9 +1162,12 @@ struct Mechanics2DViewport: View {
         }
 
         // 자취 — 오래된 점은 흐릿하고 가늘게, 최근 점은 진하고 굵게.
-        // 길이를 균일하게 그리지 않고 자연스럽게 fade out 시켜 화면을
-        // 너무 가리지 않도록.
+        // 옛날 코드: 세그먼트당 ctx.stroke 호출 → trailMax 48 × bodies 100
+        // = 4,800 stroke/frame. 새 코드: body 당 4 시간-버킷, 버킷당
+        // 단일 stroke → bodies 100 × 4 = 400 stroke/frame. 12배 감소,
+        // visual fade 보존.
         if world.trailEnabled {
+            let buckets = 4
             for body in world.bodies {
                 guard let pts = world.trails[body.id], pts.count > 1 else { continue }
                 let screenPts: [CGPoint] = pts.compactMap { p in
@@ -1158,13 +1176,19 @@ struct Mechanics2DViewport: View {
                 }
                 let n = screenPts.count
                 guard n > 1 else { continue }
-                for i in 1..<n {
-                    let t = Double(i) / Double(n - 1)        // 0 (oldest) → 1 (newest)
+                let perBucket = max(1, (n - 1) / buckets)
+                for b in 0..<buckets {
+                    let start = b * perBucket
+                    let end   = min((b + 1) * perBucket, n - 1)
+                    guard end > start else { continue }
+                    let t = Double(b + 1) / Double(buckets)
                     let alpha = pow(t, 1.4) * 0.85
                     let width = 0.4 + 1.2 * CGFloat(t)
                     var path = Path()
-                    path.move(to: screenPts[i - 1])
-                    path.addLine(to: screenPts[i])
+                    path.move(to: screenPts[start])
+                    for i in (start + 1)...end {
+                        path.addLine(to: screenPts[i])
+                    }
                     ctx.stroke(path,
                                with: .color(body.color.opacity(alpha)),
                                style: StrokeStyle(lineWidth: width,
