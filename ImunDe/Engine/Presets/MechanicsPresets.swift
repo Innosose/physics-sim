@@ -3,7 +3,7 @@ import SwiftUI
 enum MechanicsPresets {
 
     static func freeFall(_ w: World) {
-        w.integrator = .euler
+        w.integrator = .velocityVerlet
         w.gravity = Vec3(x: 0, y: -9.81, z: 0)
         w.bounds = Bounds(min: Vec3(x: -6, y: 0, z: -2),
                           max: Vec3(x: 6, y: 50, z: 2),
@@ -37,7 +37,7 @@ enum MechanicsPresets {
     }
 
     static func collision1D(_ w: World) {
-        w.integrator = .euler
+        w.integrator = .velocityVerlet
         w.gravity = .zero
         w.hardSphereCollisions = true
         w.restitution = 1.0
@@ -110,7 +110,7 @@ enum MechanicsPresets {
     }
 
     static func freeCollision(_ w: World) {
-        w.integrator = .euler
+        w.integrator = .velocityVerlet
         w.gravity = .zero
         w.hardSphereCollisions = true
         w.restitution = 0.95

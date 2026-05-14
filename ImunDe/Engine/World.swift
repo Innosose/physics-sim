@@ -182,7 +182,10 @@ final class World {
             if magneticB.lengthSquared > 1e-18 {
                 f += Vec3.cross(vel[i], magneticB) * bodies[i].charge
             }
-            if drag > 0 { f -= vel[i] * (drag * bodies[i].mass) }
+            // 선형 점성 항력: F = -bv (힘) — 단위질량당이 아닌 진짜 힘.
+            // 옛 (drag * mass) 곱셈은 a = -drag·v 가 되어 질량과 무관,
+            // 종단속도 추론(F_drag = mg → v_∞ = mg/b)을 깨뜨림.
+            if drag > 0 { f -= vel[i] * drag }
             if pairwiseGravity {
                 for j in 0..<n where j != i {
                     let d = pos[j] - pos[i]
@@ -240,6 +243,15 @@ final class World {
                 guard total > 1e-12 else { continue }
                 bodies[i].pos += d * (diff * wA / total)
                 bodies[j].pos -= d * (diff * wB / total)
+                // 속도 정사영 — 위치만 projection 하면 다음 step 에서
+                // 방사방향 속도 성분이 다시 거리오류를 만들어 진자 주기가
+                // 분석해 2π√(L/g)·(1+θ²/16) 와 어긋남. 상대 속도 중
+                // 제약 법선(n̂) 성분을 0 으로 만드는 impulse 적용.
+                let n̂ = d / dist
+                let vRel = Vec3.dot(bodies[j].vel - bodies[i].vel, n̂)
+                let lambda = vRel / total
+                if !bodies[i].pinned { bodies[i].vel += n̂ * (lambda * wA) }
+                if !bodies[j].pinned { bodies[j].vel -= n̂ * (lambda * wB) }
             }
         }
     }

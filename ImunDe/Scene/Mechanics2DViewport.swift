@@ -209,6 +209,9 @@ struct Mechanics2DViewport: View {
                 longPressProgress = 0
             }
         }
+        // 일시정지·재생 토글 시 clock 누적 상태 리셋 — 재생 직후 첫 dt 가
+        // pause 직전 wall-clock 와 갭으로 인해 점프하는 것을 차단.
+        .onChange(of: running) { _, _ in lastTick = nil }
     }
 
     @ViewBuilder
@@ -305,6 +308,14 @@ struct Mechanics2DViewport: View {
         if !didMoveBeyondSlop, dt < pointerLongPress,
            case .pendingTap = dragMode {
             handleTap(at: dragStart)
+        }
+        // body-drag 종료 시 에너지/모션 history 초기화 — 손으로 위치를
+        // 옮기면 PE 가 외부 일에 의해 바뀌어 차트에 step 점프가 생기고
+        // 학생이 "에너지 보존 위반"으로 오해. 새 상태에서 차트를 다시
+        // 시작해 외력 입력 후의 evolution 을 깨끗이 관찰하게 한다.
+        if case .body = dragMode {
+            energyHistory.removeAll(keepingCapacity: true)
+            motionHistory.removeAll(keepingCapacity: true)
         }
         cancelActiveDrag()
         // 마지막 좌표 5 초간 stale (회색) 유지 — 학생이 값 확인 후 손
@@ -813,10 +824,11 @@ struct Mechanics2DViewport: View {
             let g = -world.gravity.y
             guard g > 0, L > 1e-6 else { return nil }
             let T0 = 2 * .pi * (L / g).squareRoot()
-            let dx = bob.pos.x - pivot.pos.x
-            let dy = pivot.pos.y - bob.pos.y
-            let θ = atan2(dx, dy)
-            let θ2 = θ * θ, θ4 = θ2 * θ2
+            // 대진폭 보정은 진폭(최대 θ)에 대한 급수 — live θ 를 넣으면
+            // 매 step 라벨이 진동해 의미가 깨진다. 초기 진폭 θ₀(슬라이더 값)
+            // 으로 고정해 학습자가 "T 는 진폭에 따라 늘어난다"를 관찰 가능.
+            let θ0 = pendulumTheta0 * .pi / 180
+            let θ2 = θ0 * θ0, θ4 = θ2 * θ2
             let corr = 1 + θ2 / 16 + 11 * θ4 / 3072
             return String(format: "이상 주기 T₀ = %.3fs    실제 주기 T = %.3fs",
                           T0, T0 * corr)
@@ -1552,6 +1564,12 @@ struct Mechanics2DViewport: View {
         let idx = world.bodies.firstIndex(where: { $0.id == body.id }) ?? 0
         let a = idx < accels.count ? accels[idx] : .zero
         let ke = body.pinned ? 0 : 0.5 * body.mass * body.vel.lengthSquared
+        // anchor (진자 pivot, 스프링 벽 등) 는 mass = 1e9 가 stability 목적의
+        // sentinel — "1 Gkg" 같은 표시는 학습자에게 무의미·혼란. "고정"으로
+        // 대체, 보존량(|v|, |a|, KE)도 0 이라 생략.
+        if body.kind == .anchor || (body.pinned && body.mass >= 1e6) {
+            return [body.name ?? body.kind.rawValue, "고정"]
+        }
         var lines: [String] = [
             body.name ?? (body.kind.rawValue),
             "m = \(SciFormat.withUnit(body.mass, unit: "kg"))",

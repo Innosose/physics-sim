@@ -80,7 +80,7 @@ enum PresetCatalog {
                curriculum: .high, category: .waveThermo,
                kind: .mechanics2D,
                load: { w in
-                   w.integrator = .euler
+                   w.integrator = .velocityVerlet
                    w.gravity = .zero
                    w.hardSphereCollisions = true
                    w.restitution = 1.0
