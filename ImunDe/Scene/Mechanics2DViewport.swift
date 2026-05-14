@@ -21,14 +21,23 @@ struct Mechanics2DViewport: View {
     @State private var vectorsOn: Bool = false
     @State private var energyOn: Bool = false
     @State private var trailsOn: Bool = false
-    @State private var dragBodyId: UUID? = nil
+    @State private var graphsOn: Bool = false
+    @State private var rulerOn: Bool = false
+    @State private var rulerStart: Vec3 = Vec3(x: -1.5, y: 0, z: 0)
+    @State private var rulerEnd: Vec3 = Vec3(x: 1.5, y: 0, z: 0)
+    @State private var zoomScale: CGFloat = 1.0
+    @State private var panOffset: CGSize = .zero
+    @State private var dragMode: DragMode = .none
+    @State private var motionHistory: [UUID: [MotionSample]] = [:]
     @State private var timeScale: Double = 1.0
     @State private var inspectedId: UUID? = nil
     @State private var energyHistory: [World.EnergyBreakdown] = []
     @State private var lorentzB: Double = 1.0
+    @GestureState private var pinchDelta: CGFloat = 1.0
     @AppStorage("hasDraggedBody") private var hasDraggedBody = false
 
     private let energyHistMax = 240
+    private let motionHistMax = 240
     private var tapEnabled: Bool { preset.id == "freecollide" }
 
     var body: some View {
@@ -63,7 +72,14 @@ struct Mechanics2DViewport: View {
             .gesture(
                 DragGesture(minimumDistance: 5)
                     .onChanged { value in handleDrag(at: value.location, start: value.startLocation) }
-                    .onEnded { _ in dragBodyId = nil }
+                    .onEnded { _ in dragMode = .none }
+            )
+            .simultaneousGesture(
+                MagnifyGesture()
+                    .updating($pinchDelta) { value, state, _ in state = value.magnification }
+                    .onEnded { value in
+                        zoomScale = min(max(zoomScale * value.magnification, 0.3), 8.0)
+                    }
             )
             .onTapGesture { location in
                 handleTap(at: location)
@@ -77,6 +93,7 @@ struct Mechanics2DViewport: View {
                         }
                     }
             )
+            .overlay(alignment: .topLeading) { zoomBadge }
             .overlay(alignment: .bottomTrailing) {
                 hintLabel
             }
@@ -112,7 +129,7 @@ struct Mechanics2DViewport: View {
     private var hasMovableBody: Bool { world.bodies.contains { !$0.pinned } }
 
     private var toggleRow: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 6) {
             chipToggle("벡터", systemImage: "arrow.up.right", on: vectorsOn) {
                 vectorsOn.toggle(); haptic(.light)
             }
@@ -124,6 +141,37 @@ struct Mechanics2DViewport: View {
                 world.trailEnabled = trailsOn
                 if !trailsOn { world.trails.removeAll() }
             }
+            chipToggle("그래프", systemImage: "chart.xyaxis.line", on: graphsOn) {
+                graphsOn.toggle(); haptic(.light)
+                if !graphsOn { motionHistory.removeAll() }
+            }
+            chipToggle("자", systemImage: "ruler", on: rulerOn) {
+                rulerOn.toggle(); haptic(.light)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var zoomBadge: some View {
+        let live = zoomScale * pinchDelta
+        if abs(live - 1.0) > 0.01 || panOffset != .zero {
+            Button {
+                withAnimation(.spring(duration: 0.25)) {
+                    zoomScale = 1.0
+                    panOffset = .zero
+                }
+                haptic(.light)
+            } label: {
+                Label(String(format: "%.2fx", live),
+                      systemImage: "arrow.up.left.and.down.right.magnifyingglass")
+                    .font(.caption2.weight(.medium).monospacedDigit())
+                    .foregroundStyle(Theme.glow)
+                    .padding(.horizontal, 8).padding(.vertical, 4)
+                    .background(Theme.surface.opacity(0.75))
+                    .clipShape(Capsule())
+            }
+            .buttonStyle(.plain)
+            .padding(10)
         }
     }
 
@@ -261,6 +309,12 @@ struct Mechanics2DViewport: View {
         running = false
         inspectedId = nil
         energyHistory.removeAll()
+        motionHistory.removeAll()
+        dragMode = .none
+        zoomScale = 1.0
+        panOffset = .zero
+        rulerStart = Vec3(x: -1.5, y: 0, z: 0)
+        rulerEnd = Vec3(x: 1.5, y: 0, z: 0)
         trailsOn = world.trailEnabled
         lorentzB = world.magneticB.z
         redrawTick &+= 1
@@ -272,6 +326,7 @@ struct Mechanics2DViewport: View {
         let h = dt / Double(sub)
         for _ in 0..<sub { world.step(dt: h) }
         recordEnergy()
+        recordMotion()
         if world.bodies.contains(where: { !$0.pos.isFinite || !$0.vel.isFinite }) {
             reset()
         }
@@ -285,6 +340,31 @@ struct Mechanics2DViewport: View {
         }
     }
 
+    private func recordMotion() {
+        guard graphsOn else { return }
+        let t = world.time
+        for body in world.bodies where !body.pinned {
+            var arr = motionHistory[body.id] ?? []
+            arr.append(MotionSample(t: t, pos: body.pos, vel: body.vel))
+            if arr.count > motionHistMax {
+                arr.removeFirst(arr.count - motionHistMax)
+            }
+            motionHistory[body.id] = arr
+        }
+        // Drop history of removed bodies
+        let alive = Set(world.bodies.map { $0.id })
+        let stale = motionHistory.keys.filter { !alive.contains($0) }
+        for id in stale { motionHistory.removeValue(forKey: id) }
+    }
+
+    private func graphTargetBody() -> PhysicsBody? {
+        if let id = inspectedId,
+           let b = world.bodies.first(where: { $0.id == id }), !b.pinned {
+            return b
+        }
+        return world.bodies.first { !$0.pinned }
+    }
+
     private func haptic(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
         #if canImport(UIKit)
         UIImpactFeedbackGenerator(style: style).impactOccurred()
@@ -295,13 +375,15 @@ struct Mechanics2DViewport: View {
         let extent = computeExtent()
         let worldW = max(0.001, extent.x * 2)
         let worldH = max(0.001, extent.y * 2)
-        return min(canvasSize.width / worldW, canvasSize.height / worldH) * 0.9
+        let base = min(canvasSize.width / worldW, canvasSize.height / worldH) * 0.9
+        return base * zoomScale * pinchDelta
     }
 
     private func screenToWorld(_ pt: CGPoint) -> Vec3 {
         let extent = computeExtent()
         let scale = viewScale()
-        let cx = canvasSize.width / 2, cy = canvasSize.height / 2
+        let cx = canvasSize.width / 2 + panOffset.width
+        let cy = canvasSize.height / 2 + panOffset.height
         let wx = Double((pt.x - cx) / scale) + extent.center.x
         let wy = -Double((pt.y - cy) / scale) + extent.center.y
         return Vec3(x: wx, y: wy, z: 0)
@@ -348,20 +430,55 @@ struct Mechanics2DViewport: View {
     }
 
     private func handleDrag(at screenPt: CGPoint, start: CGPoint) {
-        guard !running, canvasSize.width > 0 else { return }
-        if dragBodyId == nil {
-            dragBodyId = pickBody(at: start, requireMovable: true)
-            if dragBodyId != nil {
+        guard canvasSize.width > 0 else { return }
+        if case .none = dragMode {
+            if rulerOn, let end = pickRulerHandle(at: start) {
+                dragMode = (end == .start) ? .rulerStart : .rulerEnd
+                haptic(.light)
+            } else if !running, let id = pickBody(at: start, requireMovable: true) {
+                dragMode = .body(id)
                 if !hasDraggedBody { hasDraggedBody = true }
                 haptic(.light)
+            } else {
+                dragMode = .pan(initial: panOffset)
             }
         }
-        guard let id = dragBodyId,
-              let idx = world.bodies.firstIndex(where: { $0.id == id }) else { return }
-        let target = screenToWorld(screenPt)
-        world.bodies[idx].pos = constrainDragPosition(id: id, target: target)
-        if !running { world.bodies[idx].vel = .zero }
-        inspectedId = id
+        switch dragMode {
+        case .body(let id):
+            guard !running,
+                  let idx = world.bodies.firstIndex(where: { $0.id == id }) else { return }
+            let target = screenToWorld(screenPt)
+            world.bodies[idx].pos = constrainDragPosition(id: id, target: target)
+            world.bodies[idx].vel = .zero
+            inspectedId = id
+        case .pan(let initial):
+            let dx = screenPt.x - start.x
+            let dy = screenPt.y - start.y
+            panOffset = CGSize(width: initial.width + dx, height: initial.height + dy)
+        case .rulerStart:
+            rulerStart = screenToWorld(screenPt)
+        case .rulerEnd:
+            rulerEnd = screenToWorld(screenPt)
+        case .none:
+            break
+        }
+    }
+
+    private func pickRulerHandle(at screenPt: CGPoint) -> RulerEnd? {
+        let extent = computeExtent()
+        let scale = viewScale()
+        let cx = canvasSize.width / 2 + panOffset.width
+        let cy = canvasSize.height / 2 + panOffset.height
+        let s = CGPoint(x: cx + CGFloat(rulerStart.x - extent.center.x) * scale,
+                        y: cy - CGFloat(rulerStart.y - extent.center.y) * scale)
+        let e = CGPoint(x: cx + CGFloat(rulerEnd.x - extent.center.x) * scale,
+                        y: cy - CGFloat(rulerEnd.y - extent.center.y) * scale)
+        let dS = hypot(screenPt.x - s.x, screenPt.y - s.y)
+        let dE = hypot(screenPt.x - e.x, screenPt.y - e.y)
+        let threshold: CGFloat = 26
+        if dS <= dE && dS < threshold { return .start }
+        if dE < threshold { return .end }
+        return nil
     }
 
     private func constrainDragPosition(id: UUID, target: Vec3) -> Vec3 {
@@ -407,6 +524,7 @@ struct Mechanics2DViewport: View {
         let h = dt / Double(sub)
         for _ in 0..<sub { world.step(dt: h) }
         recordEnergy()
+        recordMotion()
         if world.bodies.contains(where: {
             !$0.pos.isFinite || !$0.vel.isFinite
         }) {
@@ -419,9 +537,9 @@ struct Mechanics2DViewport: View {
         let extent = computeExtent()
         let worldW = max(0.001, extent.x * 2)
         let worldH = max(0.001, extent.y * 2)
-        let scale = min(size.width / worldW, size.height / worldH) * 0.9
-        let cx = size.width / 2
-        let cy = size.height / 2
+        let scale = min(size.width / worldW, size.height / worldH) * 0.9 * zoomScale * pinchDelta
+        let cx = size.width / 2 + panOffset.width
+        let cy = size.height / 2 + panOffset.height
 
         if let b = world.bounds {
             let x0 = cx + CGFloat(b.min.x - extent.center.x) * scale
@@ -510,8 +628,14 @@ struct Mechanics2DViewport: View {
             drawVectors(ctx: ctx, scale: scale, cx: cx, cy: cy, ext: extent.center)
         }
         drawBodyLabels(ctx: ctx, scale: scale, cx: cx, cy: cy, ext: extent.center)
+        if rulerOn {
+            drawRuler(ctx: ctx, scale: scale, cx: cx, cy: cy, ext: extent.center)
+        }
         if energyOn {
             drawEnergyPanel(ctx: ctx, in: CGRect(origin: .zero, size: size))
+        }
+        if graphsOn {
+            drawGraphsPanel(ctx: ctx, in: CGRect(origin: .zero, size: size))
         }
         if let id = inspectedId,
            let body = world.bodies.first(where: { $0.id == id }) {
@@ -824,5 +948,160 @@ struct Mechanics2DViewport: View {
         return Extent(center: .zero,
                       x: max(5, mx * 1.4),
                       y: max(5, my * 1.4))
+    }
+
+    private func drawGraphsPanel(ctx: GraphicsContext, in r: CGRect) {
+        let panelW: CGFloat = min(228, r.width * 0.46)
+        let panelH: CGFloat = 148
+        let panel = CGRect(x: r.minX + 8,
+                           y: r.maxY - panelH - 8,
+                           width: panelW, height: panelH)
+        ctx.fill(Path(roundedRect: panel, cornerRadius: 8),
+                 with: .color(Theme.deep.opacity(0.82)))
+        ctx.stroke(Path(roundedRect: panel, cornerRadius: 8),
+                   with: .color(Theme.stroke), lineWidth: 1)
+
+        guard let body = graphTargetBody(),
+              let history = motionHistory[body.id], history.count > 1 else {
+            ctx.draw(Text("재생 중 위치·속도 추이 기록")
+                        .font(.caption2).foregroundStyle(Theme.mist.opacity(0.65)),
+                     at: CGPoint(x: panel.midX, y: panel.midY))
+            return
+        }
+
+        let title = body.name ?? "선택 입자"
+        ctx.draw(Text("\(title) — x·y(m) ⏐ vₓ·v_y(m/s)")
+                    .font(.caption2.monospacedDigit().weight(.semibold))
+                    .foregroundStyle(Theme.glow),
+                 at: CGPoint(x: panel.midX, y: panel.minY + 10))
+
+        let inner = panel.insetBy(dx: 8, dy: 8).offsetBy(dx: 0, dy: 6)
+        let subH = (inner.height - 6) / 2
+        let posR = CGRect(x: inner.minX, y: inner.minY,
+                          width: inner.width, height: subH - 2)
+        let velR = CGRect(x: inner.minX, y: inner.minY + subH + 4,
+                          width: inner.width, height: subH - 2)
+
+        drawTwoCurve(ctx: ctx, in: posR, history: history,
+                     keyA: { $0.pos.x }, keyB: { $0.pos.y },
+                     colorA: .cyan, colorB: .pink, leftLabel: "x", rightLabel: "y")
+        drawTwoCurve(ctx: ctx, in: velR, history: history,
+                     keyA: { $0.vel.x }, keyB: { $0.vel.y },
+                     colorA: .cyan, colorB: .pink, leftLabel: "vₓ", rightLabel: "v_y")
+    }
+
+    private func drawTwoCurve(ctx: GraphicsContext, in r: CGRect,
+                              history: [MotionSample],
+                              keyA: (MotionSample) -> Double,
+                              keyB: (MotionSample) -> Double,
+                              colorA: Color, colorB: Color,
+                              leftLabel: String, rightLabel: String) {
+        let valsA = history.map(keyA)
+        let valsB = history.map(keyB)
+        let lo = min(valsA.min() ?? 0, valsB.min() ?? 0)
+        let hi = max(valsA.max() ?? 1, valsB.max() ?? 1)
+        let span = max(hi - lo, 0.001)
+
+        ctx.stroke(Path(roundedRect: r, cornerRadius: 4),
+                   with: .color(Theme.ink.opacity(0.25)), lineWidth: 0.6)
+
+        if lo < 0 && hi > 0 {
+            let zeroY = r.maxY - CGFloat((0 - lo) / span) * r.height
+            var z = Path()
+            z.move(to: CGPoint(x: r.minX, y: zeroY))
+            z.addLine(to: CGPoint(x: r.maxX, y: zeroY))
+            ctx.stroke(z, with: .color(Theme.ink.opacity(0.3)),
+                       style: StrokeStyle(lineWidth: 0.5, dash: [2, 2]))
+        }
+
+        for (vals, color) in [(valsA, colorA), (valsB, colorB)] {
+            var p = Path()
+            for (i, v) in vals.enumerated() {
+                let f = CGFloat(i) / CGFloat(max(motionHistMax - 1, 1))
+                let px = r.minX + f * r.width
+                let py = r.maxY - CGFloat((v - lo) / span) * r.height
+                if i == 0 { p.move(to: CGPoint(x: px, y: py)) }
+                else      { p.addLine(to: CGPoint(x: px, y: py)) }
+            }
+            ctx.stroke(p, with: .color(color), lineWidth: 1.2)
+        }
+
+        // Current value labels at right edge
+        let last = history.last
+        let a = last.map(keyA) ?? 0
+        let b = last.map(keyB) ?? 0
+        ctx.draw(Text("\(leftLabel) \(String(format: "%+.2f", a))")
+                    .font(.system(size: 8, design: .monospaced))
+                    .foregroundStyle(colorA),
+                 at: CGPoint(x: r.maxX - 4, y: r.minY + 6), anchor: .trailing)
+        ctx.draw(Text("\(rightLabel) \(String(format: "%+.2f", b))")
+                    .font(.system(size: 8, design: .monospaced))
+                    .foregroundStyle(colorB),
+                 at: CGPoint(x: r.maxX - 4, y: r.minY + 16), anchor: .trailing)
+    }
+
+    private func drawRuler(ctx: GraphicsContext, scale: CGFloat,
+                           cx: CGFloat, cy: CGFloat, ext: CGPoint) {
+        let s = mapPoint(rulerStart, scale: scale, cx: cx, cy: cy, ext: ext)
+        let e = mapPoint(rulerEnd, scale: scale, cx: cx, cy: cy, ext: ext)
+
+        var shadow = Path()
+        shadow.move(to: s); shadow.addLine(to: e)
+        ctx.stroke(shadow, with: .color(Theme.deep.opacity(0.6)),
+                   style: StrokeStyle(lineWidth: 4, lineCap: .round))
+        var line = Path()
+        line.move(to: s); line.addLine(to: e)
+        ctx.stroke(line, with: .color(Theme.glow),
+                   style: StrokeStyle(lineWidth: 1.4, lineCap: .round, dash: [6, 4]))
+
+        for pt in [s, e] {
+            let r: CGFloat = 7
+            ctx.fill(Path(ellipseIn: CGRect(x: pt.x - r, y: pt.y - r,
+                                             width: r * 2, height: r * 2)),
+                     with: .color(Theme.deep.opacity(0.9)))
+            ctx.stroke(Path(ellipseIn: CGRect(x: pt.x - r, y: pt.y - r,
+                                              width: r * 2, height: r * 2)),
+                       with: .color(Theme.glow), lineWidth: 1.6)
+        }
+
+        let mid = CGPoint(x: (s.x + e.x) / 2, y: (s.y + e.y) / 2)
+        let dx = rulerEnd.x - rulerStart.x
+        let dy = rulerEnd.y - rulerStart.y
+        let dist = (dx * dx + dy * dy).squareRoot()
+        let label = String(format: "%.2f m", dist)
+
+        // Offset label perpendicular to ruler
+        let lineLen = hypot(e.x - s.x, e.y - s.y)
+        var ox: CGFloat = 0, oy: CGFloat = -14
+        if lineLen > 0.5 {
+            let nx = (e.y - s.y) / lineLen
+            let ny = -(e.x - s.x) / lineLen
+            ox = nx * 14
+            oy = ny * 14
+        }
+        let lblPt = CGPoint(x: mid.x + ox, y: mid.y + oy)
+        let bg = CGRect(x: lblPt.x - 32, y: lblPt.y - 9, width: 64, height: 18)
+        ctx.fill(Path(roundedRect: bg, cornerRadius: 4),
+                 with: .color(Theme.deep.opacity(0.9)))
+        ctx.stroke(Path(roundedRect: bg, cornerRadius: 4),
+                   with: .color(Theme.glow.opacity(0.6)), lineWidth: 0.8)
+        ctx.draw(Text(label).font(.caption2.monospacedDigit()).foregroundStyle(Theme.glow),
+                 at: lblPt)
+    }
+
+    fileprivate struct MotionSample {
+        let t: Double
+        let pos: Vec3
+        let vel: Vec3
+    }
+
+    fileprivate enum RulerEnd { case start, end }
+
+    fileprivate enum DragMode {
+        case none
+        case body(UUID)
+        case pan(initial: CGSize)
+        case rulerStart
+        case rulerEnd
     }
 }
