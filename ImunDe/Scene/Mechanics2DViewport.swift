@@ -471,8 +471,14 @@ struct Mechanics2DViewport: View {
                 }
             }
             .frame(width: mapW, height: mapH)
-            .glassEffect(.regular,
-                          in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+            .background(
+                RoundedRectangle(cornerRadius: Radius.small, style: .continuous)
+                    .fill(Theme.surface.opacity(0.92))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: Radius.small, style: .continuous)
+                            .stroke(Theme.stroke, lineWidth: 0.5)
+                    )
+            )
             .padding(10)
             .contentShape(Rectangle())
             // Tap-to-recenter — 탭 한 곳을 main canvas 중앙으로 pan.
