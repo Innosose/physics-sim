@@ -1434,7 +1434,11 @@ struct Mechanics2DViewport: View {
     }
 
     private func drawFieldGrid(ctx: GraphicsContext, size: CGSize, outward: Bool) {
-        let step: CGFloat = 36
+        // Step = 0.5 world units → screen pt, clamped to readable range.
+        // 옛날 36pt 고정 → 8x 줌에서 dense ant trail, 0.25x 줌에서 9px 격자.
+        // 이제는 zoom 에 따라 적응 — physical interpretation 유지.
+        let scale = viewScale()
+        let step: CGFloat = max(20, min(64, 0.5 * scale))
         var x: CGFloat = step / 2
         while x < size.width {
             var y: CGFloat = step / 2
@@ -1716,8 +1720,19 @@ struct Mechanics2DViewport: View {
         let distW = (dxW * dxW + dyW * dyW).squareRoot()
         let lineLen = hypot(e.x - s.x, e.y - s.y)
         if distW > 0.2, lineLen > 4 {
-            let tickStep = 0.5
-            let nTicks = min(Int(distW / tickStep), 80)
+            // Adaptive tick step — 화면 8개 정도의 tick 을 목표로 nice
+            // round number (1, 2, 5, 10, 20, 50 ...) 선택. 옛날에는 0.5 m
+            // 고정 + 80개 cap → 100m 자에서 40m 만 표시되는 버그.
+            let rawStep = distW / 8
+            let mag = pow(10.0, floor(log10(rawStep)))
+            let normalized = rawStep / mag
+            let nice: Double
+            if normalized < 1.5 { nice = 1 }
+            else if normalized < 3.5 { nice = 2 }
+            else if normalized < 7.5 { nice = 5 }
+            else { nice = 10 }
+            let tickStep = nice * mag
+            let nTicks = min(Int(distW / tickStep) + 1, 60)
             let perpX = -(e.y - s.y) / lineLen
             let perpY =  (e.x - s.x) / lineLen
             for i in 0...nTicks {
