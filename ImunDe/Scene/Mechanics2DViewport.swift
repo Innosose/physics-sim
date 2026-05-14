@@ -1412,6 +1412,18 @@ struct Mechanics2DViewport: View {
             autoStopped = true
             world.didRecoverFromNaN = false
         }
+        // Runaway 감지: n체 sim 에서 행성을 별 근처로 드래그하면 슬링샷으로
+        // 튕겨나가 좌표가 폭증. CGPoint 가 1e6 pt 를 넘어 CoreGraphics 가
+        // IOSurface notify / vsync 등록을 못해 결국 SIGTERM 으로 종료.
+        // 1km / 1km·s⁻¹ 임계 초과 시 즉시 일시정지.
+        let posCap: Double = 1000
+        let velCap: Double = 1000
+        if world.bodies.contains(where: {
+            !$0.pinned && ($0.pos.length > posCap || $0.vel.length > velCap)
+        }) {
+            running = false
+            autoStopped = true
+        }
         if allBodiesAtRest() { running = false; autoStopped = true }
     }
 
@@ -1797,8 +1809,17 @@ struct Mechanics2DViewport: View {
 
     private func mapPoint(_ p: Vec3, scale: CGFloat, cx: CGFloat, cy: CGFloat,
                           ext: CGPoint) -> CGPoint {
-        CGPoint(x: cx + CGFloat(p.x - ext.x) * scale,
-                y: cy - CGFloat(p.y - ext.y) * scale)
+        let x = cx + CGFloat(p.x - ext.x) * scale
+        let y = cy - CGFloat(p.y - ext.y) * scale
+        // CoreGraphics 가 극단적으로 큰 CGPoint (>1e5 pt) 를 받으면
+        // Path 구성 / IOSurface notify / vsync 등록에서 비결정적 실패
+        // 발생. n체 sim 에서 행성이 별 근처로 드래그된 후 슬링샷으로
+        // 튕겨나가면 1프레임 만에 좌표가 1e6 pt 이상으로 폭증. 화면 밖
+        // 충분히 떨어진 ±1e4 으로 안전하게 clamp.
+        let cap: CGFloat = 10000
+        return CGPoint(
+            x: x.isFinite ? min(max(x, -cap), cap) : 0,
+            y: y.isFinite ? min(max(y, -cap), cap) : 0)
     }
 
     /// 분석 모드 격자 + 좌표축. zoom 에 맞춰 round-number 간격을 1·2·5
