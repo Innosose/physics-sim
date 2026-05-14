@@ -72,6 +72,11 @@ struct Mechanics2DViewport: View {
     // stale 좌표 5초 페이드용 Task. 빠른 탭 시 좀비 누적되지 않도록
     // 이전 task 를 cancel 하고 갱신.
     @State private var fadeTask: Task<Void, Never>? = nil
+    // paramResetSignature 변경 시 reset() 디바운스용. 슬라이더를 1초 드래그
+    // 하면 60×/sec onChange → reset() 60× = preset.load 60× → 진자 60×
+    // 텔레포트 + CPU/메모리 thrash. 마지막 변경 후 150ms 안정될 때 한 번만
+    // reset.
+    @State private var resetDebounceTask: Task<Void, Never>? = nil
     @AppStorage("hasDraggedBody") private var hasDraggedBody = false
     @Environment(\.colorScheme) private var colorScheme
 
@@ -183,7 +188,21 @@ struct Mechanics2DViewport: View {
             .frame(maxHeight: horizontalSizeClass == .regular ? 280 : 200)
         }
         .onAppear { reset() }
-        .onDisappear { fadeTask?.cancel(); fadeTask = nil }
+        .onDisappear {
+            fadeTask?.cancel(); fadeTask = nil
+            resetDebounceTask?.cancel(); resetDebounceTask = nil
+        }
+        // iOS 메모리 경고 — 한국 학생 사용 패턴 (장시간 세션 + 카카오톡
+        // 멀티태스크) 에서 jetsam 임박 시 history/trails 즉시 비워 jetsam
+        // SIGKILL 회피.
+        .onReceive(NotificationCenter.default.publisher(
+            for: UIApplication.didReceiveMemoryWarningNotification)) { _ in
+            energyHistory.removeAll(keepingCapacity: false)
+            motionHistory.removeAll(keepingCapacity: false)
+            world.trails.removeAll(keepingCapacity: false)
+            running = false
+            autoStopped = true
+        }
         .onChange(of: preset.id) { _, _ in reset() }
         .onChange(of: scenePhase) { _, phase in
             // .active 가 아닌 모든 상태에서 drag cleanup —
@@ -261,7 +280,14 @@ struct Mechanics2DViewport: View {
             dragStartTime = Date()
             didMoveBeyondSlop = false
             dragMode = classifyHit(at: v.startLocation)
-            if case .body = dragMode, !hasDraggedBody { hasDraggedBody = true }
+            if case .body(let id) = dragMode {
+                if !hasDraggedBody { hasDraggedBody = true }
+                // body grab 첫 프레임에만 inspectedId 설정 — 매 프레임
+                // 재설정하면 사용자가 인스펙터 X 를 탭해도 다음 frame 에
+                // 다시 열림.
+                inspectedId = id
+                autoStopped = false  // drag 시 "정지됨" 배지 거짓 표시 제거.
+            }
         }
         // 커서 월드좌표 — 상태바에 표시. CAD/COMSOL 표준 컨벤션.
         pointerWorldPos = screenToWorld(v.location)
@@ -304,7 +330,7 @@ struct Mechanics2DViewport: View {
             let target = screenToWorld(v.location)
             world.bodies[idx].pos = constrainDragPosition(id: id, target: target)
             world.bodies[idx].vel = .zero
-            inspectedId = id
+            // inspectedId 는 grab 첫 프레임에만 (위 블록) — X 닫기 후 재오픈 방지.
         case .pan:
             applyPan(translation: v.translation)
         case .rulerStart:
@@ -326,9 +352,12 @@ struct Mechanics2DViewport: View {
         // 옮기면 PE 가 외부 일에 의해 바뀌어 차트에 step 점프가 생기고
         // 학생이 "에너지 보존 위반"으로 오해. 새 상태에서 차트를 다시
         // 시작해 외력 입력 후의 evolution 을 깨끗이 관찰하게 한다.
-        if case .body = dragMode {
+        if case .body(let id) = dragMode {
             energyHistory.removeAll(keepingCapacity: true)
             motionHistory.removeAll(keepingCapacity: true)
+            // 옛 trail samples 가 새 drop 위치로 chord 연결되어 시각 글리치
+            // 발생. trails[id] 도 함께 비워 새 위치부터 다시 누적.
+            world.trails[id]?.removeAll(keepingCapacity: true)
         }
         cancelActiveDrag()
         // 마지막 좌표 5 초간 stale (회색) 유지 — 학생이 값 확인 후 손
@@ -919,7 +948,14 @@ struct Mechanics2DViewport: View {
         // Single .onChange covering every preset's init-condition slider —
         // 17개 개별 onChange 체인은 Swift type-checker가 timeout 시켜서
         // joined signature 하나로 묶었다.
-        .onChange(of: paramResetSignature) { _, _ in reset() }
+        .onChange(of: paramResetSignature) { _, _ in
+            resetDebounceTask?.cancel()
+            resetDebounceTask = Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(150))
+                guard !Task.isCancelled else { return }
+                reset()
+            }
+        }
     }
 
     /// 초기 조건 변화 — reset 트리거. gravity 는 제외 (라이브).
