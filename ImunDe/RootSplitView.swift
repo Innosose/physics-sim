@@ -27,7 +27,14 @@ struct RootSplitView: View {
             detailColumn
         }
         .navigationSplitViewStyle(.balanced)
-        .onChange(of: sidebarItem) { _, _ in detailSelection = nil }
+        .onChange(of: sidebarItem) { _, new in
+            // Preserve detail selection when the new sidebar curriculum
+            // matches the selected preset (e.g. featured preset tapped on welcome).
+            if case .preset(let p) = detailSelection,
+               case .curriculum(let c) = new,
+               p.curriculum == c { return }
+            detailSelection = nil
+        }
         .sheet(isPresented: $showSettings) { SettingsView() }
     }
 
@@ -104,7 +111,16 @@ struct RootSplitView: View {
                 WorldScene(preset: p)
                     .id("ws-\(p.id)")
             case nil:
-                WelcomeView(hasSidebarSelection: sidebarItem != nil)
+                WelcomeView(
+                    hasSidebarSelection: sidebarItem != nil,
+                    onSelectCurriculum: { c in
+                        sidebarItem = .curriculum(c)
+                    },
+                    onSelectPreset: { p in
+                        sidebarItem = .curriculum(p.curriculum)
+                        detailSelection = .preset(p)
+                    }
+                )
             }
         }
         .transition(.opacity)
@@ -126,11 +142,36 @@ enum DetailItem: Hashable, Identifiable {
 
 private struct WelcomeView: View {
     var hasSidebarSelection: Bool = false
+    var onSelectCurriculum: ((Curriculum) -> Void)? = nil
+    var onSelectPreset: ((Preset) -> Void)? = nil
+
+    @State private var heroIn = false
     @State private var titleIn = false
     @State private var subIn = false
     @State private var underlineProgress: CGFloat = 0
+    @State private var statsIn = false
+    @State private var featuredIn = false
     @State private var rowsIn = [false, false, false]
     @State private var footerIn = false
+    @State private var featured: Preset? = nil
+
+    private static let uniquePresets: [Preset] = {
+        var seen = Set<String>()
+        var out: [Preset] = []
+        for c in Curriculum.allCases {
+            for (_, presets) in PresetCatalog.grouped(for: c) {
+                for p in presets where seen.insert(p.id).inserted {
+                    out.append(p)
+                }
+            }
+        }
+        return out
+    }()
+
+    private static let totalSimCount: Int = uniquePresets.count
+    private static let totalCategoryCount: Int = {
+        Set(uniquePresets.map { $0.category }).count
+    }()
 
     private let rows: [(curriculum: Curriculum, sub: String)] = [
         (.middle, "역학·빛·회로·열"),
@@ -141,87 +182,300 @@ private struct WelcomeView: View {
     var body: some View {
         ZStack {
             ImunDeBackground()
-            VStack(spacing: 24) {
-                VStack(spacing: 5) {
-                    Text("이문데")
-                        .font(.system(size: 44, weight: .bold))
-                        .foregroundStyle(Theme.ink)
-                        .opacity(titleIn ? 1 : 0)
-                        .offset(y: titleIn ? 0 : 12)
-                    Text("이런 문제 데이터베이스")
-                        .font(.system(size: 14))
-                        .foregroundStyle(Theme.mist)
-                        .opacity(subIn ? 1 : 0)
-                        .offset(y: subIn ? 0 : 6)
+            ScrollView {
+                VStack(spacing: 22) {
+                    heroSection
+                    statsRow
+                    featuredCard
+                    curriculumStack
+                    footer
                 }
-                Rectangle()
-                    .fill(Theme.glow)
-                    .frame(width: underlineProgress * 48, height: 3)
-                    .clipShape(Capsule())
-                    .animation(.easeInOut(duration: 0.7).delay(0.38), value: underlineProgress)
-                VStack(spacing: 6) {
-                    ForEach(rows.indices, id: \.self) { i in
-                        let item = rows[i]
-                        HStack(spacing: 12) {
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                    .fill(item.curriculum.accent.opacity(0.10))
-                                    .frame(width: 36, height: 36)
-                                Image(systemName: item.curriculum.icon)
-                                    .font(.system(size: 15, weight: .semibold))
-                                    .foregroundStyle(item.curriculum.accent)
-                            }
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(item.curriculum.rawValue)
-                                    .font(.system(size: 14, weight: .semibold))
-                                    .foregroundStyle(Theme.ink)
-                                Text(item.sub)
-                                    .font(.system(size: 11))
-                                    .foregroundStyle(Theme.mist)
-                            }
-                            Spacer()
-                        }
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 10)
-                        .background(Theme.surface)
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .stroke(Theme.stroke, lineWidth: 1)
-                        )
-                        .shadow(color: Theme.ink.opacity(0.04), radius: 4, x: 0, y: 2)
-                        .opacity(rowsIn[i] ? 1 : 0)
-                        .offset(y: rowsIn[i] ? 0 : 12)
-                    }
-                }
-                .frame(maxWidth: 340)
-                Text(hasSidebarSelection
-                     ? "목록에서 시뮬레이션을 선택하세요"
-                     : "사이드바에서 학년을 선택하세요")
-                    .font(.system(size: 12))
-                    .foregroundStyle(Theme.mist.opacity(0.6))
-                    .opacity(footerIn ? 1 : 0)
+                .frame(maxWidth: 360)
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 24)
+                .padding(.vertical, 28)
             }
-            .padding(24)
         }
         .ignoresSafeArea()
         .onAppear(perform: animateIn)
     }
 
+    private var heroSection: some View {
+        VStack(spacing: 8) {
+            OrbitMascot()
+                .frame(width: 64, height: 64)
+                .opacity(heroIn ? 1 : 0)
+                .scaleEffect(heroIn ? 1 : 0.55)
+            Text("이문데")
+                .font(.system(size: 44, weight: .bold))
+                .foregroundStyle(Theme.ink)
+                .opacity(titleIn ? 1 : 0)
+                .offset(y: titleIn ? 0 : 10)
+            Text("인터랙티브 물리 시뮬레이션")
+                .font(.system(size: 13))
+                .foregroundStyle(Theme.mist)
+                .opacity(subIn ? 1 : 0)
+                .offset(y: subIn ? 0 : 6)
+            Rectangle()
+                .fill(Theme.glow)
+                .frame(width: underlineProgress * 48, height: 3)
+                .clipShape(Capsule())
+                .animation(.easeInOut(duration: 0.7).delay(0.40),
+                           value: underlineProgress)
+        }
+    }
+
+    private var statsRow: some View {
+        HStack(spacing: 0) {
+            statBlock(value: "\(Self.totalSimCount)", label: "시뮬레이션")
+            statDivider
+            statBlock(value: "\(Self.totalCategoryCount)", label: "카테고리")
+            statDivider
+            statBlock(value: "3", label: "학년")
+        }
+        .padding(.vertical, 8)
+        .padding(.horizontal, 8)
+        .background(Theme.surface.opacity(0.55))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(Theme.stroke, lineWidth: 1)
+        )
+        .opacity(statsIn ? 1 : 0)
+        .offset(y: statsIn ? 0 : 10)
+    }
+
+    private func statBlock(value: String, label: String) -> some View {
+        VStack(spacing: 1) {
+            Text(value)
+                .font(.system(size: 22, weight: .bold).monospacedDigit())
+                .foregroundStyle(Theme.ink)
+            Text(label)
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(Theme.mist)
+                .tracking(0.5)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private var statDivider: some View {
+        Rectangle()
+            .fill(Theme.stroke)
+            .frame(width: 1, height: 26)
+    }
+
+    @ViewBuilder
+    private var featuredCard: some View {
+        if let f = featured {
+            Button {
+                onSelectPreset?(f)
+            } label: {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(spacing: 5) {
+                        Image(systemName: "sparkle")
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundStyle(Theme.glow)
+                        Text("오늘의 시뮬레이션")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(Theme.mist)
+                            .tracking(0.6)
+                        Spacer()
+                    }
+                    HStack(alignment: .top, spacing: 12) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 9, style: .continuous)
+                                .fill(f.curriculum.accent.opacity(0.12))
+                                .frame(width: 40, height: 40)
+                            Image(systemName: f.kind.icon)
+                                .font(.system(size: 17, weight: .semibold))
+                                .foregroundStyle(f.curriculum.accent)
+                        }
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(f.title)
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundStyle(Theme.ink)
+                            if !f.subtitle.isEmpty {
+                                Text(f.subtitle)
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(Theme.mist)
+                                    .lineLimit(2)
+                                    .multilineTextAlignment(.leading)
+                            }
+                        }
+                        Spacer(minLength: 0)
+                    }
+                    if let formula = f.formula {
+                        Text(formula)
+                            .font(.system(size: 11, design: .serif))
+                            .foregroundStyle(Theme.mist.opacity(0.85))
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                    }
+                    HStack {
+                        Spacer()
+                        HStack(spacing: 4) {
+                            Text("열기")
+                            Image(systemName: "arrow.right")
+                        }
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Theme.glow)
+                    }
+                }
+                .padding(14)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Theme.surface)
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(Theme.glow.opacity(0.32), lineWidth: 1)
+                )
+                .shadow(color: Theme.ink.opacity(0.06), radius: 6, x: 0, y: 3)
+            }
+            .buttonStyle(.chipPress)
+            .opacity(featuredIn ? 1 : 0)
+            .offset(y: featuredIn ? 0 : 12)
+        }
+    }
+
+    private var curriculumStack: some View {
+        VStack(spacing: 6) {
+            ForEach(rows.indices, id: \.self) { i in
+                let item = rows[i]
+                Button {
+                    onSelectCurriculum?(item.curriculum)
+                } label: {
+                    HStack(spacing: 12) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .fill(item.curriculum.accent.opacity(0.10))
+                                .frame(width: 36, height: 36)
+                            Image(systemName: item.curriculum.icon)
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundStyle(item.curriculum.accent)
+                        }
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(item.curriculum.rawValue)
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(Theme.ink)
+                            Text(item.sub)
+                                .font(.system(size: 11))
+                                .foregroundStyle(Theme.mist)
+                        }
+                        Spacer()
+                        Image(systemName: "arrow.right")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(Theme.mist.opacity(0.45))
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(Theme.surface)
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .stroke(Theme.stroke, lineWidth: 1)
+                    )
+                    .shadow(color: Theme.ink.opacity(0.04), radius: 4, x: 0, y: 2)
+                }
+                .buttonStyle(.chipPress)
+                .opacity(rowsIn[i] ? 1 : 0)
+                .offset(y: rowsIn[i] ? 0 : 12)
+            }
+        }
+    }
+
+    private var footer: some View {
+        Text(hasSidebarSelection
+             ? "목록에서 시뮬레이션을 선택하세요"
+             : "사이드바에서 학년을 선택하세요")
+            .font(.system(size: 12))
+            .foregroundStyle(Theme.mist.opacity(0.6))
+            .opacity(footerIn ? 1 : 0)
+            .padding(.top, 4)
+    }
+
     private func animateIn() {
+        if featured == nil {
+            featured = Self.uniquePresets.randomElement()
+        }
         guard !titleIn else { return }
-        withAnimation(.easeOut(duration: 0.5)) { titleIn = true }
-        withAnimation(.easeOut(duration: 0.5).delay(0.15)) { subIn = true }
-        withAnimation(.none) { underlineProgress = 0 }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+        withAnimation(.spring(duration: 0.6)) { heroIn = true }
+        withAnimation(.easeOut(duration: 0.5).delay(0.10)) { titleIn = true }
+        withAnimation(.easeOut(duration: 0.5).delay(0.22)) { subIn = true }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.40) {
             underlineProgress = 1
         }
+        withAnimation(.spring(duration: 0.5).delay(0.40)) { statsIn = true }
+        withAnimation(.spring(duration: 0.55).delay(0.55)) { featuredIn = true }
         for i in 0..<rowsIn.count {
-            withAnimation(.spring(duration: 0.5).delay(0.55 + Double(i) * 0.10)) {
+            withAnimation(.spring(duration: 0.5).delay(0.78 + Double(i) * 0.08)) {
                 rowsIn[i] = true
             }
         }
-        withAnimation(.easeOut(duration: 0.5).delay(0.95)) { footerIn = true }
+        withAnimation(.easeOut(duration: 0.5).delay(1.10)) { footerIn = true }
+    }
+}
+
+// MARK: - OrbitMascot — live binary-orbit canvas as the welcome hero.
+
+private struct OrbitMascot: View {
+    var body: some View {
+        TimelineView(.animation) { tl in
+            Canvas { ctx, sz in
+                let t = tl.date.timeIntervalSinceReferenceDate
+                let center = CGPoint(x: sz.width / 2, y: sz.height / 2)
+                let r1 = min(sz.width, sz.height) * 0.36
+                let r2 = r1 * 0.55
+
+                let outer = Path(ellipseIn: CGRect(
+                    x: center.x - r1, y: center.y - r1,
+                    width: r1 * 2, height: r1 * 2))
+                ctx.stroke(outer,
+                           with: .color(Theme.mist.opacity(0.25)),
+                           style: StrokeStyle(lineWidth: 0.7, dash: [2, 3]))
+
+                // Trail behind outer planet
+                let omega1 = 2 * Double.pi / 4.2
+                var trail = Path()
+                let nSamples = 20
+                for i in 0..<nSamples {
+                    let dt = Double(i) * 0.045
+                    let a = (t - dt) * omega1
+                    let p = CGPoint(
+                        x: center.x + cos(a) * r1,
+                        y: center.y + sin(a) * r1)
+                    if i == 0 { trail.move(to: p) } else { trail.addLine(to: p) }
+                }
+                ctx.stroke(trail,
+                           with: .color(Theme.ink.opacity(0.14)),
+                           style: StrokeStyle(lineWidth: 1.4, lineCap: .round))
+
+                // Central star
+                let starR: CGFloat = 4.5
+                ctx.fill(Path(ellipseIn: CGRect(
+                    x: center.x - starR, y: center.y - starR,
+                    width: starR * 2, height: starR * 2)),
+                         with: .color(Theme.glow))
+
+                // Outer planet (ink)
+                let a1 = t * omega1
+                let p1 = CGPoint(
+                    x: center.x + cos(a1) * r1,
+                    y: center.y + sin(a1) * r1)
+                ctx.fill(Path(ellipseIn: CGRect(
+                    x: p1.x - 3, y: p1.y - 3, width: 6, height: 6)),
+                         with: .color(Theme.ink))
+
+                // Inner planet (mist, retrograde)
+                let omega2 = -2 * Double.pi / 2.5
+                let a2 = t * omega2
+                let p2 = CGPoint(
+                    x: center.x + cos(a2) * r2,
+                    y: center.y + sin(a2) * r2)
+                ctx.fill(Path(ellipseIn: CGRect(
+                    x: p2.x - 2, y: p2.y - 2, width: 4, height: 4)),
+                         with: .color(Theme.mist))
+            }
+        }
     }
 }
 
